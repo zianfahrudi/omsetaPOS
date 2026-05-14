@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sales;
 
+use App\Filament\Resources\Sales\Pages\EditSale;
 use App\Filament\Resources\Sales\Pages\ListSales;
 use App\Filament\Resources\Sales\Pages\ViewSale;
 use App\Filament\Resources\Sales\Schemas\SaleForm;
@@ -50,6 +51,7 @@ class SaleResource extends Resource
         return [
             'index' => ListSales::route('/'),
             'view' => ViewSale::route('/{record}'),
+            'edit' => EditSale::route('/{record}/edit'),
         ];
     }
 
@@ -60,7 +62,7 @@ class SaleResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return false;
+        return true;
     }
 
     public static function canDelete($record): bool

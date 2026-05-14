@@ -147,8 +147,8 @@
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-weight: 700;">{{ $this->rupiah($sale->grand_total) }}</div>
-                                @if($sale->is_debt)
-                                    <span style="font-size: 0.75rem; background-color: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 0.125rem 0.5rem; border-radius: 9999px; font-weight: 600;">Hutang</span>
+                                @if((float) $sale->debt_amount > 0)
+                                    <span style="font-size: 0.75rem; background-color: rgba(245, 158, 11, 0.14); color: #92400e; padding: 0.125rem 0.5rem; border-radius: 9999px; font-weight: 600;">Belum lunas</span>
                                 @else
                                     <span style="font-size: 0.75rem; background-color: rgba(34, 197, 94, 0.1); color: #22c55e; padding: 0.125rem 0.5rem; border-radius: 9999px; font-weight: 600;">Lunas</span>
                                 @endif

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sales\Tables;
 
+use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -29,9 +30,11 @@ class SalesTable
                     ->searchable(),
                 TextColumn::make('payment_method')
                     ->searchable(),
-                IconColumn::make('is_debt')
-                    ->label('Hutang')
-                    ->boolean(),
+                TextColumn::make('payment_status')
+                    ->label('Status bayar')
+                    ->state(fn ($record): string => (float) $record->debt_amount > 0 ? 'Belum lunas' : 'Lunas')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Belum lunas' ? 'warning' : 'success'),
                 IconColumn::make('payment_proof')
                     ->label('Bukti')
                     ->boolean()
@@ -82,6 +85,7 @@ class SalesTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                EditAction::make(),
             ]);
     }
 }

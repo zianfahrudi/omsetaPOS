@@ -27,8 +27,13 @@ class SaleInfolist
                     ->placeholder('-'),
                 TextEntry::make('status'),
                 TextEntry::make('payment_method'),
+                TextEntry::make('payment_status')
+                    ->label('Status pembayaran')
+                    ->state(fn ($record): string => (float) $record->debt_amount > 0 ? 'Belum lunas' : 'Lunas')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Belum lunas' ? 'warning' : 'success'),
                 TextEntry::make('is_debt')
-                    ->label('Transaksi hutang')
+                    ->label('Dibuat sebagai hutang')
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Ya' : 'Tidak'),
                 ImageEntry::make('payment_proof')
                     ->label('Bukti transfer / QRIS')

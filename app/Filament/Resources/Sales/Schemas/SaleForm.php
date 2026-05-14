@@ -26,6 +26,14 @@ class SaleForm
                     ->default('completed'),
                 TextInput::make('payment_method')
                     ->required(),
+                Select::make('payment_status')
+                    ->label('Status pembayaran')
+                    ->options([
+                        'lunas' => 'Lunas',
+                        'belum_lunas' => 'Belum lunas',
+                    ])
+                    ->default('lunas')
+                    ->required(),
                 TextInput::make('subtotal')
                     ->required()
                     ->numeric()
@@ -49,6 +57,12 @@ class SaleForm
                 TextInput::make('change_amount')
                     ->required()
                     ->numeric()
+                    ->default(0),
+                TextInput::make('debt_amount')
+                    ->label('Nominal hutang')
+                    ->required()
+                    ->numeric()
+                    ->minValue(0)
                     ->default(0),
                 DateTimePicker::make('paid_at'),
             ]);

@@ -237,6 +237,10 @@ class CashierController extends Controller
             ->where('cashier_id', Auth::id())
             ->firstOrFail();
 
+        if ((float) $sale->debt_amount > 0) {
+            return response()->json(['message' => 'Transaksi belum lunas tidak bisa direfund.'], 422);
+        }
+
         $returnedItems = $data['type'] === 'full'
             ? $sale->items
                 ->map(fn ($item) => [

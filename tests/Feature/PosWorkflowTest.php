@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\SalesReports;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Product;
@@ -92,6 +93,8 @@ class PosWorkflowTest extends TestCase
         $response->assertSee('Proses Pembayaran');
         $response->assertSee('Transaksi hutang piutang');
         $response->assertSee('Nominal Sudah Dibayar');
+        $response->assertSee('id="paid-amount" type="text" inputmode="numeric"', false);
+        $response->assertSee('id="refund-additional-payment" type="text" inputmode="numeric"', false);
         $response->assertSee($store->name);
         $response->assertSee($otherStore->name);
         $response->assertDontSee($unassignedStore->name);
@@ -604,10 +607,47 @@ class PosWorkflowTest extends TestCase
         $response->assertJsonPath('sale.debt_amount', 0);
         $response->assertJsonPath('sale.paid_amount', 5000);
         $this->assertEquals(0, (float) $customer->refresh()->outstanding_debt);
+
+        $report = app(SalesReports::class);
+        $report->mount();
+        $this->assertEquals(0, (float) $report->totals()['debt']);
+        $this->assertEquals(5000, (float) $report->totals()['revenue']);
+
         $this->assertDatabaseHas('activity_logs', [
             'action' => 'sale.debt_paid',
             'subject_id' => $sale->id,
         ]);
+    }
+
+    public function test_sales_cms_edit_page_can_manage_payment_status(): void
+    {
+        [$superuser, $store, $product] = $this->fixture();
+        $superuser->update(['role' => 'superuser']);
+
+        $customer = Customer::create([
+            'store_id' => $store->id,
+            'name' => 'CMS Hutang',
+            'phone' => '081414141414',
+        ]);
+
+        $this->actingAs($superuser);
+
+        $sale = app(CheckoutService::class)->checkout(
+            storeId: $store->id,
+            cashierId: $superuser->id,
+            items: [['product_id' => $product->id, 'quantity' => 1]],
+            paymentMethod: 'cash',
+            paidAmount: 1000,
+            customerId: $customer->id,
+            isDebt: true,
+        );
+
+        $response = $this->get("/admin/sales/{$sale->id}/edit");
+
+        $response->assertOk();
+        $response->assertSee('Status pembayaran');
+        $response->assertSee('Belum lunas');
+        $response->assertSee('Nominal hutang');
     }
 
     public function test_cashier_refund_endpoint_processes_full_refund_with_evidence_photos(): void
@@ -717,6 +757,46 @@ class PosWorkflowTest extends TestCase
         $response->assertJsonPath('refund.items.1.direction', 'replacement');
     }
 
+    public function test_unpaid_debt_transaction_cannot_be_refunded(): void
+    {
+        Storage::fake('public');
+
+        [$cashier, $store, $product] = $this->fixture();
+        $cashier->stores()->attach($store->id, ['role' => 'cashier', 'is_default' => true]);
+
+        $customer = Customer::create([
+            'store_id' => $store->id,
+            'name' => 'Refund Belum Lunas',
+            'phone' => '081515151515',
+        ]);
+
+        $this->actingAs($cashier);
+
+        $sale = app(CheckoutService::class)->checkout(
+            storeId: $store->id,
+            cashierId: $cashier->id,
+            items: [['product_id' => $product->id, 'quantity' => 1]],
+            paymentMethod: 'cash',
+            paidAmount: 1000,
+            customerId: $customer->id,
+            isDebt: true,
+        );
+
+        $response = $this->post(route('cashier.refunds.store'), [
+            'store_id' => $store->id,
+            'sale_id' => $sale->id,
+            'type' => 'full',
+            'evidence_photos' => [
+                UploadedFile::fake()->image('refund-unpaid.jpg'),
+            ],
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonPath('message', 'Transaksi belum lunas tidak bisa direfund.');
+    }
+
     public function test_sales_report_reduces_revenue_after_refund_and_stock_returns(): void
     {
         [$superuser, $store, $product] = $this->fixture();
@@ -743,7 +823,7 @@ class PosWorkflowTest extends TestCase
 
         $this->assertSame(10, $product->refresh()->stock);
 
-        $page = app(\App\Filament\Pages\SalesReports::class);
+        $page = app(SalesReports::class);
         $page->mount();
 
         $this->assertEquals(0, (float) $page->totals()['revenue']);

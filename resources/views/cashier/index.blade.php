@@ -1054,6 +1054,17 @@
             box-shadow: var(--shadow-sm);
         }
 
+        .refund-sale.disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            filter: grayscale(0.35);
+        }
+
+        .refund-sale.disabled:hover {
+            border-color: var(--line);
+            box-shadow: none;
+        }
+
         .refund-line {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 78px;
@@ -1093,19 +1104,18 @@
 
         .refund-product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 12px;
             padding-bottom: 82px;
         }
 
         .refund-product-card {
-            display: grid;
-            grid-template-columns: 26px minmax(0, 1fr);
-            gap: 10px;
-            align-items: start;
-            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px;
             border: 1px solid var(--line);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-lg);
             background: var(--panel);
             cursor: pointer;
             transition: var(--transition);
@@ -1118,17 +1128,62 @@
         }
 
         .refund-product-card input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-top: 3px;
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
             accent-color: var(--brand);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .refund-product-card-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .refund-product-card-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text);
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .refund-product-card-meta {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .refund-product-card-price {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .refund-product-card-qty {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .refund-product-card-qty span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
         }
 
         .refund-product-card .input {
+            width: 90px;
             height: 38px;
             min-height: 38px;
-            padding: 0 10px;
-            margin-top: 10px;
+            padding: 0 12px;
+            text-align: center;
+            border-radius: var(--radius-md);
+            font-weight: 600;
         }
 
         .refund-product-actions {
@@ -1499,7 +1554,8 @@
                         </div>
                         <label class="field" id="paid-field" style="grid-column: 1 / -1;">
                             <span id="paid-label">Nominal Diterima</span>
-                            <input class="input" id="paid-amount" type="number" min="0" step="500" placeholder="0">
+                            <input class="input" id="paid-amount" type="text" inputmode="numeric" autocomplete="off"
+                                placeholder="0">
                         </label>
                         <label class="field" id="proof-field" style="display: none; grid-column: 1 / -1;">
                             <span>Upload Bukti Transfer</span>
@@ -1599,8 +1655,8 @@
                             <div id="refund-replacement-cart" style="display:grid; gap:10px;"></div>
                             <label class="field">
                                 <span>Tambahan pembayaran</span>
-                                <input class="input" id="refund-additional-payment" type="number" min="0" step="500"
-                                    placeholder="0">
+                                <input class="input" id="refund-additional-payment" type="text" inputmode="numeric"
+                                    autocomplete="off" placeholder="0">
                             </label>
                         </div>
                         <label class="field">
@@ -1740,6 +1796,23 @@
         };
 
         const rupiah = (value) => money.format(Number(value || 0));
+
+        const currencyDigits = (value) => String(value ?? '').replace(/\D/g, '');
+
+        const formatCurrencyInput = (value) => {
+            const digits = currencyDigits(value);
+
+            return digits === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(digits));
+        };
+
+        const currencyValue = (input) => Number(currencyDigits(input.value) || 0);
+
+        const bindCurrencyInput = (input, onChange) => {
+            input.addEventListener('input', () => {
+                input.value = formatCurrencyInput(input.value);
+                onChange();
+            });
+        };
 
         const showToast = (message, type = '') => {
             els.toast.innerHTML = type === 'success'
@@ -1984,8 +2057,8 @@
 
             const totals = calculateTotals();
             const paid = els.isDebt.checked
-                ? Number(els.paidAmount.value || 0)
-                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : Number(els.paidAmount.value || 0));
+                ? currencyValue(els.paidAmount)
+                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount));
             const debt = els.isDebt.checked ? Math.max(0, totals.grandTotal - paid) : 0;
             els.subtotal.textContent = rupiah(totals.subtotal);
             els.discountTotal.textContent = `- ${rupiah(totals.discountTotal)}`;
@@ -2026,8 +2099,8 @@
             payload.append('payment_method', els.paymentMethod.value);
             payload.append('is_debt', debtChecked ? '1' : '0');
             payload.append('paid_amount', debtChecked
-                ? Number(els.paidAmount.value || 0)
-                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : Number(els.paidAmount.value || 0)));
+                ? currencyValue(els.paidAmount)
+                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount)));
             if (state.discount?.code) payload.append('discount_code', state.discount.code);
 
             if (els.paymentMethod.value === 'qris' && els.paymentProof.files.length > 0) {
@@ -2124,7 +2197,7 @@
             });
         });
 
-        els.paidAmount.addEventListener('input', renderOrder);
+        bindCurrencyInput(els.paidAmount, renderOrder);
         els.isDebt.addEventListener('change', renderOrder);
         els.scan?.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
@@ -2611,9 +2684,10 @@
             refundSaleList.innerHTML = sales.map((sale) => {
                 const status = transactionStatus(sale);
                 const active = state.refundSelectedSale && Number(state.refundSelectedSale.id) === Number(sale.id);
+                const disabled = sale.payment_status === 'belum_lunas';
 
                 return `
-                    <div class="refund-sale ${active ? 'active' : ''}" data-refund-sale-id="${sale.id}">
+                    <div class="refund-sale ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}" data-refund-sale-id="${sale.id}" data-refund-disabled="${disabled ? '1' : '0'}">
                         <div class="transaction-top" style="margin-bottom:4px;">
                             <div>
                                 <div class="transaction-number">${escapeHtml(sale.number)}</div>
@@ -2622,6 +2696,7 @@
                             </div>
                             <div class="transaction-total">${rupiah(sale.grand_total)}</div>
                         </div>
+                        ${disabled ? '<div class="transaction-meta" style="color:#92400e;font-weight:700;">Lunasi transaksi sebelum refund.</div>' : ''}
                     </div>
                 `;
             }).join('');
@@ -2684,8 +2759,8 @@
                 replacementTotal,
                 refundAmount: Math.max(0, returnedTotal - replacementTotal),
                 additionalPayment: Math.max(0, replacementTotal - returnedTotal),
-                additionalPaid: Number(refundAdditionalPayment.value || 0),
-                additionalChange: Math.max(0, Number(refundAdditionalPayment.value || 0) - Math.max(0, replacementTotal - returnedTotal)),
+                additionalPaid: currencyValue(refundAdditionalPayment),
+                additionalChange: Math.max(0, currencyValue(refundAdditionalPayment) - Math.max(0, replacementTotal - returnedTotal)),
             };
         };
 
@@ -2694,7 +2769,7 @@
             const needsReplacement = refundType.value === 'exchange';
             const hasReplacement = state.refundReplacementCart.size > 0;
             const hasEvidence = refundEvidence.files.length > 0;
-            const additionalPaid = Number(refundAdditionalPayment.value || 0);
+            const additionalPaid = currencyValue(refundAdditionalPayment);
             const additionalOk = additionalPaid >= totals.additionalPayment;
             const canProcess = Boolean(state.refundSelectedSale)
                 && selectedReturnRows().length > 0
@@ -2793,7 +2868,7 @@
 
         const renderRefundProducts = () => {
             if (state.refundProducts.length === 0) {
-                refundProductList.innerHTML = '<div style="text-align:center; padding:16px; color:var(--muted);">Produk tidak ditemukan.</div>';
+                refundProductList.innerHTML = '<div style="text-align:center; padding:32px; color:var(--muted); grid-column:1/-1;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;margin:0 auto 16px;color:var(--line);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p style="font-weight:500;font-size:16px;">Produk tidak ditemukan</p></div>';
                 return;
             }
 
@@ -2804,11 +2879,23 @@
                 return `
                 <label class="refund-product-card">
                     <input type="checkbox" data-refund-draft-check="${product.id}" ${selected ? 'checked' : ''}>
-                    <div>
-                        <div class="transaction-number">${escapeHtml(product.name)}</div>
-                        <div class="transaction-meta">${escapeHtml(product.code || '-')} · Stok ${product.stock} · ${rupiah(product.price)}</div>
-                        <input type="number" min="1" max="${product.stock}" value="${quantity}" data-refund-draft-qty="${product.id}"
-                            class="input" ${selected ? '' : 'disabled'}>
+                    <div class="cart-thumb">
+                        ${productImage(product)}
+                    </div>
+                    <div class="refund-product-card-content">
+                        <div class="refund-product-card-title">${escapeHtml(product.name)}</div>
+                        <div class="refund-product-card-meta">
+                            <span>${escapeHtml(product.code || '-')}</span>
+                            <span>&bull;</span>
+                            <span style="color: ${product.stock > 0 ? 'var(--text)' : 'var(--danger)'}">Stok ${product.stock}</span>
+                            <span>&bull;</span>
+                            <span class="refund-product-card-price">${rupiah(product.price)}</span>
+                        </div>
+                        <div class="refund-product-card-qty">
+                            <span>Kuantitas:</span>
+                            <input type="number" min="1" max="${product.stock}" value="${quantity}" data-refund-draft-qty="${product.id}"
+                                class="input" ${selected ? '' : 'disabled'}>
+                        </div>
                     </div>
                 </label>
                 `;
@@ -2904,7 +2991,7 @@
             }
 
             const totals = refundTotals();
-            if (refundType.value === 'exchange' && Number(refundAdditionalPayment.value || 0) < totals.additionalPayment) {
+            if (refundType.value === 'exchange' && currencyValue(refundAdditionalPayment) < totals.additionalPayment) {
                 showToast('Tambahan pembayaran barang pengganti masih kurang', 'error');
                 return;
             }
@@ -2914,7 +3001,7 @@
             payload.append('sale_id', sale.id);
             payload.append('type', refundType.value);
             payload.append('reason', refundReason.value);
-            payload.append('additional_payment_amount', refundAdditionalPayment.value || '0');
+            payload.append('additional_payment_amount', currencyValue(refundAdditionalPayment));
 
             Array.from(refundEvidence.files).forEach((file) => {
                 payload.append('evidence_photos[]', file);
@@ -3051,12 +3138,16 @@
         });
         refundReturnList.addEventListener('input', renderRefundSummary);
         refundEvidence.addEventListener('change', renderRefundSummary);
-        refundAdditionalPayment.addEventListener('input', renderRefundSummary);
+        bindCurrencyInput(refundAdditionalPayment, renderRefundSummary);
         refundProductSearch.addEventListener('input', debounce(loadRefundProducts, 300));
         openRefundProducts.addEventListener('click', openReplacementPicker);
         refundSaleList.addEventListener('click', (event) => {
             const item = event.target.closest('[data-refund-sale-id]');
             if (!item) return;
+            if (item.dataset.refundDisabled === '1') {
+                showToast('Transaksi belum lunas tidak bisa direfund', 'error');
+                return;
+            }
 
             state.refundSelectedSale = state.refundSales.find((sale) => Number(sale.id) === Number(item.dataset.refundSaleId));
             state.refundReplacementCart.clear();

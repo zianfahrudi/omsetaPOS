@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-label="Mie Instan Goreng">
+  <rect width="640" height="480" fill="#fef2f2"/>
+  <rect x="136" y="132" width="368" height="216" rx="32" fill="#dc2626"/>
+  <rect x="172" y="178" width="296" height="124" rx="28" fill="#fef3c7"/>
+  <path d="M214 238c30-26 58 26 88 0s58 26 88 0" fill="none" stroke="#d97706" stroke-width="18" stroke-linecap="round"/>
+  <text x="320" y="284" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#991b1b">MIE</text>
+</svg>

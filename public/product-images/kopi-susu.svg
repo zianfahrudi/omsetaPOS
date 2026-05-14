@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-label="Kopi Susu Botol">
+  <rect width="640" height="480" fill="#f3e8d6"/>
+  <rect x="246" y="78" width="148" height="318" rx="34" fill="#8b5e3c"/>
+  <rect x="274" y="36" width="92" height="62" rx="16" fill="#4b2f21"/>
+  <rect x="262" y="184" width="116" height="112" rx="18" fill="#fff7ed"/>
+  <text x="320" y="238" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#7c2d12">KOPI</text>
+  <text x="320" y="276" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#9a3412">SUSU</text>
+</svg>

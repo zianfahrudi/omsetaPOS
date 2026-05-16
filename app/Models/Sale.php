@@ -12,10 +12,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'store_id',
     'cashier_id',
     'customer_id',
+    'customer_vehicle_id',
     'discount_id',
     'number',
     'customer_name',
     'customer_phone',
+    'vehicle_plate_number',
+    'vehicle_mileage',
     'status',
     'payment_method',
     'payment_proof',
@@ -53,6 +56,7 @@ class Sale extends Model
             'paid_amount' => 'decimal:2',
             'change_amount' => 'decimal:2',
             'debt_amount' => 'decimal:2',
+            'vehicle_mileage' => 'integer',
             'is_debt' => 'boolean',
             'paid_at' => 'datetime',
         ];
@@ -71,6 +75,11 @@ class Sale extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function customerVehicle(): BelongsTo
+    {
+        return $this->belongsTo(CustomerVehicle::class);
     }
 
     public function discount(): BelongsTo

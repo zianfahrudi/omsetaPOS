@@ -108,9 +108,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Radiator Assy', 'sku' => 'BKL-RADIATOR-ASSY', 'barcode' => '899200100021', 'cost_price' => 1750000, 'sell_price' => 2350000, 'stock' => 4],
             ['name' => 'Kompresor AC Mobil', 'sku' => 'BKL-KOMPRESOR-AC', 'barcode' => '899200100022', 'cost_price' => 2850000, 'sell_price' => 3650000, 'stock' => 3],
             ['name' => 'Freon AC R134a', 'sku' => 'BKL-FREON-R134A', 'barcode' => '899200100023', 'cost_price' => 85000, 'sell_price' => 135000, 'stock' => 40],
-            ['name' => 'Jasa Spooring Balancing', 'sku' => 'BKL-JASA-SPOORING', 'barcode' => '899200100024', 'cost_price' => 0, 'sell_price' => 225000, 'stock' => 999],
-            ['name' => 'Jasa Tune Up Mesin', 'sku' => 'BKL-JASA-TUNE-UP', 'barcode' => '899200100025', 'cost_price' => 0, 'sell_price' => 350000, 'stock' => 999],
-            ['name' => 'Paket Service Berkala 40.000 KM', 'sku' => 'BKL-PAKET-SERVICE-40K', 'barcode' => '899200100026', 'cost_price' => 1250000, 'sell_price' => 1750000, 'stock' => 20],
+            ['name' => 'Jasa Spooring Balancing', 'sku' => 'BKL-JASA-SPOORING', 'barcode' => '899200100024', 'cost_price' => 0, 'sell_price' => 225000, 'fee_amount' => 0, 'product_service_fee' => 25000, 'stock' => 0, 'product_type' => 'service'],
+            ['name' => 'Jasa Tune Up Mesin', 'sku' => 'BKL-JASA-TUNE-UP', 'barcode' => '899200100025', 'cost_price' => 0, 'sell_price' => 350000, 'fee_amount' => 0, 'product_service_fee' => 35000, 'stock' => 0, 'product_type' => 'service'],
+            ['name' => 'Paket Service Berkala 40.000 KM', 'sku' => 'BKL-PAKET-SERVICE-40K', 'barcode' => '899200100026', 'cost_price' => 1250000, 'sell_price' => 1750000, 'fee_amount' => 50000, 'product_service_fee' => 75000, 'stock' => 20],
         ];
 
         foreach ([$mainStore, $branchStore] as $store) {

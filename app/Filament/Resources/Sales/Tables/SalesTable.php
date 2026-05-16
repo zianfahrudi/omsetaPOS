@@ -26,6 +26,13 @@ class SalesTable
                 TextColumn::make('customer_phone')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('vehicle_plate_number')
+                    ->label('Plat')
+                    ->searchable(),
+                TextColumn::make('vehicle_mileage')
+                    ->label('KM')
+                    ->numeric()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->searchable(),
                 TextColumn::make('payment_method')

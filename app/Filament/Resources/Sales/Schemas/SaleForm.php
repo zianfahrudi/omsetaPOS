@@ -21,6 +21,13 @@ class SaleForm
                 TextInput::make('number')
                     ->required(),
                 TextInput::make('customer_name'),
+                TextInput::make('customer_phone'),
+                TextInput::make('vehicle_plate_number')
+                    ->label('Nomor plat'),
+                TextInput::make('vehicle_mileage')
+                    ->label('Kilometer')
+                    ->numeric()
+                    ->minValue(0),
                 TextInput::make('status')
                     ->required()
                     ->default('completed'),

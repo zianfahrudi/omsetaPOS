@@ -59,9 +59,9 @@
                                 <button wire:click="addReplacement({{ $product->id }})" type="button" class="flex w-full items-center justify-between border-b border-gray-100 px-4 py-3 text-left last:border-b-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
                                     <span>
                                         <span class="block font-medium">{{ $product->name }}</span>
-                                        <span class="text-sm text-gray-500">{{ $product->barcode ?: $product->sku }} · Stok {{ $product->stock }}</span>
+                                        <span class="text-sm text-gray-500">{{ $product->barcode ?: $product->sku }} · {{ $product->tracksStock() ? "Stok {$product->stock}" : 'Jasa' }}</span>
                                     </span>
-                                    <span class="font-semibold">{{ $this->rupiah($product->sell_price) }}</span>
+                                    <span class="font-semibold">{{ $this->rupiah($product->unitSalePrice()) }}</span>
                                 </button>
                             @endforeach
                         </div>

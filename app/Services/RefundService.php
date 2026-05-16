@@ -93,11 +93,11 @@ class RefundService
                     throw new InvalidArgumentException('Produk pengganti tidak valid.');
                 }
 
-                if ($product->stock < $quantity) {
+                if ($product->tracksStock() && $product->stock < $quantity) {
                     throw new InvalidArgumentException("Stok {$product->name} tidak cukup untuk pengganti.");
                 }
 
-                $replacementTotal += (float) $product->sell_price * $quantity;
+                $replacementTotal += $product->unitSalePrice() * $quantity;
             }
 
             $difference = $returnedTotal - $replacementTotal;
@@ -140,7 +140,7 @@ class RefundService
 
                 $saleItem->increment('refunded_quantity', $quantity);
 
-                if ($saleItem->product_id && $products->has($saleItem->product_id)) {
+                if ($saleItem->product_id && $products->has($saleItem->product_id) && $saleItem->product_type !== 'service') {
                     $product = $products[$saleItem->product_id];
                     $stockBefore = $product->stock;
                     $product->increment('stock', $quantity);
@@ -164,7 +164,8 @@ class RefundService
             foreach ($replacements as $productId => $quantity) {
                 $product = $products[$productId];
                 $stockBefore = $product->stock;
-                $lineTotal = (float) $product->sell_price * $quantity;
+                $unitPrice = $product->unitSalePrice();
+                $lineTotal = $unitPrice * $quantity;
 
                 $refund->items()->create([
                     'product_id' => $product->id,
@@ -172,25 +173,27 @@ class RefundService
                     'product_name' => $product->name,
                     'product_code' => $product->barcode ?: $product->sku,
                     'quantity' => $quantity,
-                    'unit_price' => $product->sell_price,
+                    'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                 ]);
 
-                $product->decrement('stock', $quantity);
-                $product->refresh();
+                if ($product->tracksStock()) {
+                    $product->decrement('stock', $quantity);
+                    $product->refresh();
 
-                StockMovement::create([
-                    'store_id' => $sale->store_id,
-                    'product_id' => $product->id,
-                    'user_id' => $handledById,
-                    'type' => 'refund_replacement',
-                    'quantity' => -$quantity,
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $product->stock,
-                    'reference_type' => Refund::class,
-                    'reference_id' => $refund->id,
-                    'notes' => "Barang pengganti refund {$refund->number}",
-                ]);
+                    StockMovement::create([
+                        'store_id' => $sale->store_id,
+                        'product_id' => $product->id,
+                        'user_id' => $handledById,
+                        'type' => 'refund_replacement',
+                        'quantity' => -$quantity,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $product->stock,
+                        'reference_type' => Refund::class,
+                        'reference_id' => $refund->id,
+                        'notes' => "Barang pengganti refund {$refund->number}",
+                    ]);
+                }
             }
 
             $sale->load('items');

@@ -55,9 +55,17 @@
 
         .shell {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 340px 380px;
+            grid-template-columns: minmax(0, 1fr) 340px 460px;
             height: 100dvh;
             overflow: hidden;
+        }
+
+        .shell.cart-empty {
+            grid-template-columns: minmax(0, 1fr) 460px;
+        }
+
+        .shell.cart-empty .cart-panel {
+            display: none;
         }
 
         .shell>* {
@@ -217,8 +225,8 @@
 
         .catalog {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 14px;
         }
 
         .product {
@@ -269,7 +277,7 @@
         .product-image {
             position: relative;
             width: 100%;
-            aspect-ratio: 4 / 3;
+            aspect-ratio: 5 / 3;
             background: var(--soft);
             overflow: hidden;
         }
@@ -292,19 +300,19 @@
             place-items: center;
             background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             color: var(--muted);
-            font-size: 48px;
+            font-size: 36px;
             font-weight: 800;
         }
 
         .product-body {
-            padding: 16px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             flex: 1;
         }
 
         .product-name {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             line-height: 1.4;
             color: var(--ink);
@@ -317,7 +325,7 @@
 
         .product-code {
             color: var(--muted);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 500;
         }
 
@@ -326,20 +334,20 @@
             align-items: flex-end;
             justify-content: space-between;
             margin-top: auto;
-            padding-top: 16px;
+            padding-top: 12px;
         }
 
         .price {
             color: var(--brand);
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 800;
             line-height: 1;
         }
 
         .stock {
-            margin-top: 6px;
+            margin-top: 5px;
             color: var(--muted);
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 600;
         }
 
@@ -351,8 +359,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--brand-light);
             color: var(--brand-dark);
@@ -360,8 +368,8 @@
         }
 
         .add-pill svg {
-            width: 20px;
-            height: 20px;
+            width: 17px;
+            height: 17px;
         }
 
         .product:hover:not(:disabled) .add-pill {
@@ -472,8 +480,7 @@
         }
 
         .cart-item {
-            display: grid;
-            grid-template-columns: 64px 1fr;
+            display: block;
             gap: 16px;
             padding: 16px;
             border: 1px solid var(--line);
@@ -530,8 +537,65 @@
         .cart-control-row {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: space-between;
+            gap: 10px;
             margin-top: 12px;
+        }
+
+        .charge-btn {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            background: var(--panel);
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .charge-btn:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .charge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--line);
+        }
+
+        .charge-grid .field span {
+            font-size: 11px;
+        }
+
+        .charge-input-wrap {
+            position: relative;
+        }
+
+        .charge-input {
+            height: 40px;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        .charge-input.has-suffix {
+            padding-right: 34px;
+        }
+
+        .charge-suffix {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 900;
+            pointer-events: none;
         }
 
         .qty {
@@ -584,6 +648,13 @@
         }
 
         .customer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
@@ -1344,6 +1415,7 @@
             }
 
             .customer-grid,
+            .vehicle-grid,
             .pay-grid,
             .discount-row {
                 grid-template-columns: 1fr;
@@ -1353,10 +1425,11 @@
 </head>
 
 <body>
-    <main class="shell" data-cashier data-products-url="{{ route('cashier.products') }}"
+    <main class="shell cart-empty" data-cashier data-products-url="{{ route('cashier.products') }}"
         data-transactions-url="{{ route('cashier.transactions') }}"
         data-mark-paid-url="{{ route('cashier.transactions.mark-paid', ['sale' => 0]) }}"
         data-refunds-url="{{ route('cashier.refunds.store') }}" data-customers-url="{{ route('cashier.customers') }}"
+        data-vehicles-url="{{ route('cashier.vehicles') }}"
         data-customers-store-url="{{ route('cashier.customers.store') }}"
         data-customer-check-url="{{ route('cashier.customers.check') }}"
         data-pricing-url="{{ route('cashier.pricing') }}" data-checkout-url="{{ route('cashier.checkout') }}"
@@ -1481,6 +1554,23 @@
                                 <!-- Customer list rendered here -->
                             </div>
                         </div>
+                    </div>
+
+                    <div class="vehicle-grid">
+                        <label class="field" style="position: relative;">
+                            <span>Nomor Plat</span>
+                            <input class="input" id="vehicle-plate-number" type="text" placeholder="Contoh: DD 1234 XY"
+                                autocomplete="off">
+                            <div id="vehicle-list" class="customer-list"
+                                style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 45; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; display: none; flex-direction: column; gap: 8px; padding: 8px;">
+                                <!-- Vehicle list rendered here -->
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span>Kilometer</span>
+                            <input class="input" id="vehicle-mileage" type="number" min="0" inputmode="numeric"
+                                placeholder="0">
+                        </label>
                     </div>
 
                     <!-- Kode Diskon -->
@@ -1718,6 +1808,17 @@
                     <span>No. WhatsApp / HP</span>
                     <input class="input" id="customer-phone" type="tel" placeholder="Opsional">
                 </label>
+                <div class="vehicle-grid" style="margin-bottom: 0;">
+                    <label class="field">
+                        <span>Nomor Plat</span>
+                        <input class="input" id="manual-vehicle-plate-number" type="text" placeholder="Opsional">
+                    </label>
+                    <label class="field">
+                        <span>Kilometer</span>
+                        <input class="input" id="manual-vehicle-mileage" type="number" min="0" inputmode="numeric"
+                            placeholder="Opsional">
+                    </label>
+                </div>
                 <button type="button" id="btn-apply-customer" class="primary-btn" style="margin-top: 8px;">Simpan &
                     Terapkan Pelanggan</button>
             </div>
@@ -1770,6 +1871,8 @@
             customerId: document.getElementById('customer-id'),
             customerName: document.getElementById('customer-name'),
             customerPhone: document.getElementById('customer-phone'),
+            vehiclePlateNumber: document.getElementById('vehicle-plate-number'),
+            vehicleMileage: document.getElementById('vehicle-mileage'),
             paymentMethod: document.getElementById('payment-method'),
             paidAmount: document.getElementById('paid-amount'),
             paidLabel: document.getElementById('paid-label'),
@@ -1839,10 +1942,12 @@
             const params = new URLSearchParams({
                 store_id: els.store.value,
                 q: els.search.value,
+                _: Date.now(),
             });
 
             const response = await fetch(`${root.dataset.productsUrl}?${params}`, {
                 headers: { 'Accept': 'application/json' },
+                cache: 'no-store',
             });
 
             if (!response.ok) {
@@ -1853,6 +1958,37 @@
             const data = await response.json();
             state.products = data.products;
             renderCatalog();
+        };
+
+        const loadProduct = async (productId) => {
+            const params = new URLSearchParams({
+                store_id: els.store.value,
+                product_id: productId,
+                _: Date.now(),
+            });
+
+            const response = await fetch(`${root.dataset.productsUrl}?${params}`, {
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                throw new Error('Gagal memuat produk terbaru');
+            }
+
+            const data = await response.json();
+            const product = data.products?.[0];
+
+            if (!product) {
+                throw new Error('Produk tidak ditemukan');
+            }
+
+            state.products = [
+                product,
+                ...state.products.filter((item) => Number(item.id) !== Number(product.id)),
+            ];
+
+            return product;
         };
 
         const renderCatalog = () => {
@@ -1867,7 +2003,7 @@
             }
 
             els.catalog.innerHTML = state.products.map((product) => `
-                <button class="product" type="button" data-add="${product.id}" ${product.stock <= 0 ? 'disabled' : ''}>
+                <button class="product" type="button" data-add="${product.id}" ${product.product_type !== 'service' && product.stock <= 0 ? 'disabled' : ''}>
                     <div class="product-image">${productImage(product)}</div>
                     <div class="product-body">
                         <div class="product-name">${escapeHtml(product.name)}</div>
@@ -1875,7 +2011,7 @@
                         <div class="product-foot">
                             <div>
                                 <div class="price">${rupiah(product.price)}</div>
-                                <div class="stock ${product.stock < 5 ? 'low' : ''}">Sisa ${product.stock} ${escapeHtml(product.unit || 'pcs')}</div>
+                                <div class="stock ${product.product_type !== 'service' && product.stock < 5 ? 'low' : ''}">${product.product_type === 'service' ? 'Jasa' : `Sisa ${product.stock} ${escapeHtml(product.unit || 'pcs')}`}</div>
                             </div>
                             <div class="add-pill">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1886,17 +2022,99 @@
             `).join('');
         };
 
-        const addProduct = (productId) => {
-            const product = state.products.find((item) => item.id === productId);
+        const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
+        const chargeType = (type) => type === 'percentage' ? 'percentage' : 'fixed';
+        const chargeValue = (value, type) => {
+            const numeric = Math.max(0, Number(value || 0));
+
+            return chargeType(type) === 'percentage' ? Math.min(100, numeric) : numeric;
+        };
+        const chargeAmount = (basePrice, type, value) => {
+            const safeValue = chargeValue(value, type);
+
+            return chargeType(type) === 'percentage'
+                ? roundMoney(Number(basePrice || 0) * safeValue / 100)
+                : roundMoney(safeValue);
+        };
+        const syncItemCharges = (item) => {
+            item.tax_type = chargeType(item.tax_type || item.product_tax_type);
+            item.service_fee_type = chargeType(item.service_fee_type || item.product_service_fee_type);
+            item.tax_value = chargeValue(item.tax_value, item.tax_type);
+            item.service_fee_value = chargeValue(item.service_fee_value, item.service_fee_type);
+            item.tax_amount = chargeAmount(item.base_price, item.tax_type, item.tax_value);
+            item.service_fee_amount = chargeAmount(item.base_price, item.service_fee_type, item.service_fee_value);
+
+            return item;
+        };
+        const chargeLabel = (type) => chargeType(type) === 'percentage' ? '%' : 'Rp';
+        const chargeInput = (item, kind) => {
+            const type = kind === 'tax' ? item.tax_type : item.service_fee_type;
+            const value = kind === 'tax' ? item.tax_value : item.service_fee_value;
+            const max = chargeType(type) === 'percentage' ? ' max="100"' : '';
+            const suffix = chargeLabel(type);
+
+            return `
+                <div class="charge-input-wrap">
+                    <input class="input charge-input has-suffix" type="number" min="0"${max} value="${Number(value || 0)}" data-charge-${kind}="${item.id}">
+                    <span class="charge-suffix">${suffix}</span>
+                </div>
+            `;
+        };
+        const productChargePayload = (product) => ({
+            base_price: Number(product.base_price || product.price || 0),
+            service_fee_type: chargeType(product.product_service_fee_type),
+            service_fee_value: Number(product.product_service_fee_value ?? product.product_service_fee ?? product.service_fee_amount ?? 0),
+            service_fee_amount: Number(product.product_service_fee || product.service_fee_amount || 0),
+            tax_type: chargeType(product.product_tax_type),
+            tax_value: Number(product.product_tax_value ?? product.product_tax_amount ?? product.tax_amount ?? 0),
+            tax_amount: Number(product.product_tax_amount || product.tax_amount || 0),
+        });
+        const applyProductCharges = (item, productCharges) => {
+            item.base_price = productCharges.base_price;
+            item.tax_type = productCharges.tax_type;
+            item.service_fee_type = productCharges.service_fee_type;
+            if (!item.tax_dirty) {
+                item.tax_value = productCharges.tax_value;
+                item.tax_amount = productCharges.tax_amount;
+            }
+            if (!item.service_fee_dirty) {
+                item.service_fee_value = productCharges.service_fee_value;
+                item.service_fee_amount = productCharges.service_fee_amount;
+            }
+
+            return syncItemCharges(item);
+        };
+
+        const addProduct = async (productId) => {
+            let product = state.products.find((item) => Number(item.id) === Number(productId));
+
+            try {
+                product = await loadProduct(productId);
+            } catch (error) {
+                if (!product) {
+                    showToast(error.message || 'Produk tidak ditemukan', 'error');
+                    return;
+                }
+            }
 
             if (!product) {
                 showToast('Produk tidak ditemukan', 'error');
                 return;
             }
 
-            const item = state.cart.get(product.id) || { ...product, quantity: 0 };
+            const productCharges = productChargePayload(product);
+            const item = state.cart.get(product.id) || {
+                ...product,
+                ...productCharges,
+                quantity: 0,
+                charge_open: false,
+                charge_dirty: false,
+                tax_dirty: false,
+                service_fee_dirty: false,
+            };
+            applyProductCharges(item, productCharges);
 
-            if (item.quantity + 1 > product.stock) {
+            if (product.product_type !== 'service' && item.quantity + 1 > product.stock) {
                 showToast(`Stok ${product.name} tidak cukup`, 'error');
                 return;
             }
@@ -1906,6 +2124,12 @@
             renderOrder();
         };
 
+        const itemUnitPrice = (item) => Number(item.base_price || 0)
+            + Number(item.service_fee_amount || 0)
+            + Number(item.tax_amount || 0);
+
+        const itemLineTotal = (item) => itemUnitPrice(item) * Number(item.quantity || 0);
+
         const changeQty = (productId, delta) => {
             const item = state.cart.get(productId);
             if (!item) return;
@@ -1913,7 +2137,7 @@
             const nextQty = item.quantity + delta;
             if (nextQty <= 0) {
                 state.cart.delete(productId);
-            } else if (nextQty <= item.stock) {
+            } else if (item.product_type === 'service' || nextQty <= item.stock) {
                 item.quantity = nextQty;
                 state.cart.set(productId, item);
             }
@@ -1922,7 +2146,7 @@
         };
 
         const subtotal = () => Array.from(state.cart.values())
-            .reduce((total, item) => total + (item.price * item.quantity), 0);
+            .reduce((total, item) => total + itemLineTotal(item), 0);
 
         const calculateTotals = () => {
             const rawSubtotal = subtotal();
@@ -2015,6 +2239,7 @@
 
         const renderOrder = () => {
             const items = Array.from(state.cart.values());
+            root.classList.toggle('cart-empty', items.length === 0);
 
             els.itemCount.textContent = items.reduce((total, item) => total + item.quantity, 0);
 
@@ -2027,34 +2252,49 @@
                     </div>`;
             } else {
                 els.cart.innerHTML = items.map((item) => `
-                    <div class="cart-item">
-                        <div class="cart-thumb">${productImage(item)}</div>
-                        <div style="min-width: 0; flex: 1;">
-                            <div class="cart-title-row">
-                                <div style="min-width: 0; padding-right: 8px; flex: 1;">
-                                    <div class="cart-title">${escapeHtml(item.name)}</div>
-                                    <div class="item-total" style="margin-top: 4px;">${rupiah(item.price * item.quantity)}</div>
-                                </div>
-                                <button class="icon-btn remove" type="button" data-remove="${item.id}" title="Hapus">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <div class="cart-item" data-cart-item="${item.id}">
+                        <div class="cart-title-row">
+                            <div style="min-width: 0; padding-right: 8px; flex: 1;">
+                                <div class="cart-title">${escapeHtml(item.name)}</div>
+                                <div class="item-total" data-line-total style="margin-top: 4px;">${rupiah(itemLineTotal(item))}</div>
+                                <div class="cart-meta" data-unit-price>${rupiah(itemUnitPrice(item))} / item</div>
+                            </div>
+                            <button class="icon-btn remove" type="button" data-remove="${item.id}" title="Hapus">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                        <div class="cart-control-row">
+                            <div class="qty">
+                                <button class="icon-btn" type="button" data-dec="${item.id}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
+                                <strong>${item.quantity}</strong>
+                                <button class="icon-btn" type="button" data-inc="${item.id}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                 </button>
                             </div>
-                            <div class="cart-control-row">
-                                <div class="qty">
-                                    <button class="icon-btn" type="button" data-dec="${item.id}">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                    <strong>${item.quantity}</strong>
-                                    <button class="icon-btn" type="button" data-inc="${item.id}">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
+                            <button class="charge-btn" type="button" data-toggle-charges="${item.id}">Edit biaya</button>
                         </div>
+                        ${item.charge_open ? `
+                            <div class="charge-grid">
+                                <label class="field">
+                                    <span>Tax / item</span>
+                                    ${chargeInput(item, 'tax')}
+                                </label>
+                                <label class="field">
+                                    <span>Service fee / item</span>
+                                    ${chargeInput(item, 'service')}
+                                </label>
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('');
             }
 
+            renderPaymentSummary(items);
+        };
+
+        const renderPaymentSummary = (items = Array.from(state.cart.values())) => {
             const totals = calculateTotals();
             const paid = els.isDebt.checked
                 ? currencyValue(els.paidAmount)
@@ -2096,6 +2336,8 @@
             if (els.customerId.value) payload.append('customer_id', els.customerId.value);
             if (els.customerName.value) payload.append('customer_name', els.customerName.value);
             if (els.customerPhone.value) payload.append('customer_phone', els.customerPhone.value);
+            if (els.vehiclePlateNumber.value) payload.append('vehicle_plate_number', els.vehiclePlateNumber.value);
+            if (els.vehicleMileage.value) payload.append('vehicle_mileage', els.vehicleMileage.value);
             payload.append('payment_method', els.paymentMethod.value);
             payload.append('is_debt', debtChecked ? '1' : '0');
             payload.append('paid_amount', debtChecked
@@ -2116,6 +2358,8 @@
             Array.from(state.cart.values()).forEach((item, index) => {
                 payload.append(`items[${index}][product_id]`, item.id);
                 payload.append(`items[${index}][quantity]`, item.quantity);
+                payload.append(`items[${index}][tax_amount]`, Number(item.tax_amount || 0));
+                payload.append(`items[${index}][service_fee_amount]`, Number(item.service_fee_amount || 0));
             });
 
             els.checkout.disabled = true;
@@ -2142,6 +2386,8 @@
                 els.customerId.value = '';
                 els.customerName.value = '';
                 els.customerPhone.value = '';
+                els.vehiclePlateNumber.value = '';
+                els.vehicleMileage.value = '';
                 els.paidAmount.value = '';
                 els.paymentProof.value = '';
                 els.isDebt.checked = false;
@@ -2154,17 +2400,18 @@
             }
         };
 
-        els.catalog.addEventListener('click', (event) => {
+        els.catalog.addEventListener('click', async (event) => {
             const button = event.target.closest('[data-add]');
             if (!button) return;
 
-            addProduct(Number(button.dataset.add));
+            await addProduct(Number(button.dataset.add));
         });
 
-        els.cart.addEventListener('click', (event) => {
+        els.cart.addEventListener('click', async (event) => {
             const inc = event.target.closest('[data-inc]');
             const dec = event.target.closest('[data-dec]');
             const remove = event.target.closest('[data-remove]');
+            const toggleCharges = event.target.closest('[data-toggle-charges]');
 
             if (inc) changeQty(Number(inc.dataset.inc), 1);
             if (dec) changeQty(Number(dec.dataset.dec), -1);
@@ -2172,6 +2419,64 @@
                 state.cart.delete(Number(remove.dataset.remove));
                 renderOrder();
             }
+            if (toggleCharges) {
+                const item = state.cart.get(Number(toggleCharges.dataset.toggleCharges));
+                if (!item) return;
+
+                try {
+                    const product = await loadProduct(item.id);
+                    applyProductCharges(item, productChargePayload(product));
+                } catch (error) {
+                    showToast(error.message || 'Gagal memuat produk terbaru', 'error');
+                }
+
+                item.charge_open = !item.charge_open;
+                state.cart.set(item.id, item);
+                renderOrder();
+            }
+        });
+
+        els.cart.addEventListener('input', (event) => {
+            const tax = event.target.closest('[data-charge-tax]');
+            const service = event.target.closest('[data-charge-service]');
+            const input = tax || service;
+            if (!input) return;
+
+            const item = state.cart.get(Number(input.dataset.chargeTax || input.dataset.chargeService));
+            if (!item) return;
+            const readChargeInput = (element, type) => {
+                if (element.value === '') {
+                    return 0;
+                }
+
+                const numeric = Math.max(0, Number(element.value || 0));
+                const value = chargeType(type) === 'percentage' ? Math.min(100, numeric) : numeric;
+
+                if (numeric !== value || Number(element.value) < 0) {
+                    element.value = value;
+                }
+
+                return value;
+            };
+
+            if (tax) {
+                item.charge_dirty = true;
+                item.tax_dirty = true;
+                item.tax_value = readChargeInput(tax, item.tax_type);
+            }
+
+            if (service) {
+                item.charge_dirty = true;
+                item.service_fee_dirty = true;
+                item.service_fee_value = readChargeInput(service, item.service_fee_type);
+            }
+
+            syncItemCharges(item);
+            state.cart.set(item.id, item);
+            const row = input.closest('[data-cart-item]');
+            row?.querySelector('[data-line-total]')?.replaceChildren(document.createTextNode(rupiah(itemLineTotal(item))));
+            row?.querySelector('[data-unit-price]')?.replaceChildren(document.createTextNode(`${rupiah(itemUnitPrice(item))} / item`));
+            renderPaymentSummary();
         });
 
         els.search.addEventListener('input', debounce(loadProducts));
@@ -2180,6 +2485,8 @@
             els.customerId.value = '';
             els.customerName.value = '';
             els.customerPhone.value = '';
+            els.vehiclePlateNumber.value = '';
+            els.vehicleMileage.value = '';
             state.customerDuplicate = false;
             state.discount = null;
             els.discountCode.value = '';
@@ -2199,7 +2506,7 @@
 
         bindCurrencyInput(els.paidAmount, renderOrder);
         els.isDebt.addEventListener('change', renderOrder);
-        els.scan?.addEventListener('keydown', (event) => {
+        els.scan?.addEventListener('keydown', async (event) => {
             if (event.key !== 'Enter') return;
 
             const code = els.scan.value.trim().toLowerCase();
@@ -2209,19 +2516,19 @@
             );
 
             if (product) {
-                addProduct(product.id);
+                await addProduct(product.id);
                 els.scan.value = '';
                 return;
             }
 
             els.search.value = code;
-            loadProducts().then(() => {
+            loadProducts().then(async () => {
                 const found = state.products.find((item) =>
                     String(item.barcode || '').toLowerCase() === code ||
                     String(item.sku || '').toLowerCase() === code
                 );
 
-                if (found) addProduct(found.id);
+                if (found) await addProduct(found.id);
                 else showToast('Produk barcode tidak ditemukan', 'error');
 
                 els.scan.value = '';
@@ -2243,6 +2550,8 @@
                 els.customerId.value = '';
                 els.customerName.value = '';
                 els.customerPhone.value = '';
+                els.vehiclePlateNumber.value = '';
+                els.vehicleMileage.value = '';
                 els.paidAmount.value = '';
                 els.paymentProof.value = '';
                 els.isDebt.checked = false;
@@ -2259,7 +2568,10 @@
 
         const customerSearch = document.getElementById('customer-search');
         const customerList = document.getElementById('customer-list');
+        const vehicleList = document.getElementById('vehicle-list');
         const customerManualModal = document.getElementById('customer-manual-modal');
+        const manualVehiclePlateNumber = document.getElementById('manual-vehicle-plate-number');
+        const manualVehicleMileage = document.getElementById('manual-vehicle-mileage');
         const transactionModal = document.getElementById('transaction-modal');
         const transactionSearch = document.getElementById('transaction-search');
         const transactionList = document.getElementById('transaction-list');
@@ -2285,6 +2597,7 @@
         const markSalePaidButton = document.getElementById('mark-sale-paid');
         let lastReceiptSale = null;
         let customersTimer;
+        let vehiclesTimer;
 
         document.getElementById('btn-open-manual-customer').addEventListener('click', () => {
             customerList.style.display = 'none';
@@ -2303,6 +2616,8 @@
             const button = document.getElementById('btn-apply-customer');
             const name = els.customerName.value.trim();
             const phone = els.customerPhone.value.trim();
+            const vehiclePlateNumber = manualVehiclePlateNumber.value.trim();
+            const vehicleMileage = manualVehicleMileage.value;
 
             if (!name) {
                 showToast('Nama pelanggan wajib diisi', 'error');
@@ -2323,6 +2638,8 @@
                         store_id: els.store.value,
                         name,
                         phone,
+                        vehicle_plate_number: vehiclePlateNumber,
+                        vehicle_mileage: vehicleMileage || null,
                     }),
                 });
 
@@ -2333,6 +2650,12 @@
                 }
 
                 selectCustomer(data.customer.id, data.customer.name, data.customer.phone || '');
+                if (vehiclePlateNumber) {
+                    els.vehiclePlateNumber.value = vehiclePlateNumber.toUpperCase();
+                    els.vehicleMileage.value = vehicleMileage || '';
+                }
+                manualVehiclePlateNumber.value = '';
+                manualVehicleMileage.value = '';
                 customerManualModal.classList.add('hidden');
                 showToast('Pelanggan baru tersimpan', 'success');
                 renderOrder();
@@ -2347,6 +2670,10 @@
         document.addEventListener('click', (e) => {
             if (!customerSearch.contains(e.target) && !customerList.contains(e.target)) {
                 customerList.style.display = 'none';
+            }
+
+            if (!els.vehiclePlateNumber.contains(e.target) && !vehicleList.contains(e.target)) {
+                vehicleList.style.display = 'none';
             }
         });
 
@@ -2375,6 +2702,7 @@
                     <div class="customer-item" onclick="selectCustomer(${c.id}, '${escapeHtml(c.name)}', '${escapeHtml(c.phone || '')}')">
                         <h4>${escapeHtml(c.name)}</h4>
                         ${c.phone ? `<p>${escapeHtml(c.phone)}</p>` : ''}
+                        ${Array.isArray(c.vehicles) && c.vehicles.length > 0 ? `<p>${c.vehicles.map((vehicle) => `${escapeHtml(vehicle.plate_number)}${vehicle.mileage ? ` (${vehicle.mileage} km)` : ''}`).join(', ')}</p>` : ''}
                     </div>
                 `).join('');
             } catch (err) {
@@ -2389,12 +2717,80 @@
             }, 300);
         });
 
-        window.selectCustomer = (id, name, phone) => {
+        const loadVehicles = async (query = '') => {
+            vehicleList.style.display = 'flex';
+            vehicleList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light);">Memuat...</div>';
+
+            try {
+                const params = new URLSearchParams({ store_id: els.store.value, q: query });
+                const res = await fetch(`${root.dataset.vehiclesUrl}?${params}`);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Gagal memuat kendaraan');
+                }
+
+                if ((data.vehicles || []).length === 0) {
+                    vehicleList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light);">Tidak ada kendaraan ditemukan.</div>';
+                    return;
+                }
+
+                vehicleList.innerHTML = data.vehicles.map((vehicle) => `
+                    <div class="customer-item" onclick="selectVehicle(${vehicle.id}, '${escapeHtml(vehicle.plate_number)}', '${escapeHtml(vehicle.mileage || '')}', ${vehicle.customer?.id || 'null'}, '${escapeHtml(vehicle.customer?.name || '')}', '${escapeHtml(vehicle.customer?.phone || '')}')">
+                        <h4>${escapeHtml(vehicle.plate_number)}</h4>
+                        <p>${escapeHtml(vehicle.customer?.name || 'Tanpa customer')}${vehicle.customer?.phone ? ` · ${escapeHtml(vehicle.customer.phone)}` : ''}${vehicle.mileage ? ` · ${Number(vehicle.mileage).toLocaleString('id-ID')} km` : ''}</p>
+                    </div>
+                `).join('');
+            } catch (err) {
+                vehicleList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Gagal memuat kendaraan.</div>';
+            }
+        };
+
+        els.vehiclePlateNumber.addEventListener('focus', () => {
+            if (els.vehiclePlateNumber.value.trim() !== '') {
+                loadVehicles(els.vehiclePlateNumber.value);
+            }
+        });
+
+        els.vehiclePlateNumber.addEventListener('input', (event) => {
+            clearTimeout(vehiclesTimer);
+            vehiclesTimer = setTimeout(() => {
+                const query = event.target.value.trim();
+                if (query === '') {
+                    vehicleList.style.display = 'none';
+                    return;
+                }
+
+                loadVehicles(query);
+            }, 300);
+        });
+
+        window.selectCustomer = (id, name, phone, plateNumber = '', mileage = '') => {
             els.customerId.value = id;
             els.customerName.value = name;
             els.customerPhone.value = phone;
+            els.vehiclePlateNumber.value = plateNumber;
+            els.vehicleMileage.value = mileage;
             customerSearch.value = name;
             state.customerDuplicate = false;
+            customerList.style.display = 'none';
+            vehicleList.style.display = 'none';
+            renderOrder();
+        };
+
+        window.selectVehicle = (id, plateNumber, mileage, customerId, customerName, customerPhone) => {
+            els.vehiclePlateNumber.value = plateNumber;
+            els.vehicleMileage.value = mileage || '';
+
+            if (customerId) {
+                els.customerId.value = customerId;
+                els.customerName.value = customerName;
+                els.customerPhone.value = customerPhone;
+                customerSearch.value = customerName;
+                state.customerDuplicate = false;
+            }
+
+            vehicleList.style.display = 'none';
             customerList.style.display = 'none';
             renderOrder();
         };
@@ -2447,6 +2843,9 @@
                         <span>${item.quantity} x ${rupiah(item.unit_price)}</span>
                         <strong>${rupiah(item.line_total)}</strong>
                     </div>
+                    ${Number(item.tax_amount || 0) > 0 || Number(item.service_fee_amount || 0) > 0 ? `
+                        <div class="transaction-meta">Tax ${rupiah(item.tax_amount || 0)} · Service ${rupiah(item.service_fee_amount || 0)} / item</div>
+                    ` : ''}
                 </div>
             `).join('');
             const debtLine = sale.is_debt
@@ -2461,6 +2860,8 @@
                 </div>
                 <div class="receipt-line"><span>Kasir</span><strong>${escapeHtml(sale.cashier_name || '-')}</strong></div>
                 <div class="receipt-line"><span>Pelanggan</span><strong>${escapeHtml(sale.customer_name || 'Pelanggan Umum')}</strong></div>
+                ${sale.vehicle_plate_number ? `<div class="receipt-line"><span>Plat</span><strong>${escapeHtml(sale.vehicle_plate_number)}</strong></div>` : ''}
+                ${sale.vehicle_mileage ? `<div class="receipt-line"><span>Kilometer</span><strong>${Number(sale.vehicle_mileage).toLocaleString('id-ID')} km</strong></div>` : ''}
                 <div class="receipt-line"><span>Status</span><strong>${escapeHtml(sale.payment_status_label || 'Lunas')}</strong></div>
                 <div class="receipt-items">${items}</div>
                 <div class="receipt-line"><span>Subtotal</span><strong>${rupiah(sale.subtotal)}</strong></div>
@@ -2609,6 +3010,7 @@
                     .map((item) => `${escapeHtml(item.name)} x${item.quantity}`)
                     .join(', ');
                 const debtText = sale.is_debt ? ` · Hutang ${rupiah(sale.debt_amount)}` : '';
+                const vehicleText = sale.vehicle_plate_number ? ` · ${escapeHtml(sale.vehicle_plate_number)}` : '';
                 const status = transactionStatus(sale);
 
                 return `
@@ -2616,7 +3018,7 @@
                         <div class="transaction-top">
                             <div>
                                 <div class="transaction-number">${escapeHtml(sale.number)}</div>
-                                <div class="transaction-meta">${escapeHtml(sale.customer_name)} · ${escapeHtml(sale.payment_method)}${debtText} · ${escapeHtml(sale.paid_at)}</div>
+                                <div class="transaction-meta">${escapeHtml(sale.customer_name)}${vehicleText} · ${escapeHtml(sale.payment_method)}${debtText} · ${escapeHtml(sale.paid_at)}</div>
                                 <div class="transaction-status ${status.className}">${status.label}</div>
                             </div>
                             <div class="transaction-total">${rupiah(sale.grand_total)}</div>
@@ -2691,7 +3093,7 @@
                         <div class="transaction-top" style="margin-bottom:4px;">
                             <div>
                                 <div class="transaction-number">${escapeHtml(sale.number)}</div>
-                                <div class="transaction-meta">${escapeHtml(sale.customer_name)} · ${escapeHtml(sale.paid_at)}</div>
+                                <div class="transaction-meta">${escapeHtml(sale.customer_name)}${sale.vehicle_plate_number ? ` · ${escapeHtml(sale.vehicle_plate_number)}` : ''} · ${escapeHtml(sale.paid_at)}</div>
                                 <div class="transaction-status ${status.className}">${status.label}</div>
                             </div>
                             <div class="transaction-total">${rupiah(sale.grand_total)}</div>
@@ -2887,13 +3289,13 @@
                         <div class="refund-product-card-meta">
                             <span>${escapeHtml(product.code || '-')}</span>
                             <span>&bull;</span>
-                            <span style="color: ${product.stock > 0 ? 'var(--text)' : 'var(--danger)'}">Stok ${product.stock}</span>
+                            <span style="color: ${product.product_type === 'service' || product.stock > 0 ? 'var(--text)' : 'var(--danger)'}">${product.product_type === 'service' ? 'Jasa' : `Stok ${product.stock}`}</span>
                             <span>&bull;</span>
                             <span class="refund-product-card-price">${rupiah(product.price)}</span>
                         </div>
                         <div class="refund-product-card-qty">
                             <span>Kuantitas:</span>
-                            <input type="number" min="1" max="${product.stock}" value="${quantity}" data-refund-draft-qty="${product.id}"
+                            <input type="number" min="1" ${product.product_type === 'service' ? '' : `max="${product.stock}"`} value="${quantity}" data-refund-draft-qty="${product.id}"
                                 class="input" ${selected ? '' : 'disabled'}>
                         </div>
                     </div>
@@ -2925,7 +3327,9 @@
             const item = state.refundReplacementDraft.get(productId);
             if (!item) return;
 
-            item.quantity = Math.min(item.stock, Math.max(1, Number(quantity || 1)));
+            item.quantity = item.product_type === 'service'
+                ? Math.max(1, Number(quantity || 1))
+                : Math.min(item.stock, Math.max(1, Number(quantity || 1)));
             state.refundReplacementDraft.set(productId, item);
             renderRefundProducts();
         };
@@ -2951,7 +3355,7 @@
                 <div class="refund-line">
                     <div>
                         <div class="transaction-number">${escapeHtml(item.name)}</div>
-                        <div class="transaction-meta">${rupiah(item.price)} · Stok ${item.stock}</div>
+                        <div class="transaction-meta">${rupiah(item.price)} · ${item.product_type === 'service' ? 'Jasa' : `Stok ${item.stock}`}</div>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
                         <button class="icon-btn" type="button" data-refund-replacement-dec="${item.id}">-</button>
@@ -2970,7 +3374,7 @@
             const nextQuantity = item.quantity + delta;
             if (nextQuantity <= 0) {
                 state.refundReplacementCart.delete(productId);
-            } else if (nextQuantity <= item.stock) {
+            } else if (item.product_type === 'service' || nextQuantity <= item.stock) {
                 item.quantity = nextQuantity;
                 state.refundReplacementCart.set(productId, item);
             }

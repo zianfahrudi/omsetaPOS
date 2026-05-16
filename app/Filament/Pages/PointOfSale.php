@@ -41,7 +41,7 @@ class PointOfSale extends Page
 
     public float $paidAmount = 0;
 
-    /** @var array<int, array{product_id:int, name:string, code:?string, image_url:?string, price:float, stock:int, quantity:int}> */
+    /** @var array<int, array{product_id:int, name:string, code:?string, image_url:?string, product_type:string, price:float, stock:int, quantity:int}> */
     public array $cart = [];
 
     public ?string $lastSaleNumber = null;
@@ -129,7 +129,7 @@ class PointOfSale extends Page
 
         $currentQuantity = $this->cart[$product->id]['quantity'] ?? 0;
 
-        if ($currentQuantity + 1 > $product->stock) {
+        if ($product->tracksStock() && $currentQuantity + 1 > $product->stock) {
             Notification::make()->title("Stok {$product->name} tidak cukup")->danger()->send();
 
             return;
@@ -140,7 +140,8 @@ class PointOfSale extends Page
             'name' => $product->name,
             'code' => $product->barcode ?: $product->sku,
             'image_url' => $product->image_url,
-            'price' => (float) $product->sell_price,
+            'product_type' => $product->product_type,
+            'price' => $product->unitSalePrice(),
             'stock' => $product->stock,
             'quantity' => $currentQuantity + 1,
         ];
@@ -154,7 +155,7 @@ class PointOfSale extends Page
             return;
         }
 
-        if ($this->cart[$productId]['quantity'] >= $this->cart[$productId]['stock']) {
+        if (($this->cart[$productId]['product_type'] ?? 'goods') !== 'service' && $this->cart[$productId]['quantity'] >= $this->cart[$productId]['stock']) {
             Notification::make()->title('Qty melebihi stok')->warning()->send();
 
             return;

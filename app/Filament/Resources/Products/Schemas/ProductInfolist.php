@@ -20,10 +20,28 @@ class ProductInfolist
                     ->placeholder('-'),
                 TextEntry::make('barcode')
                     ->placeholder('-'),
+                TextEntry::make('product_type')
+                    ->label('Tipe produk')
+                    ->formatStateUsing(fn (?string $state): string => $state === 'service' ? 'Jasa' : 'Barang'),
                 TextEntry::make('cost_price')
                     ->money(),
                 TextEntry::make('sell_price')
                     ->money(),
+                TextEntry::make('fee_amount')
+                    ->label('Fee produk')
+                    ->money('IDR'),
+                TextEntry::make('product_service_fee_type')
+                    ->label('Tipe service fee')
+                    ->formatStateUsing(fn (?string $state): string => $state === 'percentage' ? 'Persentase' : 'Fixed price'),
+                TextEntry::make('product_service_fee')
+                    ->label('Nilai service fee')
+                    ->formatStateUsing(fn ($state, $record): string => self::formatChargeValue((float) $state, $record?->product_service_fee_type)),
+                TextEntry::make('product_tax_type')
+                    ->label('Tipe tax')
+                    ->formatStateUsing(fn (?string $state): string => $state === 'percentage' ? 'Persentase' : 'Fixed price'),
+                TextEntry::make('product_tax_value')
+                    ->label('Nilai tax')
+                    ->formatStateUsing(fn ($state, $record): string => self::formatChargeValue((float) $state, $record?->product_tax_type)),
                 TextEntry::make('stock')
                     ->numeric(),
                 TextEntry::make('minimum_stock')
@@ -38,5 +56,14 @@ class ProductInfolist
                     ->dateTime()
                     ->placeholder('-'),
             ]);
+    }
+
+    private static function formatChargeValue(float $value, ?string $type): string
+    {
+        if ($type === 'percentage') {
+            return rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',').'%';
+        }
+
+        return 'Rp '.number_format($value, 0, ',', '.');
     }
 }

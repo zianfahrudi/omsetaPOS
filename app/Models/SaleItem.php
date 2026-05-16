@@ -12,9 +12,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'product_id',
     'product_name',
     'product_code',
+    'product_type',
     'quantity',
     'refunded_quantity',
     'unit_price',
+    'fee_amount',
+    'service_fee_amount',
+    'tax_amount',
     'line_total',
 ])]
 class SaleItem extends Model
@@ -25,6 +29,9 @@ class SaleItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'fee_amount' => 'decimal:2',
+            'service_fee_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
     }

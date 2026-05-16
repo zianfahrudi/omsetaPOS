@@ -25,6 +25,14 @@ class SaleInfolist
                     ->placeholder('-'),
                 TextEntry::make('customer_phone')
                     ->placeholder('-'),
+                TextEntry::make('vehicle_plate_number')
+                    ->label('Nomor plat')
+                    ->placeholder('-'),
+                TextEntry::make('vehicle_mileage')
+                    ->label('Kilometer')
+                    ->numeric()
+                    ->suffix(' km')
+                    ->placeholder('-'),
                 TextEntry::make('status'),
                 TextEntry::make('payment_method'),
                 TextEntry::make('payment_status')

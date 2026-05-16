@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerVehicle;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Store;
@@ -39,10 +40,12 @@ class CashierController extends Controller
         abort_unless($this->canAccessStore($storeId), 403);
 
         $term = trim((string) $request->query('q', ''));
+        $productId = (int) $request->query('product_id');
 
         $products = Product::query()
             ->where('store_id', $storeId)
             ->where('is_active', true)
+            ->when($productId > 0, fn ($query) => $query->whereKey($productId))
             ->when($term !== '', function ($query) use ($term) {
                 $like = '%'.$term.'%';
 
@@ -61,7 +64,17 @@ class CashierController extends Controller
                 'barcode' => $product->barcode,
                 'sku' => $product->sku,
                 'image_url' => $product->image_url,
-                'price' => (float) $product->sell_price,
+                'product_type' => $product->product_type,
+                'price' => $product->unitSalePrice(),
+                'fee_amount' => (float) $product->fee_amount,
+                'product_service_fee' => $product->productServiceFeeAmount(),
+                'product_service_fee_type' => $product->product_service_fee_type,
+                'product_service_fee_value' => (float) $product->product_service_fee,
+                'product_tax_type' => $product->product_tax_type,
+                'product_tax_value' => (float) $product->product_tax_value,
+                'product_tax_amount' => $product->productTaxAmount(),
+                'base_price' => $product->baseSalePrice(),
+                'unit_price' => $product->unitSalePrice(),
                 'stock' => $product->stock,
                 'unit' => $product->unit,
             ]);
@@ -93,6 +106,7 @@ class CashierController extends Controller
                     $query
                         ->where('number', 'like', $like)
                         ->orWhere('customer_name', 'like', $like)
+                        ->orWhere('vehicle_plate_number', 'like', $like)
                         ->orWhereHas('customer', fn ($query) => $query->where('name', 'like', $like))
                         ->orWhereHas('items', fn ($query) => $query->where('product_name', 'like', $like));
                 });
@@ -162,8 +176,10 @@ class CashierController extends Controller
                 $query->where(fn ($query) => $query
                     ->where('name', 'like', $like)
                     ->orWhere('phone', 'like', $like)
-                    ->orWhere('email', 'like', $like));
+                    ->orWhere('email', 'like', $like)
+                    ->orWhereHas('vehicles', fn ($query) => $query->where('plate_number', 'like', $like)));
             })
+            ->with('vehicles')
             ->orderBy('name')
             ->limit(20)
             ->get()
@@ -171,9 +187,51 @@ class CashierController extends Controller
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'phone' => $customer->phone,
+                'vehicles' => $customer->vehicles->map(fn ($vehicle) => [
+                    'id' => $vehicle->id,
+                    'plate_number' => $vehicle->plate_number,
+                    'mileage' => $vehicle->mileage,
+                ])->values(),
             ]);
 
         return response()->json(['customers' => $customers]);
+    }
+
+    public function vehicles(Request $request): JsonResponse
+    {
+        $storeId = (int) $request->query('store_id');
+
+        abort_unless($this->canAccessStore($storeId), 403);
+
+        $term = trim((string) $request->query('q', ''));
+
+        $vehicles = CustomerVehicle::query()
+            ->with('customer')
+            ->where('store_id', $storeId)
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+
+                $query->where(fn ($query) => $query
+                    ->where('plate_number', 'like', $like)
+                    ->orWhereHas('customer', fn ($query) => $query
+                        ->where('name', 'like', $like)
+                        ->orWhere('phone', 'like', $like)));
+            })
+            ->orderBy('plate_number')
+            ->limit(20)
+            ->get()
+            ->map(fn (CustomerVehicle $vehicle) => [
+                'id' => $vehicle->id,
+                'plate_number' => $vehicle->plate_number,
+                'mileage' => $vehicle->mileage,
+                'customer' => [
+                    'id' => $vehicle->customer?->id,
+                    'name' => $vehicle->customer?->name,
+                    'phone' => $vehicle->customer?->phone,
+                ],
+            ]);
+
+        return response()->json(['vehicles' => $vehicles]);
     }
 
     public function checkCustomer(Request $request): JsonResponse
@@ -192,7 +250,7 @@ class CashierController extends Controller
         $exists = Customer::query()
             ->where('store_id', $storeId)
             ->where(function ($query) use ($name, $phone) {
-                if ($name !== '') {
+                if ($phone === '' && $name !== '') {
                     $query->orWhereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
                 }
 
@@ -319,6 +377,8 @@ class CashierController extends Controller
             'store_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
+            'vehicle_plate_number' => ['nullable', 'string', 'max:30'],
+            'vehicle_mileage' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $storeId = (int) $data['store_id'];
@@ -331,10 +391,12 @@ class CashierController extends Controller
         $duplicateExists = Customer::query()
             ->where('store_id', $storeId)
             ->where(function ($query) use ($name, $phone) {
-                $query->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
+                if ($phone === '') {
+                    $query->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
+                }
 
                 if ($phone !== '') {
-                    $query->orWhere('phone', $phone);
+                    $query->where('phone', $phone);
                 }
             })
             ->exists();
@@ -351,11 +413,21 @@ class CashierController extends Controller
             'phone' => $phone !== '' ? $phone : null,
         ]);
 
+        $plateNumber = mb_strtoupper(trim((string) ($data['vehicle_plate_number'] ?? '')));
+        if ($plateNumber !== '') {
+            $customer->vehicles()->create([
+                'store_id' => $storeId,
+                'plate_number' => preg_replace('/\s+/', ' ', $plateNumber),
+                'mileage' => $data['vehicle_mileage'] ?? null,
+            ]);
+        }
+
         return response()->json([
             'customer' => [
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'phone' => $customer->phone,
+                'vehicles' => $customer->vehicles()->get(['id', 'plate_number', 'mileage']),
             ],
         ], 201);
     }
@@ -403,6 +475,8 @@ class CashierController extends Controller
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
             'customer_name' => ['nullable', 'string', 'max:255'],
             'customer_phone' => ['nullable', 'string', 'max:40'],
+            'vehicle_plate_number' => ['nullable', 'string', 'max:30'],
+            'vehicle_mileage' => ['nullable', 'integer', 'min:0'],
             'payment_method' => ['required', 'in:cash,qris'],
             'payment_proof' => ['nullable', 'required_if:payment_method,qris', 'image', 'max:5120'],
             'is_debt' => ['nullable', 'boolean'],
@@ -411,6 +485,8 @@ class CashierController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.service_fee_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         abort_unless($this->canAccessStore((int) $data['store_id']), 403);
@@ -434,6 +510,8 @@ class CashierController extends Controller
                 paymentProof: $paymentProofPath,
                 discountCode: $data['discount_code'] ?? null,
                 isDebt: (bool) ($data['is_debt'] ?? false),
+                vehiclePlateNumber: $data['vehicle_plate_number'] ?? null,
+                vehicleMileage: isset($data['vehicle_mileage']) ? (int) $data['vehicle_mileage'] : null,
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -461,11 +539,17 @@ class CashierController extends Controller
                 'payment_proof' => $sale->payment_proof,
                 'customer_name' => $sale->customer_name,
                 'customer_phone' => $sale->customer_phone,
+                'vehicle_plate_number' => $sale->vehicle_plate_number,
+                'vehicle_mileage' => $sale->vehicle_mileage,
                 'paid_at' => $sale->paid_at?->format('d M Y H:i'),
                 'items' => $sale->items->map(fn ($item) => [
                     'name' => $item->product_name,
+                    'product_type' => $item->product_type,
                     'quantity' => $item->quantity,
                     'unit_price' => (float) $item->unit_price,
+                    'fee_amount' => (float) $item->fee_amount,
+                    'service_fee_amount' => (float) $item->service_fee_amount,
+                    'tax_amount' => (float) $item->tax_amount,
                     'line_total' => (float) $item->line_total,
                 ])->values(),
             ],
@@ -511,6 +595,8 @@ class CashierController extends Controller
             'cashier_name' => $sale->cashier?->name,
             'customer_name' => $sale->customer?->name ?? $sale->customer_name ?? 'Pelanggan Umum',
             'customer_phone' => $sale->customer?->phone ?? $sale->customer_phone,
+            'vehicle_plate_number' => $sale->vehicle_plate_number,
+            'vehicle_mileage' => $sale->vehicle_mileage,
             'payment_method' => $sale->payment_method,
             'status' => $sale->status,
             'payment_status' => ((bool) $sale->is_debt && $debtAmount > 0) ? 'belum_lunas' : 'lunas',
@@ -529,10 +615,14 @@ class CashierController extends Controller
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'name' => $item->product_name,
+                'product_type' => $item->product_type,
                 'quantity' => $item->quantity,
                 'refunded_quantity' => $item->refunded_quantity,
                 'refundable_quantity' => max(0, $item->quantity - $item->refunded_quantity),
                 'unit_price' => (float) $item->unit_price,
+                'fee_amount' => (float) $item->fee_amount,
+                'service_fee_amount' => (float) $item->service_fee_amount,
+                'tax_amount' => (float) $item->tax_amount,
                 'line_total' => (float) $item->line_total,
             ])->values(),
         ];

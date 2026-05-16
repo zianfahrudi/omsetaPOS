@@ -41,7 +41,7 @@ class ProcessRefund extends Page
     /** @var array<int, int> */
     public array $returnQuantities = [];
 
-    /** @var array<int, array{product_id:int, name:string, code:?string, price:float, stock:int, quantity:int}> */
+    /** @var array<int, array{product_id:int, name:string, code:?string, product_type:string, price:float, stock:int, quantity:int}> */
     public array $replacementCart = [];
 
     public ?string $lastRefundNumber = null;
@@ -122,7 +122,7 @@ class ProcessRefund extends Page
 
         $currentQuantity = $this->replacementCart[$product->id]['quantity'] ?? 0;
 
-        if ($currentQuantity + 1 > $product->stock) {
+        if ($product->tracksStock() && $currentQuantity + 1 > $product->stock) {
             Notification::make()->title("Stok {$product->name} tidak cukup")->danger()->send();
 
             return;
@@ -132,7 +132,8 @@ class ProcessRefund extends Page
             'product_id' => $product->id,
             'name' => $product->name,
             'code' => $product->barcode ?: $product->sku,
-            'price' => (float) $product->sell_price,
+            'product_type' => $product->product_type,
+            'price' => $product->unitSalePrice(),
             'stock' => $product->stock,
             'quantity' => $currentQuantity + 1,
         ];
@@ -146,7 +147,7 @@ class ProcessRefund extends Page
             return;
         }
 
-        if ($this->replacementCart[$productId]['quantity'] >= $this->replacementCart[$productId]['stock']) {
+        if (($this->replacementCart[$productId]['product_type'] ?? 'goods') !== 'service' && $this->replacementCart[$productId]['quantity'] >= $this->replacementCart[$productId]['stock']) {
             Notification::make()->title('Qty melebihi stok')->warning()->send();
 
             return;

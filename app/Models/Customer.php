@@ -46,4 +46,17 @@ class Customer extends Model
     {
         return $this->hasMany(Sale::class);
     }
+
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(CustomerVehicle::class);
+    }
+
+    public function getVehiclesSummaryAttribute(): string
+    {
+        return $this->vehicles
+            ->map(fn (CustomerVehicle $vehicle): string => trim($vehicle->plate_number.' '.($vehicle->mileage ? '('.number_format($vehicle->mileage, 0, ',', '.').' km)' : '')))
+            ->filter()
+            ->implode(', ');
+    }
 }

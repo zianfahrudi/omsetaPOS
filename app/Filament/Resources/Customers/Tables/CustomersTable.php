@@ -24,6 +24,9 @@ class CustomersTable
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
+                TextColumn::make('vehicles_summary')
+                    ->label('Kendaraan')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('visit_count')
                     ->label('Transaksi')
                     ->numeric()

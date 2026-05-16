@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Customer;
+use App\Models\CustomerVehicle;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Models\Sale;
@@ -16,7 +17,7 @@ use InvalidArgumentException;
 class CheckoutService
 {
     /**
-     * @param  array<int, array{product_id:int, quantity:int}>  $items
+     * @param  array<int, array{product_id:int, quantity:int, service_fee_amount?:float|null, tax_amount?:float|null}>  $items
      */
     public function checkout(
         int $storeId,
@@ -30,6 +31,8 @@ class CheckoutService
         ?int $customerId = null,
         ?string $discountCode = null,
         bool $isDebt = false,
+        ?string $vehiclePlateNumber = null,
+        ?int $vehicleMileage = null,
     ): Sale {
         if ($items === []) {
             throw new InvalidArgumentException('Keranjang masih kosong.');
@@ -39,11 +42,19 @@ class CheckoutService
             throw new InvalidArgumentException('Metode pembayaran tidak valid.');
         }
 
-        return DB::transaction(function () use ($storeId, $cashierId, $items, $paymentMethod, $paidAmount, $customerName, $customerPhone, $paymentProof, $customerId, $discountCode, $isDebt) {
+        return DB::transaction(function () use ($storeId, $cashierId, $items, $paymentMethod, $paidAmount, $customerName, $customerPhone, $paymentProof, $customerId, $discountCode, $isDebt, $vehiclePlateNumber, $vehicleMileage) {
             $cart = collect($items)
                 ->groupBy('product_id')
-                ->map(fn ($rows) => (int) $rows->sum('quantity'))
-                ->filter(fn (int $quantity) => $quantity > 0);
+                ->map(function ($rows) {
+                    $row = $rows->last();
+
+                    return [
+                        'quantity' => (int) $rows->sum('quantity'),
+                        'service_fee_amount' => array_key_exists('service_fee_amount', $row) ? max(0, (float) $row['service_fee_amount']) : null,
+                        'tax_amount' => array_key_exists('tax_amount', $row) ? max(0, (float) $row['tax_amount']) : null,
+                    ];
+                })
+                ->filter(fn (array $item) => $item['quantity'] > 0);
 
             $products = Product::query()
                 ->where('store_id', $storeId)
@@ -58,18 +69,19 @@ class CheckoutService
 
             $subtotal = 0.0;
 
-            foreach ($cart as $productId => $quantity) {
+            foreach ($cart as $productId => $cartItem) {
+                $quantity = $cartItem['quantity'];
                 $product = $products[$productId];
 
                 if (! $product->is_active) {
                     throw new InvalidArgumentException("Produk {$product->name} tidak aktif.");
                 }
 
-                if ($product->stock < $quantity) {
+                if ($product->tracksStock() && $product->stock < $quantity) {
                     throw new InvalidArgumentException("Stok {$product->name} tidak cukup.");
                 }
 
-                $subtotal += (float) $product->sell_price * $quantity;
+                $subtotal += $this->unitPrice($product, $cartItem) * $quantity;
             }
 
             $totals = $this->calculateTotals($storeId, $subtotal, $discountCode, true);
@@ -82,6 +94,7 @@ class CheckoutService
             }
 
             $customer = $this->resolveCustomer($storeId, $customerId, $customerName, $customerPhone);
+            $vehicle = $this->resolveVehicle($storeId, $customer, $vehiclePlateNumber, $vehicleMileage);
 
             if ($isDebt && ! $customer) {
                 throw new InvalidArgumentException('Transaksi hutang wajib memilih atau membuat pelanggan.');
@@ -95,9 +108,12 @@ class CheckoutService
                 'store_id' => $storeId,
                 'cashier_id' => $cashierId,
                 'customer_id' => $customer?->id,
+                'customer_vehicle_id' => $vehicle?->id,
                 'number' => $this->number('TRX'),
                 'customer_name' => $customer?->name ?? $customerName,
                 'customer_phone' => $customer?->phone ?? $customerPhone,
+                'vehicle_plate_number' => $vehicle?->plate_number ?? $this->normalizePlateNumber($vehiclePlateNumber),
+                'vehicle_mileage' => $vehicle?->mileage ?? $vehicleMileage,
                 'status' => 'completed',
                 'payment_method' => $paymentMethod,
                 'payment_proof' => $paymentProof,
@@ -135,35 +151,45 @@ class CheckoutService
                 }
             }
 
-            foreach ($cart as $productId => $quantity) {
+            foreach ($cart as $productId => $cartItem) {
+                $quantity = $cartItem['quantity'];
                 $product = $products[$productId];
                 $stockBefore = $product->stock;
-                $lineTotal = (float) $product->sell_price * $quantity;
+                $serviceFeeAmount = $this->serviceFeeAmount($product, $cartItem);
+                $taxAmount = $this->taxAmount($product, $cartItem);
+                $unitPrice = $this->unitPrice($product, $cartItem);
+                $lineTotal = $unitPrice * $quantity;
 
                 $sale->items()->create([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'product_code' => $product->barcode ?: $product->sku,
+                    'product_type' => $product->product_type,
                     'quantity' => $quantity,
-                    'unit_price' => $product->sell_price,
+                    'unit_price' => $unitPrice,
+                    'fee_amount' => $product->fee_amount,
+                    'service_fee_amount' => $serviceFeeAmount,
+                    'tax_amount' => $taxAmount,
                     'line_total' => $lineTotal,
                 ]);
 
-                $product->decrement('stock', $quantity);
-                $product->refresh();
+                if ($product->tracksStock()) {
+                    $product->decrement('stock', $quantity);
+                    $product->refresh();
 
-                StockMovement::create([
-                    'store_id' => $storeId,
-                    'product_id' => $product->id,
-                    'user_id' => $cashierId,
-                    'type' => 'sale',
-                    'quantity' => -$quantity,
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $product->stock,
-                    'reference_type' => Sale::class,
-                    'reference_id' => $sale->id,
-                    'notes' => "Penjualan {$sale->number}",
-                ]);
+                    StockMovement::create([
+                        'store_id' => $storeId,
+                        'product_id' => $product->id,
+                        'user_id' => $cashierId,
+                        'type' => 'sale',
+                        'quantity' => -$quantity,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $product->stock,
+                        'reference_type' => Sale::class,
+                        'reference_id' => $sale->id,
+                        'notes' => "Penjualan {$sale->number}",
+                    ]);
+                }
             }
 
             ActivityLogger::log('sale.completed', "Order {$sale->number} selesai", $storeId, $sale, [
@@ -203,6 +229,32 @@ class CheckoutService
             'service_fee_total' => $serviceFeeTotal,
             'grand_total' => round($taxableSubtotal + $serviceFeeTotal + $taxTotal, 2),
         ];
+    }
+
+    /**
+     * @param  array{service_fee_amount:float|null, tax_amount:float|null}  $cartItem
+     */
+    private function unitPrice(Product $product, array $cartItem): float
+    {
+        return $product->baseSalePrice()
+            + $this->serviceFeeAmount($product, $cartItem)
+            + $this->taxAmount($product, $cartItem);
+    }
+
+    /**
+     * @param  array{service_fee_amount:float|null, tax_amount:float|null}  $cartItem
+     */
+    private function serviceFeeAmount(Product $product, array $cartItem): float
+    {
+        return $cartItem['service_fee_amount'] ?? $product->productServiceFeeAmount();
+    }
+
+    /**
+     * @param  array{service_fee_amount:float|null, tax_amount:float|null}  $cartItem
+     */
+    private function taxAmount(Product $product, array $cartItem): float
+    {
+        return $cartItem['tax_amount'] ?? $product->productTaxAmount();
     }
 
     private function resolveDiscount(int $storeId, float $subtotal, ?string $discountCode, bool $lockDiscount): ?Discount
@@ -276,12 +328,12 @@ class CheckoutService
         $duplicateExists = Customer::query()
             ->where('store_id', $storeId)
             ->where(function ($query) use ($customerName, $customerPhone) {
-                if ($customerName !== '') {
+                if ($customerPhone === '' && $customerName !== '') {
                     $query->orWhereRaw('LOWER(name) = ?', [mb_strtolower($customerName)]);
                 }
 
                 if ($customerPhone !== '') {
-                    $query->orWhere('phone', $customerPhone);
+                    $query->where('phone', $customerPhone);
                 }
             })
             ->exists();
@@ -295,6 +347,47 @@ class CheckoutService
             'name' => $customerName !== '' ? $customerName : $customerPhone,
             'phone' => $customerPhone !== '' ? $customerPhone : null,
         ]);
+    }
+
+    private function resolveVehicle(int $storeId, ?Customer $customer, ?string $plateNumber, ?int $mileage): ?CustomerVehicle
+    {
+        if (! $customer) {
+            return null;
+        }
+
+        $plateNumber = $this->normalizePlateNumber($plateNumber);
+
+        if ($plateNumber === null) {
+            return null;
+        }
+
+        $vehicle = CustomerVehicle::query()
+            ->where('customer_id', $customer->id)
+            ->whereRaw('UPPER(plate_number) = ?', [$plateNumber])
+            ->lockForUpdate()
+            ->first();
+
+        if (! $vehicle) {
+            return CustomerVehicle::create([
+                'store_id' => $storeId,
+                'customer_id' => $customer->id,
+                'plate_number' => $plateNumber,
+                'mileage' => $mileage,
+            ]);
+        }
+
+        $vehicle->forceFill([
+            'mileage' => $mileage ?? $vehicle->mileage,
+        ])->save();
+
+        return $vehicle;
+    }
+
+    private function normalizePlateNumber(?string $plateNumber): ?string
+    {
+        $plateNumber = mb_strtoupper(trim((string) $plateNumber));
+
+        return $plateNumber !== '' ? preg_replace('/\s+/', ' ', $plateNumber) : null;
     }
 
     private function number(string $prefix): string

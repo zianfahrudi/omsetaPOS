@@ -22,6 +22,10 @@ class CustomerInfolist
                 TextEntry::make('address')
                     ->placeholder('-')
                     ->columnSpanFull(),
+                TextEntry::make('vehicles_summary')
+                    ->label('Kendaraan terdaftar')
+                    ->placeholder('-')
+                    ->columnSpanFull(),
                 TextEntry::make('visit_count')
                     ->label('Jumlah transaksi')
                     ->numeric(),

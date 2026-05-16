@@ -26,7 +26,7 @@
 
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 @forelse ($this->products() as $product)
-                    <button wire:click="addProduct({{ $product->id }})" type="button" class="group overflow-hidden rounded-lg border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary-400 hover:shadow-md disabled:opacity-60 dark:border-gray-800 dark:bg-gray-950" @disabled($product->stock <= 0)>
+                    <button wire:click="addProduct({{ $product->id }})" type="button" class="group overflow-hidden rounded-lg border border-gray-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary-400 hover:shadow-md disabled:opacity-60 dark:border-gray-800 dark:bg-gray-950" @disabled($product->tracksStock() && $product->stock <= 0)>
                         <div class="aspect-[4/3] bg-gray-100 dark:bg-gray-900">
                             @if ($product->image_url)
                                 <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-full w-full object-cover">
@@ -45,8 +45,8 @@
 
                             <div class="flex items-end justify-between gap-3">
                                 <div>
-                                    <div class="text-lg font-bold text-primary-600">{{ $this->rupiah($product->sell_price) }}</div>
-                                    <div class="text-xs text-gray-500">Stok {{ $product->stock }} {{ $product->unit }}</div>
+                                    <div class="text-lg font-bold text-primary-600">{{ $this->rupiah($product->unitSalePrice()) }}</div>
+                                    <div class="text-xs text-gray-500">{{ $product->tracksStock() ? "Stok {$product->stock} {$product->unit}" : 'Jasa' }}</div>
                                 </div>
                                 <span class="rounded-md bg-primary-50 px-2 py-1 text-xs font-semibold text-primary-700 group-hover:bg-primary-100 dark:bg-primary-950 dark:text-primary-300">
                                     Tambah

@@ -92,6 +92,33 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function productTaxTotal(): float
+    {
+        return $this->itemChargeTotal('tax_amount');
+    }
+
+    public function productServiceFeeTotal(): float
+    {
+        return $this->itemChargeTotal('service_fee_amount');
+    }
+
+    private function itemChargeTotal(string $column): float
+    {
+        if (! in_array($column, ['tax_amount', 'service_fee_amount'], true)) {
+            return 0.0;
+        }
+
+        if ($this->relationLoaded('items')) {
+            return round((float) $this->items->sum(
+                fn (SaleItem $item): float => (float) $item->{$column} * (int) $item->quantity
+            ), 2);
+        }
+
+        return round((float) $this->items()
+            ->selectRaw("COALESCE(SUM(quantity * {$column}), 0) as total")
+            ->value('total'), 2);
+    }
+
     public function refunds(): HasMany
     {
         return $this->hasMany(Refund::class);

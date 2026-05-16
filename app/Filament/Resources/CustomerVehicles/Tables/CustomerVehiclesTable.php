@@ -26,6 +26,10 @@ class CustomerVehiclesTable
                     ->label('No. HP')
                     ->searchable()
                     ->placeholder('-'),
+                TextColumn::make('name')
+                    ->label('Nama / merek')
+                    ->searchable()
+                    ->placeholder('-'),
                 TextColumn::make('plate_number')
                     ->label('Nomor plat')
                     ->searchable()

@@ -212,7 +212,8 @@ class CashierController extends Controller
                 $like = '%'.$term.'%';
 
                 $query->where(fn ($query) => $query
-                    ->where('plate_number', 'like', $like)
+                    ->where('name', 'like', $like)
+                    ->orWhere('plate_number', 'like', $like)
                     ->orWhereHas('customer', fn ($query) => $query
                         ->where('name', 'like', $like)
                         ->orWhere('phone', 'like', $like)));
@@ -222,6 +223,7 @@ class CashierController extends Controller
             ->get()
             ->map(fn (CustomerVehicle $vehicle) => [
                 'id' => $vehicle->id,
+                'name' => $vehicle->name,
                 'plate_number' => $vehicle->plate_number,
                 'mileage' => $vehicle->mileage,
                 'customer' => [
@@ -432,6 +434,97 @@ class CashierController extends Controller
         ], 201);
     }
 
+    public function storeVehicle(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'owner_name' => ['required', 'string', 'max:255'],
+            'owner_phone' => ['nullable', 'string', 'max:40'],
+            'vehicle_name' => ['nullable', 'string', 'max:255'],
+            'plate_number' => ['required', 'string', 'max:30'],
+            'mileage' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $storeId = (int) $data['store_id'];
+
+        abort_unless($this->canAccessStore($storeId), 403);
+
+        $ownerName = trim($data['owner_name']);
+        $ownerPhone = trim((string) ($data['owner_phone'] ?? ''));
+        $plateNumber = $this->normalizePlateNumber($data['plate_number']);
+
+        if ($plateNumber === null) {
+            return response()->json(['message' => 'Nomor plat wajib diisi.'], 422);
+        }
+
+        $customer = null;
+
+        if (! empty($data['customer_id'])) {
+            $customer = Customer::query()
+                ->where('store_id', $storeId)
+                ->whereKey((int) $data['customer_id'])
+                ->firstOrFail();
+
+            $customer->forceFill([
+                'name' => $ownerName,
+                'phone' => $ownerPhone !== '' ? $ownerPhone : null,
+            ])->save();
+        } elseif ($ownerPhone !== '') {
+            $customer = Customer::query()
+                ->where('store_id', $storeId)
+                ->where('phone', $ownerPhone)
+                ->first();
+        } else {
+            $customer = Customer::query()
+                ->where('store_id', $storeId)
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($ownerName)])
+                ->first();
+        }
+
+        if (! $customer) {
+            $customer = Customer::create([
+                'store_id' => $storeId,
+                'name' => $ownerName,
+                'phone' => $ownerPhone !== '' ? $ownerPhone : null,
+            ]);
+        }
+
+        $vehicle = CustomerVehicle::query()
+            ->where('customer_id', $customer->id)
+            ->where('plate_number', $plateNumber)
+            ->first();
+
+        if (! $vehicle) {
+            $vehicle = new CustomerVehicle([
+                'store_id' => $storeId,
+                'customer_id' => $customer->id,
+                'plate_number' => $plateNumber,
+            ]);
+        }
+
+        $vehicle->forceFill([
+            'store_id' => $storeId,
+            'customer_id' => $customer->id,
+            'name' => trim((string) ($data['vehicle_name'] ?? '')) ?: null,
+            'mileage' => $data['mileage'] ?? null,
+        ])->save();
+
+        return response()->json([
+            'vehicle' => [
+                'id' => $vehicle->id,
+                'name' => $vehicle->name,
+                'plate_number' => $vehicle->plate_number,
+                'mileage' => $vehicle->mileage,
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'phone' => $customer->phone,
+                ],
+            ],
+        ], $vehicle->wasRecentlyCreated ? 201 : 200);
+    }
+
     public function pricing(Request $request, CheckoutService $checkoutService): JsonResponse
     {
         $data = $request->validate([
@@ -582,6 +675,14 @@ class CashierController extends Controller
             ->where('stores.id', $storeId)
             ->where('stores.is_active', true)
             ->exists();
+    }
+
+    private function normalizePlateNumber(?string $plateNumber): ?string
+    {
+        $plateNumber = mb_strtoupper(trim((string) $plateNumber));
+        $plateNumber = preg_replace('/\s+/', ' ', $plateNumber);
+
+        return $plateNumber !== '' ? $plateNumber : null;
     }
 
     private function salePayload(Sale $sale): array

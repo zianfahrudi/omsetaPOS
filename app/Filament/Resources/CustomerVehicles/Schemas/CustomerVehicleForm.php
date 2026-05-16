@@ -22,6 +22,9 @@ class CustomerVehicleForm
                     ->searchable()
                     ->preload()
                     ->required(),
+                TextInput::make('name')
+                    ->label('Nama / merek kendaraan')
+                    ->maxLength(255),
                 TextInput::make('plate_number')
                     ->label('Nomor plat')
                     ->required()

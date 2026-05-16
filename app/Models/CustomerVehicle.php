@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'store_id',
     'customer_id',
+    'name',
     'plate_number',
     'mileage',
     'notes',

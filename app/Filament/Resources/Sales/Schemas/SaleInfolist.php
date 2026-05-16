@@ -67,14 +67,18 @@ class SaleInfolist
                 TextEntry::make('discount_total')
                     ->numeric(),
                 TextEntry::make('tax_percentage')
-                    ->label('Tax (%)')
+                    ->label('Tax global (%)')
                     ->numeric(),
                 TextEntry::make('tax_total')
+                    ->label('Tax produk')
+                    ->state(fn ($record): float => $record->productTaxTotal())
                     ->numeric(),
                 TextEntry::make('service_fee_percentage')
-                    ->label('Service fee (%)')
+                    ->label('Service fee global (%)')
                     ->numeric(),
                 TextEntry::make('service_fee_total')
+                    ->label('Service fee produk')
+                    ->state(fn ($record): float => $record->productServiceFeeTotal())
                     ->numeric(),
                 TextEntry::make('grand_total')
                     ->numeric(),

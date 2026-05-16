@@ -18,6 +18,9 @@ class CustomerVehicleInfolist
                 TextEntry::make('customer.phone')
                     ->label('No. HP')
                     ->placeholder('-'),
+                TextEntry::make('name')
+                    ->label('Nama / merek kendaraan')
+                    ->placeholder('-'),
                 TextEntry::make('plate_number')
                     ->label('Nomor plat'),
                 TextEntry::make('mileage')

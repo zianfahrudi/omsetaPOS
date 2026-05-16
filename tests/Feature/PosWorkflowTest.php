@@ -109,6 +109,7 @@ class PosWorkflowTest extends TestCase
         $response->assertSee(route('cashier.customers.store'));
         $response->assertSee(route('cashier.customers.check'));
         $response->assertSee(route('cashier.vehicles'));
+        $response->assertSee(route('cashier.vehicles.store'));
         $response->assertSee(route('cashier.pricing'));
         $response->assertSee(route('cashier.checkout'));
         $response->assertSee(route('cashier.refunds.store'));
@@ -386,6 +387,31 @@ class PosWorkflowTest extends TestCase
         $this->assertEquals(13000, (float) $item->line_total);
     }
 
+    public function test_sale_product_charge_totals_are_summed_from_items(): void
+    {
+        [$cashier, $store, $product] = $this->fixture();
+
+        $this->actingAs($cashier);
+
+        $sale = app(CheckoutService::class)->checkout(
+            storeId: $store->id,
+            cashierId: $cashier->id,
+            items: [[
+                'product_id' => $product->id,
+                'quantity' => 3,
+                'tax_amount' => 250,
+                'service_fee_amount' => 500,
+            ]],
+            paymentMethod: 'cash',
+            paidAmount: 30000,
+        );
+
+        $this->assertEquals(750, $sale->productTaxTotal());
+        $this->assertEquals(1500, $sale->productServiceFeeTotal());
+        $this->assertEquals(750, $sale->load('items')->productTaxTotal());
+        $this->assertEquals(1500, $sale->productServiceFeeTotal());
+    }
+
     public function test_checkout_uses_product_percentage_tax_and_service_fee_defaults(): void
     {
         [$cashier, $store, $product] = $this->fixture();
@@ -582,6 +608,7 @@ class PosWorkflowTest extends TestCase
         CustomerVehicle::create([
             'store_id' => $store->id,
             'customer_id' => $customer->id,
+            'name' => 'Toyota Avanza',
             'plate_number' => 'DD 1515 PM',
             'mileage' => 15150,
         ]);
@@ -592,10 +619,38 @@ class PosWorkflowTest extends TestCase
         ]));
 
         $response->assertOk();
+        $response->assertJsonPath('vehicles.0.name', 'Toyota Avanza');
         $response->assertJsonPath('vehicles.0.plate_number', 'DD 1515 PM');
         $response->assertJsonPath('vehicles.0.mileage', 15150);
         $response->assertJsonPath('vehicles.0.customer.name', 'Pelanggan Mobil');
         $response->assertJsonPath('vehicles.0.customer.phone', '081515151515');
+    }
+
+    public function test_cashier_can_create_vehicle_with_owner_from_modal_payload(): void
+    {
+        [$cashier, $store] = $this->fixture();
+        $cashier->stores()->attach($store->id, ['role' => 'cashier', 'is_default' => true]);
+
+        $response = $this->actingAs($cashier)->postJson(route('cashier.vehicles.store'), [
+            'store_id' => $store->id,
+            'owner_name' => 'Pemilik Mobil',
+            'owner_phone' => '081717171717',
+            'vehicle_name' => 'Toyota Avanza',
+            'plate_number' => 'dd 1717 pm',
+            'mileage' => 17170,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('vehicle.name', 'Toyota Avanza');
+        $response->assertJsonPath('vehicle.plate_number', 'DD 1717 PM');
+        $response->assertJsonPath('vehicle.mileage', 17170);
+        $response->assertJsonPath('vehicle.customer.name', 'Pemilik Mobil');
+        $response->assertJsonPath('vehicle.customer.phone', '081717171717');
+        $this->assertDatabaseHas('customer_vehicles', [
+            'name' => 'Toyota Avanza',
+            'plate_number' => 'DD 1717 PM',
+            'mileage' => 17170,
+        ]);
     }
 
     public function test_cashier_can_create_manual_customer(): void

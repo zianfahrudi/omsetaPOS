@@ -18,6 +18,7 @@ Route::prefix('kasir')->name('cashier.')->group(function () {
     Route::post('/customers', [CashierController::class, 'storeCustomer'])->middleware('auth')->name('customers.store');
     Route::get('/customers/check', [CashierController::class, 'checkCustomer'])->middleware('auth')->name('customers.check');
     Route::get('/vehicles', [CashierController::class, 'vehicles'])->middleware('auth')->name('vehicles');
+    Route::post('/vehicles', [CashierController::class, 'storeVehicle'])->middleware('auth')->name('vehicles.store');
     Route::get('/pricing', [CashierController::class, 'pricing'])->middleware('auth')->name('pricing');
     Route::post('/checkout', [CashierController::class, 'checkout'])->middleware('auth')->name('checkout');
     Route::post('/refunds', [CashierController::class, 'refund'])->middleware('auth')->name('refunds.store');

@@ -1430,6 +1430,7 @@
         data-mark-paid-url="{{ route('cashier.transactions.mark-paid', ['sale' => 0]) }}"
         data-refunds-url="{{ route('cashier.refunds.store') }}" data-customers-url="{{ route('cashier.customers') }}"
         data-vehicles-url="{{ route('cashier.vehicles') }}"
+        data-vehicles-store-url="{{ route('cashier.vehicles.store') }}"
         data-customers-store-url="{{ route('cashier.customers.store') }}"
         data-customer-check-url="{{ route('cashier.customers.check') }}"
         data-pricing-url="{{ route('cashier.pricing') }}" data-checkout-url="{{ route('cashier.checkout') }}"
@@ -1568,8 +1569,17 @@
                         </label>
                         <label class="field">
                             <span>Kilometer</span>
-                            <input class="input" id="vehicle-mileage" type="number" min="0" inputmode="numeric"
-                                placeholder="0">
+                            <div style="display: flex; gap: 8px;">
+                                <input class="input" id="vehicle-mileage" type="number" min="0" inputmode="numeric"
+                                    placeholder="0">
+                                <button type="button" class="small-btn" id="btn-open-vehicle-modal"
+                                    style="width: 48px; flex-shrink: 0; padding: 0;" title="Tambah kendaraan">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg>
+                                </button>
+                            </div>
                         </label>
                     </div>
 
@@ -1821,6 +1831,55 @@
                 </div>
                 <button type="button" id="btn-apply-customer" class="primary-btn" style="margin-top: 8px;">Simpan &
                     Terapkan Pelanggan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vehicle-manual-modal" class="modal-backdrop hidden">
+        <div class="modal">
+            <header class="modal-header">
+                <h3>Kendaraan Baru</h3>
+                <button type="button" id="close-vehicle-manual-modal" class="close-btn">&times;</button>
+            </header>
+            <div class="modal-body">
+                <input type="hidden" id="vehicle-owner-id">
+                <label class="field">
+                    <span>Nama / Merek</span>
+                    <input class="input" id="new-vehicle-name" type="text" placeholder="Contoh: Avanza / Honda Brio">
+                </label>
+                <label class="field">
+                    <span>Nomor Plat</span>
+                    <input class="input" id="new-vehicle-plate-number" type="text" placeholder="Contoh: DD 1234 XY">
+                </label>
+                <label class="field" style="position: relative;">
+                    <span>Nama Pemilik</span>
+                    <div style="display: flex; gap: 8px;">
+                        <input class="input" id="vehicle-owner-name" type="text" placeholder="Nama customer"
+                            autocomplete="off">
+                        <button type="button" class="small-btn" id="btn-search-vehicle-owner"
+                            style="width: 48px; flex-shrink: 0; padding: 0;" title="Cari customer">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <path d="m21 21-4.3-4.3" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="vehicle-owner-list" class="customer-list"
+                        style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 70; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; display: none; flex-direction: column; gap: 8px; padding: 8px;">
+                    </div>
+                </label>
+                <label class="field">
+                    <span>Nomor HP Pemilik</span>
+                    <input class="input" id="vehicle-owner-phone" type="tel" placeholder="Opsional">
+                </label>
+                <label class="field">
+                    <span>Kilometer</span>
+                    <input class="input" id="new-vehicle-mileage" type="number" min="0" inputmode="numeric"
+                        placeholder="0">
+                </label>
+                <button type="button" id="btn-save-vehicle" class="primary-btn" style="margin-top: 8px;">Simpan &
+                    Terapkan Kendaraan</button>
             </div>
         </div>
     </div>
@@ -2572,6 +2631,14 @@
         const customerManualModal = document.getElementById('customer-manual-modal');
         const manualVehiclePlateNumber = document.getElementById('manual-vehicle-plate-number');
         const manualVehicleMileage = document.getElementById('manual-vehicle-mileage');
+        const vehicleManualModal = document.getElementById('vehicle-manual-modal');
+        const vehicleOwnerId = document.getElementById('vehicle-owner-id');
+        const newVehicleName = document.getElementById('new-vehicle-name');
+        const newVehiclePlateNumber = document.getElementById('new-vehicle-plate-number');
+        const vehicleOwnerName = document.getElementById('vehicle-owner-name');
+        const vehicleOwnerPhone = document.getElementById('vehicle-owner-phone');
+        const newVehicleMileage = document.getElementById('new-vehicle-mileage');
+        const vehicleOwnerList = document.getElementById('vehicle-owner-list');
         const transactionModal = document.getElementById('transaction-modal');
         const transactionSearch = document.getElementById('transaction-search');
         const transactionList = document.getElementById('transaction-list');
@@ -2610,6 +2677,23 @@
 
         document.getElementById('close-customer-manual-modal').addEventListener('click', () => {
             customerManualModal.classList.add('hidden');
+        });
+
+        document.getElementById('btn-open-vehicle-modal').addEventListener('click', () => {
+            vehicleList.style.display = 'none';
+            vehicleOwnerList.style.display = 'none';
+            vehicleOwnerId.value = els.customerId.value || '';
+            newVehicleName.value = '';
+            newVehiclePlateNumber.value = els.vehiclePlateNumber.value.trim();
+            vehicleOwnerName.value = els.customerName.value.trim() || customerSearch.value.trim();
+            vehicleOwnerPhone.value = els.customerPhone.value.trim();
+            newVehicleMileage.value = els.vehicleMileage.value || '';
+            vehicleManualModal.classList.remove('hidden');
+            newVehicleName.focus();
+        });
+
+        document.getElementById('close-vehicle-manual-modal').addEventListener('click', () => {
+            vehicleManualModal.classList.add('hidden');
         });
 
         document.getElementById('btn-apply-customer').addEventListener('click', async () => {
@@ -2666,6 +2750,105 @@
             }
         });
 
+        const loadVehicleOwners = async (query = '') => {
+            vehicleOwnerList.style.display = 'flex';
+            vehicleOwnerList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light);">Memuat...</div>';
+
+            try {
+                const params = new URLSearchParams({ store_id: els.store.value, q: query });
+                const res = await fetch(`${root.dataset.customersUrl}?${params}`, {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store',
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Gagal memuat customer');
+                }
+
+                if ((data.customers || []).length === 0) {
+                    vehicleOwnerList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light);">Tidak ada customer ditemukan.</div>';
+                    return;
+                }
+
+                vehicleOwnerList.innerHTML = data.customers.map((customer) => `
+                    <div class="customer-item" onclick="selectVehicleOwner(${customer.id}, '${escapeHtml(customer.name)}', '${escapeHtml(customer.phone || '')}')">
+                        <h4>${escapeHtml(customer.name)}</h4>
+                        ${customer.phone ? `<p>${escapeHtml(customer.phone)}</p>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                vehicleOwnerList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Gagal memuat customer.</div>';
+            }
+        };
+
+        document.getElementById('btn-search-vehicle-owner').addEventListener('click', () => {
+            loadVehicleOwners('');
+        });
+
+        vehicleOwnerName.addEventListener('input', () => {
+            vehicleOwnerId.value = '';
+            vehicleOwnerList.style.display = 'none';
+        });
+
+        document.getElementById('btn-save-vehicle').addEventListener('click', async () => {
+            const button = document.getElementById('btn-save-vehicle');
+            const ownerName = vehicleOwnerName.value.trim();
+            const plateNumber = newVehiclePlateNumber.value.trim();
+
+            if (!ownerName) {
+                showToast('Nama pemilik wajib diisi', 'error');
+                return;
+            }
+
+            if (!plateNumber) {
+                showToast('Nomor plat wajib diisi', 'error');
+                return;
+            }
+
+            button.disabled = true;
+
+            try {
+                const response = await fetch(root.dataset.vehiclesStoreUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': root.dataset.csrf,
+                    },
+                    body: JSON.stringify({
+                        store_id: els.store.value,
+                        customer_id: vehicleOwnerId.value || null,
+                        owner_name: ownerName,
+                        owner_phone: vehicleOwnerPhone.value.trim(),
+                        vehicle_name: newVehicleName.value.trim(),
+                        plate_number: plateNumber,
+                        mileage: newVehicleMileage.value || null,
+                    }),
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Gagal menyimpan kendaraan');
+                }
+
+                selectVehicle(
+                    data.vehicle.id,
+                    data.vehicle.plate_number,
+                    data.vehicle.mileage || '',
+                    data.vehicle.customer?.id || null,
+                    data.vehicle.customer?.name || ownerName,
+                    data.vehicle.customer?.phone || vehicleOwnerPhone.value.trim()
+                );
+                vehicleManualModal.classList.add('hidden');
+                showToast('Kendaraan tersimpan', 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+
         // Hide customer list when clicking outside
         document.addEventListener('click', (e) => {
             if (!customerSearch.contains(e.target) && !customerList.contains(e.target)) {
@@ -2674,6 +2857,10 @@
 
             if (!els.vehiclePlateNumber.contains(e.target) && !vehicleList.contains(e.target)) {
                 vehicleList.style.display = 'none';
+            }
+
+            if (!vehicleOwnerName.contains(e.target) && !vehicleOwnerList.contains(e.target) && !document.getElementById('btn-search-vehicle-owner').contains(e.target)) {
+                vehicleOwnerList.style.display = 'none';
             }
         });
 
@@ -2737,7 +2924,7 @@
 
                 vehicleList.innerHTML = data.vehicles.map((vehicle) => `
                     <div class="customer-item" onclick="selectVehicle(${vehicle.id}, '${escapeHtml(vehicle.plate_number)}', '${escapeHtml(vehicle.mileage || '')}', ${vehicle.customer?.id || 'null'}, '${escapeHtml(vehicle.customer?.name || '')}', '${escapeHtml(vehicle.customer?.phone || '')}')">
-                        <h4>${escapeHtml(vehicle.plate_number)}</h4>
+                        <h4>${escapeHtml(vehicle.plate_number)}${vehicle.name ? ` · ${escapeHtml(vehicle.name)}` : ''}</h4>
                         <p>${escapeHtml(vehicle.customer?.name || 'Tanpa customer')}${vehicle.customer?.phone ? ` · ${escapeHtml(vehicle.customer.phone)}` : ''}${vehicle.mileage ? ` · ${Number(vehicle.mileage).toLocaleString('id-ID')} km` : ''}</p>
                     </div>
                 `).join('');
@@ -2747,21 +2934,13 @@
         };
 
         els.vehiclePlateNumber.addEventListener('focus', () => {
-            if (els.vehiclePlateNumber.value.trim() !== '') {
-                loadVehicles(els.vehiclePlateNumber.value);
-            }
+            loadVehicles(els.vehiclePlateNumber.value.trim());
         });
 
         els.vehiclePlateNumber.addEventListener('input', (event) => {
             clearTimeout(vehiclesTimer);
             vehiclesTimer = setTimeout(() => {
-                const query = event.target.value.trim();
-                if (query === '') {
-                    vehicleList.style.display = 'none';
-                    return;
-                }
-
-                loadVehicles(query);
+                loadVehicles(event.target.value.trim());
             }, 300);
         });
 
@@ -2776,6 +2955,13 @@
             customerList.style.display = 'none';
             vehicleList.style.display = 'none';
             renderOrder();
+        };
+
+        window.selectVehicleOwner = (id, name, phone) => {
+            vehicleOwnerId.value = id;
+            vehicleOwnerName.value = name;
+            vehicleOwnerPhone.value = phone || '';
+            vehicleOwnerList.style.display = 'none';
         };
 
         window.selectVehicle = (id, plateNumber, mileage, customerId, customerName, customerPhone) => {

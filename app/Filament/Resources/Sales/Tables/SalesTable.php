@@ -57,11 +57,15 @@ class SalesTable
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('tax_total')
+                    ->label('Tax produk')
+                    ->state(fn ($record): float => $record->productTaxTotal())
                     ->money('IDR')
-                    ->sortable(),
+                    ->toggleable(),
                 TextColumn::make('service_fee_total')
+                    ->label('Service fee produk')
+                    ->state(fn ($record): float => $record->productServiceFeeTotal())
                     ->money('IDR')
-                    ->sortable(),
+                    ->toggleable(),
                 TextColumn::make('grand_total')
                     ->money('IDR')
                     ->sortable(),

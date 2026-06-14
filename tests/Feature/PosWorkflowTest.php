@@ -97,7 +97,12 @@ class PosWorkflowTest extends TestCase
         $response->assertSee('Transaksi hutang piutang');
         $response->assertSee('Nomor Plat');
         $response->assertSee('Kilometer');
-        $response->assertSee('Nominal Sudah Dibayar');
+        // The "Nominal Sudah Dibayar" label is a dynamic JS label that now lives in the
+        // externalized cashier.js asset rather than inline in the page HTML.
+        $this->assertStringContainsString(
+            'Nominal Sudah Dibayar',
+            file_get_contents(public_path('cashier/cashier.js'))
+        );
         $response->assertSee('id="paid-amount" type="text" inputmode="numeric"', false);
         $response->assertSee('id="refund-additional-payment" type="text" inputmode="numeric"', false);
         $response->assertSee($store->name);

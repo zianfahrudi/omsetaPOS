@@ -1,0 +1,257 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Customer;
+use App\Models\CustomerVehicle;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Support\ActivityLogger;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+
+/**
+ * Shared read/creation operations for the point of sale, consumed by both the
+ * web cashier and the API so behaviour stays identical across clients.
+ */
+class PosService
+{
+    /**
+     * @return Collection<int, Product>
+     */
+    public function products(int $storeId, string $term = '', ?int $productId = null): Collection
+    {
+        return Product::query()
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->when($productId, fn ($query) => $query->whereKey($productId))
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+
+                $query->where(fn ($query) => $query
+                    ->where('name', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
+                    ->orWhere('barcode', 'like', $like));
+            })
+            ->orderBy('name')
+            ->limit(80)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Customer>
+     */
+    public function customers(int $storeId, string $term = ''): Collection
+    {
+        return Customer::query()
+            ->where('store_id', $storeId)
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+
+                $query->where(fn ($query) => $query
+                    ->where('name', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhereHas('vehicles', fn ($query) => $query->where('plate_number', 'like', $like)));
+            })
+            ->with('vehicles')
+            ->orderBy('name')
+            ->limit(20)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, CustomerVehicle>
+     */
+    public function vehicles(int $storeId, string $term = ''): Collection
+    {
+        return CustomerVehicle::query()
+            ->with('customer')
+            ->where('store_id', $storeId)
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+
+                $query->where(fn ($query) => $query
+                    ->where('name', 'like', $like)
+                    ->orWhere('plate_number', 'like', $like)
+                    ->orWhereHas('customer', fn ($query) => $query
+                        ->where('name', 'like', $like)
+                        ->orWhere('phone', 'like', $like)));
+            })
+            ->orderBy('plate_number')
+            ->limit(20)
+            ->get();
+    }
+
+    public function customerExists(int $storeId, string $name, string $phone): bool
+    {
+        if ($name === '' && $phone === '') {
+            return false;
+        }
+
+        return Customer::query()
+            ->where('store_id', $storeId)
+            ->where(function ($query) use ($name, $phone) {
+                if ($phone === '' && $name !== '') {
+                    $query->orWhereRaw('LOWER(name) = ?', [mb_strtolower($name)]);
+                }
+
+                if ($phone !== '') {
+                    $query->orWhere('phone', $phone);
+                }
+            })
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, Sale>
+     */
+    public function transactions(int $storeId, int $cashierId, string $term = ''): Collection
+    {
+        return Sale::query()
+            ->with(['items', 'store', 'customer', 'cashier'])
+            ->where('store_id', $storeId)
+            ->where('cashier_id', $cashierId)
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.$term.'%';
+
+                $query->where(function ($query) use ($like) {
+                    $query
+                        ->where('number', 'like', $like)
+                        ->orWhere('customer_name', 'like', $like)
+                        ->orWhere('vehicle_plate_number', 'like', $like)
+                        ->orWhereHas('customer', fn ($query) => $query->where('name', 'like', $like))
+                        ->orWhereHas('items', fn ($query) => $query->where('product_name', 'like', $like));
+                });
+            })
+            ->latest()
+            ->limit(30)
+            ->get();
+    }
+
+    public function markTransactionPaid(Sale $sale): Sale
+    {
+        if (! $sale->is_debt || (float) $sale->debt_amount <= 0) {
+            throw new InvalidArgumentException('Transaksi sudah lunas.');
+        }
+
+        $paidDebt = (float) $sale->debt_amount;
+
+        DB::transaction(function () use ($sale, $paidDebt) {
+            $locked = Sale::query()->whereKey($sale->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->is_debt || (float) $locked->debt_amount <= 0) {
+                throw new InvalidArgumentException('Transaksi sudah lunas.');
+            }
+
+            $locked->increment('paid_amount', $paidDebt);
+            $locked->forceFill(['debt_amount' => 0, 'change_amount' => 0])->save();
+
+            if ($locked->customer_id) {
+                $customer = Customer::query()->lockForUpdate()->find($locked->customer_id);
+                $customer?->forceFill([
+                    'outstanding_debt' => max(0, (float) $customer->outstanding_debt - $paidDebt),
+                ])->save();
+            }
+
+            ActivityLogger::log('sale.debt_paid', "Transaksi {$locked->number} ditandai lunas", $locked->store_id, $locked, [
+                'paid_debt' => $paidDebt,
+            ]);
+        });
+
+        return $sale->fresh(['items', 'store', 'customer', 'cashier']);
+    }
+
+    /**
+     * @param  array{name:string, phone?:string|null, vehicle_plate_number?:string|null, vehicle_mileage?:int|null}  $data
+     */
+    public function createCustomer(int $storeId, array $data): Customer
+    {
+        $name = trim($data['name']);
+        $phone = trim((string) ($data['phone'] ?? ''));
+
+        if ($this->customerExists($storeId, $phone === '' ? $name : '', $phone)) {
+            throw new InvalidArgumentException('Pelanggan sudah terdaftar. Pilih dari database pelanggan.');
+        }
+
+        $customer = Customer::create([
+            'store_id' => $storeId,
+            'name' => $name,
+            'phone' => $phone !== '' ? $phone : null,
+        ]);
+
+        $plateNumber = $this->normalizePlateNumber($data['vehicle_plate_number'] ?? null);
+        if ($plateNumber !== null) {
+            $customer->vehicles()->create([
+                'store_id' => $storeId,
+                'plate_number' => $plateNumber,
+                'mileage' => $data['vehicle_mileage'] ?? null,
+            ]);
+        }
+
+        return $customer->load('vehicles');
+    }
+
+    /**
+     * @param  array{customer_id?:int|null, owner_name:string, owner_phone?:string|null, vehicle_name?:string|null, plate_number:string, mileage?:int|null}  $data
+     */
+    public function createOrUpdateVehicle(int $storeId, array $data): CustomerVehicle
+    {
+        $ownerName = trim($data['owner_name']);
+        $ownerPhone = trim((string) ($data['owner_phone'] ?? ''));
+        $plateNumber = $this->normalizePlateNumber($data['plate_number']);
+
+        if ($plateNumber === null) {
+            throw new InvalidArgumentException('Nomor plat wajib diisi.');
+        }
+
+        $customer = $this->resolveVehicleOwner($storeId, $data['customer_id'] ?? null, $ownerName, $ownerPhone);
+
+        $vehicle = CustomerVehicle::query()
+            ->where('customer_id', $customer->id)
+            ->where('plate_number', $plateNumber)
+            ->first() ?? new CustomerVehicle(['plate_number' => $plateNumber]);
+
+        $vehicle->forceFill([
+            'store_id' => $storeId,
+            'customer_id' => $customer->id,
+            'plate_number' => $plateNumber,
+            'name' => trim((string) ($data['vehicle_name'] ?? '')) ?: null,
+            'mileage' => $data['mileage'] ?? null,
+        ])->save();
+
+        return $vehicle->load('customer');
+    }
+
+    private function resolveVehicleOwner(int $storeId, ?int $customerId, string $ownerName, string $ownerPhone): Customer
+    {
+        if ($customerId) {
+            $customer = Customer::query()->where('store_id', $storeId)->whereKey($customerId)->firstOrFail();
+            $customer->forceFill([
+                'name' => $ownerName,
+                'phone' => $ownerPhone !== '' ? $ownerPhone : null,
+            ])->save();
+
+            return $customer;
+        }
+
+        $existing = $ownerPhone !== ''
+            ? Customer::query()->where('store_id', $storeId)->where('phone', $ownerPhone)->first()
+            : Customer::query()->where('store_id', $storeId)->whereRaw('LOWER(name) = ?', [mb_strtolower($ownerName)])->first();
+
+        return $existing ?? Customer::create([
+            'store_id' => $storeId,
+            'name' => $ownerName,
+            'phone' => $ownerPhone !== '' ? $ownerPhone : null,
+        ]);
+    }
+
+    private function normalizePlateNumber(?string $plateNumber): ?string
+    {
+        $plateNumber = mb_strtoupper(trim((string) $plateNumber));
+        $plateNumber = preg_replace('/\s+/', ' ', $plateNumber);
+
+        return $plateNumber !== '' ? $plateNumber : null;
+    }
+}

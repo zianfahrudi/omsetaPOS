@@ -13,13 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'phone', 'password', 'role', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -70,5 +71,31 @@ class User extends Authenticatable implements FilamentUser
     public function isAdmin(): bool
     {
         return in_array($this->role, ['admin', 'superuser'], true);
+    }
+
+    /**
+     * Stores this user may operate (superuser sees all active stores).
+     *
+     * @return \Illuminate\Support\Collection<int, Store>
+     */
+    public function accessibleStores(): \Illuminate\Support\Collection
+    {
+        if ($this->isSuperuser()) {
+            return Store::query()->where('is_active', true)->orderBy('name')->get();
+        }
+
+        return $this->stores()->where('stores.is_active', true)->orderBy('name')->get();
+    }
+
+    public function canAccessStore(int $storeId): bool
+    {
+        if ($this->isSuperuser()) {
+            return Store::query()->whereKey($storeId)->where('is_active', true)->exists();
+        }
+
+        return $this->stores()
+            ->where('stores.id', $storeId)
+            ->where('stores.is_active', true)
+            ->exists();
     }
 }

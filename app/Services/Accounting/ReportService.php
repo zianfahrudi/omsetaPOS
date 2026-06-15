@@ -5,6 +5,9 @@ namespace App\Services\Accounting;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\JournalLine;
+use App\Models\Purchase;
+use App\Models\Sale;
+use App\Models\SalesInvoice;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -156,8 +159,7 @@ class ReportService
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */
-    private function section(Collection $accounts, callable $amountFn): Collection
-    {
+    private function section(Collection $accounts, callable $amountFn): Collection    {
         return $accounts
             ->map(fn (Account $a) => [
                 'code' => $a->code,

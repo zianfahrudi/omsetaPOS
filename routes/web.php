@@ -114,6 +114,13 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('persediaan/perakitan/baru', [\App\Http\Controllers\V2\AssemblyController::class, 'create'])->name('inventory.assemblies.create');
         Route::post('persediaan/perakitan', [\App\Http\Controllers\V2\AssemblyController::class, 'store'])->name('inventory.assemblies.store');
         Route::get('persediaan/perakitan/{assembly}', [\App\Http\Controllers\V2\AssemblyController::class, 'show'])->name('inventory.assemblies.show');
+        // Konsinyasi
+        Route::get('persediaan/konsinyasi', [\App\Http\Controllers\V2\ConsignmentController::class, 'index'])->name('inventory.consignments');
+        Route::get('persediaan/konsinyasi/baru', [\App\Http\Controllers\V2\ConsignmentController::class, 'create'])->name('inventory.consignments.create');
+        Route::post('persediaan/konsinyasi', [\App\Http\Controllers\V2\ConsignmentController::class, 'store'])->name('inventory.consignments.store');
+        Route::get('persediaan/konsinyasi/{consignment}', [\App\Http\Controllers\V2\ConsignmentController::class, 'show'])->name('inventory.consignments.show');
+        Route::post('persediaan/konsinyasi/{consignment}/settle', [\App\Http\Controllers\V2\ConsignmentController::class, 'settle'])->name('inventory.consignments.settle');
+        Route::post('persediaan/konsinyasi/{consignment}/retur', [\App\Http\Controllers\V2\ConsignmentController::class, 'returnItems'])->name('inventory.consignments.return');
 
         // Kas & Bank
         Route::get('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'transactions'])->name('cash.transactions');
@@ -167,6 +174,15 @@ Route::prefix('app')->name('v2.')->group(function () {
         // Wilayah (Provinsi & Kabupaten/Kota)
         Route::get('wilayah/provinsi', [\App\Http\Controllers\V2\RegionController::class, 'provinces'])->name('regions.provinces');
         Route::get('wilayah/kabupaten-kota', [\App\Http\Controllers\V2\RegionController::class, 'regencies'])->name('regions.regencies');
+
+        // Harta Tetap
+        Route::get('harta-tetap', [\App\Http\Controllers\V2\FixedAssetController::class, 'index'])->name('assets.index');
+        Route::get('harta-tetap/baru', [\App\Http\Controllers\V2\FixedAssetController::class, 'create'])->name('assets.create');
+        Route::post('harta-tetap', [\App\Http\Controllers\V2\FixedAssetController::class, 'store'])->name('assets.store');
+        Route::get('harta-tetap/{asset}', [\App\Http\Controllers\V2\FixedAssetController::class, 'show'])->name('assets.show');
+        Route::get('harta-tetap/{asset}/edit', [\App\Http\Controllers\V2\FixedAssetController::class, 'edit'])->name('assets.edit');
+        Route::put('harta-tetap/{asset}', [\App\Http\Controllers\V2\FixedAssetController::class, 'update'])->name('assets.update');
+        Route::post('harta-tetap/{asset}/susut', [\App\Http\Controllers\V2\FixedAssetController::class, 'depreciate'])->name('assets.depreciate');
 
         // Data Master sederhana (Satuan, Gudang, Departemen, Proyek, Mata Uang, Pajak)
         foreach ([

@@ -5,7 +5,10 @@
 @php($rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.'))
 
 @section('content')
-    @include('v2.sales._search')
+    <div class="mb-4 flex items-center justify-between gap-3">
+        @include('v2.sales._search')
+        <a href="{{ route('v2.sales.invoices.create') }}" class="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">+ Faktur</a>
+    </div>
 
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="overflow-x-auto">

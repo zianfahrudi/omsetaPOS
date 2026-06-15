@@ -54,11 +54,15 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('penjualan/penawaran', [\App\Http\Controllers\V2\SalesController::class, 'quotations'])->name('sales.quotations');
         Route::get('penjualan/pesanan', [\App\Http\Controllers\V2\SalesController::class, 'orders'])->name('sales.orders');
         Route::get('penjualan/faktur', [\App\Http\Controllers\V2\SalesController::class, 'invoices'])->name('sales.invoices');
+        Route::get('penjualan/faktur/baru', [\App\Http\Controllers\V2\SalesController::class, 'invoiceCreate'])->name('sales.invoices.create');
+        Route::post('penjualan/faktur', [\App\Http\Controllers\V2\SalesController::class, 'invoiceStore'])->name('sales.invoices.store');
         Route::get('penjualan/faktur/{invoice}', [\App\Http\Controllers\V2\SalesController::class, 'invoiceShow'])->name('sales.invoices.show');
 
         // Pembelian
         Route::get('pembelian/pesanan', [\App\Http\Controllers\V2\PurchaseController::class, 'orders'])->name('purchase.orders');
         Route::get('pembelian/faktur', [\App\Http\Controllers\V2\PurchaseController::class, 'invoices'])->name('purchase.invoices');
+        Route::get('pembelian/faktur/baru', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceCreate'])->name('purchase.invoices.create');
+        Route::post('pembelian/faktur', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceStore'])->name('purchase.invoices.store');
         Route::get('pembelian/faktur/{invoice}', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceShow'])->name('purchase.invoices.show');
 
         // Persediaan

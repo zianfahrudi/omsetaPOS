@@ -460,6 +460,37 @@ class ReportService
     }
 
     /**
+     * Stock quantity & value per warehouse.
+     *
+     * @return array{rows:Collection, total_value:float}
+     */
+    public function warehouseStockReport(Company $company, ?int $warehouseId = null): array
+    {
+        $rows = \App\Models\WarehouseStock::query()
+            ->with(['product', 'warehouse'])
+            ->whereHas('warehouse', fn ($q) => $q->where('company_id', $company->id))
+            ->when($warehouseId, fn ($q) => $q->where('warehouse_id', $warehouseId))
+            ->where('quantity', '!=', 0)
+            ->get()
+            ->map(fn (\App\Models\WarehouseStock $s) => [
+                'warehouse' => $s->warehouse?->name,
+                'product' => $s->product?->name,
+                'sku' => $s->product?->sku,
+                'quantity' => (int) $s->quantity,
+                'unit' => $s->product?->unit,
+                'cost_price' => (float) ($s->product?->cost_price ?? 0),
+                'value' => round((float) ($s->product?->cost_price ?? 0) * (int) $s->quantity, 2),
+            ])
+            ->sortBy([['warehouse', 'asc'], ['product', 'asc']])
+            ->values();
+
+        return [
+            'rows' => $rows,
+            'total_value' => round($rows->sum('value'), 2),
+        ];
+    }
+
+    /**
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */

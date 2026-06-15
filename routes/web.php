@@ -110,6 +110,10 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('persediaan/pemindahan/baru', [\App\Http\Controllers\V2\InventoryController::class, 'transferCreate'])->name('inventory.transfers.create');
         Route::post('persediaan/pemindahan', [\App\Http\Controllers\V2\InventoryController::class, 'transferStore'])->name('inventory.transfers.store');
         Route::get('persediaan/kartu-stok', [\App\Http\Controllers\V2\InventoryController::class, 'stockCard'])->name('inventory.stock-card');
+        Route::get('persediaan/perakitan', [\App\Http\Controllers\V2\AssemblyController::class, 'index'])->name('inventory.assemblies');
+        Route::get('persediaan/perakitan/baru', [\App\Http\Controllers\V2\AssemblyController::class, 'create'])->name('inventory.assemblies.create');
+        Route::post('persediaan/perakitan', [\App\Http\Controllers\V2\AssemblyController::class, 'store'])->name('inventory.assemblies.store');
+        Route::get('persediaan/perakitan/{assembly}', [\App\Http\Controllers\V2\AssemblyController::class, 'show'])->name('inventory.assemblies.show');
 
         // Kas & Bank
         Route::get('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'transactions'])->name('cash.transactions');

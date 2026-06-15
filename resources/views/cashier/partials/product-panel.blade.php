@@ -71,6 +71,14 @@
             </div>
 
             <div class="catalog-container">
+                <div class="shortcut-hint">
+                    <span><kbd>F2</kbd> Cari</span>
+                    <span><kbd>F4</kbd> Nominal</span>
+                    <span><kbd>F9</kbd> Bayar</span>
+                    <span><kbd>F6</kbd> Riwayat</span>
+                    <span><kbd>F7</kbd> Refund</span>
+                    <span><kbd>Esc</kbd> Tutup</span>
+                </div>
                 <div class="catalog" id="catalog"></div>
             </div>
         </section>

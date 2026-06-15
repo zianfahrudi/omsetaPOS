@@ -35,6 +35,7 @@
             'items' => [
                 ['v2.inventory.adjustments', 'Penyesuaian Stok'],
                 ['v2.inventory.transfers', 'Pemindahan Barang'],
+                ['v2.inventory.assemblies', 'Perakitan'],
                 ['v2.inventory.stock-card', 'Kartu Stok'],
             ],
         ],

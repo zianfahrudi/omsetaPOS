@@ -176,19 +176,18 @@
 
             els.catalog.innerHTML = state.products.map((product) => `
                 <button class="product" type="button" data-add="${product.id}" ${product.product_type !== 'service' && product.stock <= 0 ? 'disabled' : ''}>
-                    <div class="product-image">${productImage(product)}</div>
-                    <div class="product-body">
+                    <div class="product-info">
                         <div class="product-name">${escapeHtml(product.name)}</div>
-                        <div class="product-code">${escapeHtml(product.code || '-')}</div>
-                        <div class="product-foot">
-                            <div>
-                                <div class="price">${rupiah(product.price)}</div>
-                                <div class="stock ${product.product_type !== 'service' && product.stock < 5 ? 'low' : ''}">${product.product_type === 'service' ? 'Jasa' : `Sisa ${product.stock} ${escapeHtml(product.unit || 'pcs')}`}</div>
-                            </div>
-                            <div class="add-pill">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            </div>
+                        <div class="product-meta">
+                            <span class="product-code">${escapeHtml(product.code || '-')}</span>
+                            <span class="stock ${product.product_type !== 'service' && product.stock < 5 ? 'low' : ''}">${product.product_type === 'service' ? 'Jasa' : `Sisa ${product.stock} ${escapeHtml(product.unit || 'pcs')}`}</span>
                         </div>
+                    </div>
+                    <div class="product-aside">
+                        <div class="price">${rupiah(product.price)}</div>
+                        <span class="add-pill">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </span>
                     </div>
                 </button>
             `).join('');
@@ -1899,6 +1898,72 @@
         });
         document.getElementById('print-receipt').addEventListener('click', printReceipt);
         markSalePaidButton.addEventListener('click', markTransactionPaid);
+
+        // --- Pintasan keyboard (gaya kasir supermarket) ---
+        const allModals = () => Array.from(document.querySelectorAll('[id$="-modal"]'));
+        const openModals = () => allModals().filter((m) => !m.classList.contains('hidden'));
+        const closeTopModal = () => {
+            const open = openModals();
+            if (open.length === 0) return false;
+            open[open.length - 1].classList.add('hidden');
+            return true;
+        };
+
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+
+            if (key === 'Escape') {
+                if (closeTopModal()) { event.preventDefault(); return; }
+                // tutup dropdown saran
+                ['customer-list', 'vehicle-list', 'vehicle-owner-list'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+                if (document.activeElement === els.search && els.search.value) {
+                    els.search.value = '';
+                    els.search.dispatchEvent(new Event('input'));
+                }
+                return;
+            }
+
+            // Pintasan fungsi hanya saat tidak ada modal terbuka
+            if (openModals().length > 0) return;
+
+            switch (key) {
+                case 'F2': // fokus cari produk
+                    event.preventDefault();
+                    els.search.focus();
+                    els.search.select();
+                    break;
+                case 'F3': // fokus pelanggan
+                    event.preventDefault();
+                    document.getElementById('customer-search')?.focus();
+                    break;
+                case 'F4': // fokus nominal bayar
+                    event.preventDefault();
+                    els.paidAmount?.focus();
+                    els.paidAmount?.select();
+                    break;
+                case 'F9': // proses pembayaran
+                    event.preventDefault();
+                    if (!els.checkout.disabled) els.checkout.click();
+                    break;
+                case 'F6': // riwayat transaksi
+                    event.preventDefault();
+                    document.getElementById('btn-open-transactions')?.click();
+                    break;
+                case 'F7': // refund
+                    event.preventDefault();
+                    document.getElementById('btn-open-refund')?.click();
+                    break;
+                case 'Delete': // kosongkan keranjang (Ctrl+Delete)
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        document.getElementById('reset')?.click();
+                    }
+                    break;
+            }
+        });
 
         loadPricing().catch(() => { });
         loadProducts();

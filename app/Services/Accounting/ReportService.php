@@ -156,6 +156,106 @@ class ReportService
     }
 
     /**
+     * Accounts receivable aging (piutang) from credit invoices + POS debt sales.
+     *
+     * @return array{rows:Collection, buckets:array<string,float>, total:float, as_of:string}
+     */
+    public function receivableAging(Company $company, Carbon|string $asOf): array
+    {
+        $docs = collect();
+
+        SalesInvoice::query()
+            ->with('customer')
+            ->where('company_id', $company->id)
+            ->where('outstanding_amount', '>', 0)
+            ->get()
+            ->each(fn (SalesInvoice $i) => $docs->push([
+                'party' => $i->customer?->name ?? 'Pelanggan',
+                'number' => $i->number,
+                'date' => $i->date,
+                'due' => $i->due_date ?? $i->date,
+                'amount' => (float) $i->outstanding_amount,
+            ]));
+
+        Sale::query()
+            ->whereHas('store', fn ($q) => $q->where('company_id', $company->id))
+            ->where('is_debt', true)
+            ->where('debt_amount', '>', 0)
+            ->get()
+            ->each(fn (Sale $s) => $docs->push([
+                'party' => $s->customer_name ?? 'Pelanggan Umum',
+                'number' => $s->number,
+                'date' => $s->created_at,
+                'due' => $s->created_at,
+                'amount' => (float) $s->debt_amount,
+            ]));
+
+        return $this->buildAging($docs, $asOf);
+    }
+
+    /**
+     * Accounts payable aging (hutang) from purchase invoices.
+     *
+     * @return array{rows:Collection, buckets:array<string,float>, total:float, as_of:string}
+     */
+    public function payableAging(Company $company, Carbon|string $asOf): array
+    {
+        $docs = Purchase::query()
+            ->with('supplier')
+            ->where('company_id', $company->id)
+            ->where('outstanding_amount', '>', 0)
+            ->get()
+            ->map(fn (Purchase $p) => [
+                'party' => $p->supplier?->name ?? 'Supplier',
+                'number' => $p->number,
+                'date' => $p->date,
+                'due' => $p->due_date ?? $p->date,
+                'amount' => (float) $p->outstanding_amount,
+            ]);
+
+        return $this->buildAging(collect($docs), $asOf);
+    }
+
+    /**
+     * @param  Collection<int, array{party:string, number:string, date:mixed, due:mixed, amount:float}>  $docs
+     * @return array{rows:Collection, buckets:array<string,float>, total:float, as_of:string}
+     */
+    private function buildAging(Collection $docs, Carbon|string $asOf): array
+    {
+        $asOf = Carbon::parse($asOf)->startOfDay();
+        $buckets = ['current' => 0.0, '1_30' => 0.0, '31_60' => 0.0, '61_90' => 0.0, 'over_90' => 0.0];
+
+        $rows = $docs->map(function (array $doc) use ($asOf, &$buckets) {
+            $overdue = (int) Carbon::parse($doc['due'])->startOfDay()->diffInDays($asOf, false);
+            $bucket = match (true) {
+                $overdue <= 0 => 'current',
+                $overdue <= 30 => '1_30',
+                $overdue <= 60 => '31_60',
+                $overdue <= 90 => '61_90',
+                default => 'over_90',
+            };
+            $buckets[$bucket] += $doc['amount'];
+
+            return [
+                'party' => $doc['party'],
+                'number' => $doc['number'],
+                'date' => Carbon::parse($doc['date'])->toDateString(),
+                'due' => Carbon::parse($doc['due'])->toDateString(),
+                'overdue_days' => max(0, $overdue),
+                'amount' => round($doc['amount'], 2),
+                'bucket' => $bucket,
+            ];
+        })->sortByDesc('overdue_days')->values();
+
+        return [
+            'rows' => $rows,
+            'buckets' => array_map(fn ($v) => round($v, 2), $buckets),
+            'total' => round($rows->sum('amount'), 2),
+            'as_of' => $asOf->toDateString(),
+        ];
+    }
+
+    /**
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */

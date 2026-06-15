@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['owner_id', 'name', 'code', 'phone', 'address', 'is_active'])]
+#[Fillable(['company_id', 'owner_id', 'name', 'code', 'phone', 'address', 'is_active'])]
 class Store extends Model
 {
     use HasFactory;
@@ -25,6 +25,11 @@ class Store extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function users(): BelongsToMany

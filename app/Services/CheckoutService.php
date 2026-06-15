@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StockMovement;
 use App\Models\StoreCharge;
+use App\Services\Accounting\SalePoster;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,6 +17,8 @@ use InvalidArgumentException;
 
 class CheckoutService
 {
+    public function __construct(private readonly SalePoster $salePoster) {}
+
     /**
      * @param  array<int, array{product_id:int, quantity:int, service_fee_amount?:float|null, tax_amount?:float|null}>  $items
      */
@@ -167,6 +170,7 @@ class CheckoutService
                     'product_type' => $product->product_type,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
+                    'cost_price' => $product->cost_price,
                     'fee_amount' => $product->fee_amount,
                     'service_fee_amount' => $serviceFeeAmount,
                     'tax_amount' => $taxAmount,
@@ -199,6 +203,8 @@ class CheckoutService
                 'is_debt' => $isDebt,
                 'debt_amount' => $debtAmount,
             ]);
+
+            $this->salePoster->post($sale);
 
             return $sale->load(['items', 'cashier', 'store']);
         });

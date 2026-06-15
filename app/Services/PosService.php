@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerVehicle;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Services\Accounting\PostingService;
 use App\Support\ActivityLogger;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ use InvalidArgumentException;
  */
 class PosService
 {
+    public function __construct(private readonly PostingService $posting) {}
+
     /**
      * @return Collection<int, Product>
      */
@@ -158,9 +161,43 @@ class PosService
             ActivityLogger::log('sale.debt_paid', "Transaksi {$locked->number} ditandai lunas", $locked->store_id, $locked, [
                 'paid_debt' => $paidDebt,
             ]);
+
+            $this->postDebtPayment($locked, $paidDebt);
         });
 
         return $sale->fresh(['items', 'store', 'customer', 'cashier']);
+    }
+
+    /**
+     * Post a cash receipt journal for a debt settlement: Dr Kas, Cr Piutang.
+     */
+    private function postDebtPayment(Sale $sale, float $amount): void
+    {
+        $company = $sale->loadMissing('store')->store?->company;
+
+        if (! $company || $amount <= 0) {
+            return;
+        }
+
+        $cash = $company->account('cash');
+        $receivable = $company->account('accounts_receivable');
+
+        if (! $cash || ! $receivable) {
+            return;
+        }
+
+        $this->posting->post(
+            company: $company,
+            date: now()->toDateString(),
+            lines: [
+                ['account_id' => $cash->id, 'debit' => $amount, 'store_id' => $sale->store_id, 'memo' => 'Pelunasan piutang'],
+                ['account_id' => $receivable->id, 'credit' => $amount, 'contact_id' => $sale->customer_id, 'store_id' => $sale->store_id, 'memo' => 'Pelunasan piutang'],
+            ],
+            type: 'cash_receipt',
+            description: "Pelunasan piutang {$sale->number}",
+            reference: $sale->number,
+            source: $sale,
+        );
     }
 
     /**

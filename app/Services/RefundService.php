@@ -7,6 +7,7 @@ use App\Models\Refund;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
+use App\Services\Accounting\RefundPoster;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ use InvalidArgumentException;
 
 class RefundService
 {
+    public function __construct(private readonly RefundPoster $refundPoster) {}
+
     /**
      * @param  array<int, array{sale_item_id:int, quantity:int}>  $returnedItems
      * @param  array<int, array{product_id:int, quantity:int}>  $replacementItems
@@ -205,6 +208,8 @@ class RefundService
                 'refund_amount' => $refundAmount,
                 'additional_payment_amount' => $expectedAdditional,
             ]);
+
+            $this->refundPoster->post($refund);
 
             return $refund->load(['items', 'sale', 'handledBy', 'store']);
         });

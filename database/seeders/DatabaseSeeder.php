@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\StoreCharge;
 use App\Models\User;
+use App\Services\Accounting\ChartOfAccounts;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -50,9 +52,63 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        $company = Company::query()->updateOrCreate(
+            ['code' => 'OMSETA'],
+            [
+                'name' => 'Omseta Group',
+                'currency' => 'IDR',
+                'phone' => '081234567890',
+                'address' => 'Jl. Demo Bisnis No. 1',
+                'book_opened_at' => now()->startOfYear(),
+                'is_active' => true,
+            ],
+        );
+
+        app(ChartOfAccounts::class)->install($company);
+
+        foreach (['Pcs' => 'pcs', 'Kilogram' => 'kg', 'Liter' => 'ltr', 'Box' => 'box', 'Lusin' => 'lsn', 'Meter' => 'm', 'Unit' => 'unit'] as $unitName => $unitCode) {
+            \App\Models\Unit::query()->updateOrCreate(
+                ['company_id' => $company->id, 'code' => $unitCode],
+                ['name' => $unitName, 'is_active' => true],
+            );
+        }
+
+        foreach (['Umum', 'Sparepart', 'Oli & Pelumas', 'Ban', 'Jasa', 'Aki', 'Filter'] as $categoryName) {
+            \App\Models\Category::query()->updateOrCreate(
+                ['company_id' => $company->id, 'name' => $categoryName],
+                ['is_active' => true],
+            );
+        }
+
+        \App\Models\Warehouse::query()->updateOrCreate(
+            ['company_id' => $company->id, 'code' => 'GDG-01'],
+            ['name' => 'Gudang Utama', 'is_default' => true, 'is_active' => true],
+        );
+
+        \App\Models\Tax::query()->updateOrCreate(
+            ['company_id' => $company->id, 'name' => 'PPN 11%'],
+            [
+                'account_id' => $company->account('tax_output')?->id,
+                'type' => 'ppn',
+                'rate' => 11,
+                'is_active' => true,
+            ],
+        );
+
+        \App\Models\Contact::query()->updateOrCreate(
+            ['company_id' => $company->id, 'code' => 'SUP-01'],
+            [
+                'name' => 'Supplier Sparepart Jaya',
+                'type' => 'supplier',
+                'phone' => '081200000001',
+                'is_active' => true,
+            ],
+        );
+
         $mainStore = Store::query()->updateOrCreate(
             ['code' => 'OMSETA-01'],
             [
+                'company_id' => $company->id,
                 'owner_id' => $admin->id,
                 'name' => 'Omseta Mart Pusat',
                 'phone' => '081234567890',
@@ -64,6 +120,7 @@ class DatabaseSeeder extends Seeder
         $branchStore = Store::query()->updateOrCreate(
             ['code' => 'OMSETA-02'],
             [
+                'company_id' => $company->id,
                 'owner_id' => $admin->id,
                 'name' => 'Omseta Mart Cabang',
                 'phone' => '081234567891',

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'quantity',
     'refunded_quantity',
     'unit_price',
+    'cost_price',
     'fee_amount',
     'service_fee_amount',
     'tax_amount',
@@ -29,6 +30,7 @@ class SaleItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'cost_price' => 'decimal:2',
             'fee_amount' => 'decimal:2',
             'service_fee_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',

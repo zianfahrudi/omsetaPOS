@@ -22,6 +22,21 @@
 
     <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-2">
+            <h2 class="mb-4 text-sm font-semibold text-slate-900">Penjualan vs Pembelian (6 bulan)</h2>
+            <canvas id="chart-trend" height="120"></canvas>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 class="mb-4 text-sm font-semibold text-slate-900">Distribusi Penjualan (bulan ini)</h2>
+            @if (count($distribution['labels']))
+                <canvas id="chart-dist" height="160"></canvas>
+            @else
+                <p class="py-10 text-center text-sm text-slate-400">Belum ada penjualan bulan ini.</p>
+            @endif
+        </div>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-2">
             <h2 class="mb-4 text-sm font-semibold text-slate-900">Transaksi Terakhir</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -64,4 +79,48 @@
             <a href="{{ route('v2.reports.balance-sheet') }}" class="mt-4 inline-block text-sm font-medium text-indigo-600 hover:underline">Lihat Neraca lengkap →</a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {});
+        (function () {
+            const start = () => {
+                if (!window.Chart) { return setTimeout(start, 50); }
+                const rp = (v) => 'Rp ' + Number(v || 0).toLocaleString('id-ID');
+
+                const trend = @json($trend);
+                const trendEl = document.getElementById('chart-trend');
+                if (trendEl) {
+                    new window.Chart(trendEl, {
+                        type: 'bar',
+                        data: {
+                            labels: trend.labels,
+                            datasets: [
+                                { label: 'Penjualan', data: trend.sales, backgroundColor: '#4f46e5', borderRadius: 6 },
+                                { label: 'Pembelian', data: trend.purchases, backgroundColor: '#f59e0b', borderRadius: 6 },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + rp(c.parsed.y) } } },
+                            scales: { y: { ticks: { callback: (v) => 'Rp ' + Number(v).toLocaleString('id-ID') } } },
+                        },
+                    });
+                }
+
+                const dist = @json($distribution);
+                const distEl = document.getElementById('chart-dist');
+                if (distEl && dist.labels.length) {
+                    new window.Chart(distEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: dist.labels,
+                            datasets: [{ data: dist.values, backgroundColor: ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }],
+                        },
+                        options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => c.label + ': ' + rp(c.parsed) } } } },
+                    });
+                }
+            };
+            start();
+        })();
+    </script>
 @endsection

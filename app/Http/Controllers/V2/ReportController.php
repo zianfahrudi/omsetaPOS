@@ -4,6 +4,8 @@ namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Warehouse;
+use App\Services\Accounting\LedgerService;
 use App\Services\Accounting\ReportService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -75,6 +77,34 @@ class ReportController extends Controller
         $report = $company ? $reports->taxReport($company, $from, $to) : null;
 
         return view('v2.reports.tax', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    public function trialBalance(Request $request, LedgerService $ledger): View
+    {
+        $company = Company::query()->first();
+        $asOf = $request->date('as_of') ?? now();
+        $rows = $company ? $ledger->trialBalance($company, $asOf) : collect();
+
+        return view('v2.reports.trial-balance', [
+            'rows' => $rows,
+            'totalDebit' => round((float) $rows->sum('debit'), 2),
+            'totalCredit' => round((float) $rows->sum('credit'), 2),
+            'asOf' => $asOf->toDateString(),
+        ]);
+    }
+
+    public function warehouseStock(Request $request, ReportService $reports): View
+    {
+        $company = Company::query()->first();
+        $warehouses = $company ? Warehouse::query()->where('company_id', $company->id)->orderBy('name')->get(['id', 'name']) : collect();
+        $warehouseId = (int) $request->query('warehouse_id', 0) ?: null;
+        $report = $company ? $reports->warehouseStockReport($company, $warehouseId) : null;
+
+        return view('v2.reports.warehouse-stock', [
+            'report' => $report,
+            'warehouses' => $warehouses,
+            'warehouseId' => $warehouseId,
+        ]);
     }
 
     /**

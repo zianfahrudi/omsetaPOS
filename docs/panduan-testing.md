@@ -6,13 +6,15 @@ Panduan menjalankan aplikasi dan menguji alur end-to-end secara manual.
 
 ```bash
 composer install
-npm install && npm run build      # aset Filament
-php artisan migrate:fresh --seed  # DB bersih + data demo
+npm install && npm run build              # aset Vite (admin v2 + kasir)
+php artisan migrate:fresh --seed          # DB bersih + data demo
+php artisan db:seed --class=WilayahSeeder # data wilayah (34 provinsi, 514 kab/kota)
 php artisan serve
 ```
 
 Buka:
-- Admin/CMS: http://127.0.0.1:8000/admin
+- Admin v2 (utama): http://127.0.0.1:8000/app
+- Panel Filament (lama): http://127.0.0.1:8000/admin
 - Kasir POS: http://127.0.0.1:8000/kasir
 
 ### Akun demo
@@ -25,21 +27,23 @@ Buka:
 ### Data demo
 - 1 Perusahaan: **Omseta Group** (mata uang IDR).
 - 2 Toko: Omseta Mart Pusat & Cabang.
-- 60 produk (sparepart, oli, ban, jasa), 1 gudang default, CoA standar (33 akun), 1 supplier, PPN 11%.
+- 10 produk dummy (bengkel + manufaktur aluminium), 1 gudang default, CoA standar, 1 supplier, PPN 11%.
+- Pelanggan: kosong (silakan tambah via Data Master → Pelanggan).
+- Wilayah: 34 provinsi + 514 kabupaten/kota (setelah `WilayahSeeder`).
 
 ## 2. Jalankan test otomatis
 
 ```bash
 php artisan test
 ```
-Harusnya semua hijau (112 test). Untuk modul tertentu:
+Semua hijau (**140 test**). Untuk modul tertentu:
 ```bash
-php artisan test --filter=SalesInvoiceTest
+php artisan test --filter=V2ConsignmentTest
 ```
 
-## 3. Skenario uji manual (per modul)
+## 3. Skenario uji manual (Admin v2)
 
-Lokasi menu ada di sidebar `/admin`, dikelompokkan: Point of Sale, Penjualan, Pembelian, Persediaan, Kas & Bank, Akuntansi, Laporan, Data Master.
+Menu ada di sidebar `/app` (grup collapsible): Point of Sale, Penjualan, Pembelian, Persediaan, Kas & Bank, Akuntansi, Laporan, Data Master.
 
 ### A. POS + Sesi Kasir
 1. **Point of Sale → Sesi Kasir → Buka**: pilih toko, kas awal mis. 200.000.
@@ -67,7 +71,8 @@ Lokasi menu ada di sidebar `/admin`, dikelompokkan: Point of Sale, Penjualan, Pe
 1. **Persediaan → Penyesuaian Stok**: input jumlah aktual, cek selisih + jurnal.
 2. **Persediaan → Pemindahan Barang**: pindah antar gudang (total stok tetap).
 3. **Persediaan → Perakitan**: rakit produk jadi dari komponen.
-4. **Persediaan → Kartu Stok** (via Laporan): lihat mutasi.
+4. **Persediaan → Konsinyasi**: kirim titipan → catat penjualan (settle) → retur sisa.
+5. **Persediaan → Kartu Stok**: lihat mutasi stok per produk.
 
 ### F. Laporan & Dashboard
 - **Laporan → Neraca**: pastikan seimbang (Aset = Liabilitas + Ekuitas).

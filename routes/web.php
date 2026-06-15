@@ -50,6 +50,8 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('laporan/pembelian', [\App\Http\Controllers\V2\ReportController::class, 'purchases'])->name('reports.purchases');
         Route::get('laporan/persediaan', [\App\Http\Controllers\V2\ReportController::class, 'inventory'])->name('reports.inventory');
         Route::get('laporan/pajak', [\App\Http\Controllers\V2\ReportController::class, 'tax'])->name('reports.tax');
+        Route::get('laporan/neraca-saldo', [\App\Http\Controllers\V2\ReportController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('laporan/stok-gudang', [\App\Http\Controllers\V2\ReportController::class, 'warehouseStock'])->name('reports.warehouse-stock');
 
         Route::get('akuntansi/akun', [\App\Http\Controllers\V2\AccountController::class, 'index'])->name('accounting.accounts');
         Route::get('akuntansi/buku-besar', [\App\Http\Controllers\V2\LedgerController::class, 'index'])->name('accounting.ledger');

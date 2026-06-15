@@ -22,7 +22,9 @@ class V2ModulesTest extends TestCase
         $user = User::query()->firstOrFail();
 
         foreach ([
+            'v2.dashboard',
             'v2.reports.cash-flow', 'v2.reports.sales', 'v2.reports.purchases', 'v2.reports.inventory', 'v2.reports.tax',
+            'v2.reports.trial-balance', 'v2.reports.warehouse-stock',
             'v2.accounting.ledger', 'v2.accounting.journals.create',
             'v2.inventory.adjustments.create', 'v2.inventory.transfers.create', 'v2.inventory.stock-card',
             'v2.pos.transactions', 'v2.pos.sessions',

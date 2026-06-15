@@ -7,8 +7,10 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Services\Accounting\LedgerService;
 use App\Services\Accounting\ReportService;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -45,6 +47,72 @@ class DashboardController extends Controller
 
         $recentSales = Sale::query()->with('store')->latest()->limit(8)->get();
 
-        return view('v2.dashboard', compact('company', 'metrics', 'balanceSheet', 'recentSales'));
+        $trend = $this->salesTrend($company);
+        $distribution = $this->salesDistribution($company);
+
+        return view('v2.dashboard', compact('company', 'metrics', 'balanceSheet', 'recentSales', 'trend', 'distribution'));
+    }
+
+    /**
+     * Penjualan vs Pembelian 6 bulan terakhir.
+     *
+     * @return array{labels: array<int, string>, sales: array<int, float>, purchases: array<int, float>}
+     */
+    private function salesTrend(?Company $company): array
+    {
+        $labels = [];
+        $sales = [];
+        $purchases = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = now()->startOfMonth()->subMonths($i);
+            $labels[] = $month->translatedFormat('M Y');
+
+            if (! $company) {
+                $sales[] = 0.0;
+                $purchases[] = 0.0;
+
+                continue;
+            }
+
+            $sales[] = (float) Sale::query()
+                ->whereHas('store', fn ($q) => $q->where('company_id', $company->id))
+                ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                ->sum('grand_total');
+            $purchases[] = (float) Purchase::query()
+                ->where('company_id', $company->id)
+                ->whereBetween('date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                ->sum('grand_total');
+        }
+
+        return ['labels' => $labels, 'sales' => $sales, 'purchases' => $purchases];
+    }
+
+    /**
+     * Distribusi penjualan POS bulan ini per produk (top 6).
+     *
+     * @return array{labels: array<int, string>, values: array<int, float>}
+     */
+    private function salesDistribution(?Company $company): array
+    {
+        if (! $company) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $storeIds = $company->stores()->pluck('id');
+
+        $rows = SaleItem::query()
+            ->selectRaw('product_name, SUM(line_total) as total')
+            ->whereHas('sale', fn ($q) => $q->whereIn('store_id', $storeIds)
+                ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]))
+            ->groupBy('product_name')
+            ->orderByDesc('total')
+            ->limit(6)
+            ->get();
+
+        return [
+            'labels' => $rows->pluck('product_name')->map(fn ($n) => (string) $n)->all(),
+            'values' => $rows->pluck('total')->map(fn ($v) => (float) $v)->all(),
+        ];
     }
 }

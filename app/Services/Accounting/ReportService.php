@@ -256,6 +256,82 @@ class ReportService
     }
 
     /**
+     * VAT report: PPN Keluaran (output) vs PPN Masukan (input) for a period.
+     *
+     * @return array{output:float, input:float, net:float, status:string, rows:Collection, from:string, to:string}
+     */
+    public function taxReport(Company $company, Carbon|string $from, Carbon|string $to): array
+    {
+        $output = $company->account('tax_output');
+        $input = $company->account('tax_input');
+
+        $outputTotal = $output ? $this->ledger->periodActivity($output, $from, $to) : 0.0;
+        $inputTotal = $input ? $this->ledger->periodActivity($input, $from, $to) : 0.0;
+        $net = round($outputTotal - $inputTotal, 2);
+
+        $accountIds = collect([$output?->id, $input?->id])->filter()->all();
+
+        $rows = $accountIds === [] ? collect() : JournalLine::query()
+            ->with('journal:id,number,date,description')
+            ->whereIn('account_id', $accountIds)
+            ->whereHas('journal', fn ($q) => $q->where('status', 'posted')->whereBetween('date', [$from, $to]))
+            ->get()
+            ->map(fn (JournalLine $line) => [
+                'date' => $line->journal->date->toDateString(),
+                'number' => $line->journal->number,
+                'description' => $line->journal->description,
+                'output' => $output && $line->account_id === $output->id ? (float) $line->credit : 0.0,
+                'input' => $input && $line->account_id === $input->id ? (float) $line->debit : 0.0,
+            ])
+            ->sortBy('date')
+            ->values();
+
+        return [
+            'output' => round($outputTotal, 2),
+            'input' => round($inputTotal, 2),
+            'net' => $net,
+            'status' => $net >= 0 ? 'Kurang Bayar (PPN harus disetor)' : 'Lebih Bayar (PPN dapat dikompensasi)',
+            'rows' => $rows,
+            'from' => Carbon::parse($from)->toDateString(),
+            'to' => Carbon::parse($to)->toDateString(),
+        ];
+    }
+
+    /**
+     * Inventory valuation: quantity and value (qty * average cost) per product.
+     *
+     * @return array{rows:Collection, total_value:float, total_items:int}
+     */
+    public function inventoryReport(Company $company, ?int $categoryId = null, bool $lowStockOnly = false): array
+    {
+        $rows = \App\Models\Product::query()
+            ->with('category')
+            ->whereHas('store', fn ($q) => $q->where('company_id', $company->id))
+            ->where('product_type', '!=', 'service')
+            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($lowStockOnly, fn ($q) => $q->whereColumn('stock', '<=', 'minimum_stock'))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (\App\Models\Product $p) => [
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'category' => $p->category?->name,
+                'stock' => (int) $p->stock,
+                'unit' => $p->unit,
+                'minimum_stock' => (int) $p->minimum_stock,
+                'low' => $p->stock <= $p->minimum_stock,
+                'cost_price' => (float) $p->cost_price,
+                'value' => round((float) $p->cost_price * (int) $p->stock, 2),
+            ]);
+
+        return [
+            'rows' => $rows,
+            'total_value' => round($rows->sum('value'), 2),
+            'total_items' => $rows->count(),
+        ];
+    }
+
+    /**
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */

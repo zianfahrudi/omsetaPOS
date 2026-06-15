@@ -95,6 +95,11 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        \App\Models\Currency::query()->updateOrCreate(
+            ['company_id' => $company->id, 'code' => 'IDR'],
+            ['name' => 'Rupiah', 'symbol' => 'Rp', 'exchange_rate' => 1, 'is_default' => true, 'is_active' => true],
+        );
+
         \App\Models\Contact::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'SUP-01'],
             [

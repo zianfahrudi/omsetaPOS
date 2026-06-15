@@ -120,6 +120,21 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('kas/transaksi/baru', [\App\Http\Controllers\V2\CashController::class, 'create'])->name('cash.transactions.create');
         Route::post('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'store'])->name('cash.transactions.store');
 
+        // Giro
+        Route::get('kas/giro', [\App\Http\Controllers\V2\GiroController::class, 'index'])->name('cash.giros');
+        Route::get('kas/giro/baru', [\App\Http\Controllers\V2\GiroController::class, 'create'])->name('cash.giros.create');
+        Route::post('kas/giro', [\App\Http\Controllers\V2\GiroController::class, 'store'])->name('cash.giros.store');
+        Route::post('kas/giro/{giro}/setor', [\App\Http\Controllers\V2\GiroController::class, 'deposit'])->name('cash.giros.deposit');
+        Route::get('kas/giro/{giro}/cair', [\App\Http\Controllers\V2\GiroController::class, 'clearForm'])->name('cash.giros.clear');
+        Route::post('kas/giro/{giro}/cair', [\App\Http\Controllers\V2\GiroController::class, 'clear'])->name('cash.giros.clear.store');
+        Route::post('kas/giro/{giro}/tolak', [\App\Http\Controllers\V2\GiroController::class, 'reject'])->name('cash.giros.reject');
+
+        // Rekonsiliasi Bank
+        Route::get('kas/rekonsiliasi', [\App\Http\Controllers\V2\BankReconciliationController::class, 'index'])->name('cash.reconciliations');
+        Route::get('kas/rekonsiliasi/baru', [\App\Http\Controllers\V2\BankReconciliationController::class, 'create'])->name('cash.reconciliations.create');
+        Route::post('kas/rekonsiliasi', [\App\Http\Controllers\V2\BankReconciliationController::class, 'store'])->name('cash.reconciliations.store');
+        Route::get('kas/rekonsiliasi/{reconciliation}', [\App\Http\Controllers\V2\BankReconciliationController::class, 'show'])->name('cash.reconciliations.show');
+
         // Point of Sale
         Route::get('pos/transaksi', [\App\Http\Controllers\V2\PosController::class, 'transactions'])->name('pos.transactions');
         Route::get('pos/transaksi/{sale}', [\App\Http\Controllers\V2\PosController::class, 'transactionShow'])->name('pos.transactions.show');

@@ -7,7 +7,7 @@
     <title>@yield('title', 'Admin') · omsetaPOS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-full text-slate-800 antialiased">
+<body class="v2-app h-full text-slate-800 antialiased">
 <div x-data="{ sidebar: false }" class="min-h-full">
     {{-- Sidebar --}}
     <aside class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full bg-white border-r border-slate-200 transition-transform lg:translate-x-0"

@@ -9,3 +9,10 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Admin v2: samakan tinggi select dengan input teks/tanggal/angka. */
+.v2-app input:where([type='text'], [type='number'], [type='date'], [type='email'], [type='password'], [type='search']),
+.v2-app select {
+    height: 2.5rem;
+    line-height: 1.25rem;
+}

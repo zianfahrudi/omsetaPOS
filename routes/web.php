@@ -111,6 +111,14 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::put('kontak/{contact}', [\App\Http\Controllers\V2\ContactController::class, 'update'])->name('contacts.update');
         Route::delete('kontak/{contact}', [\App\Http\Controllers\V2\ContactController::class, 'destroy'])->name('contacts.destroy');
 
+        // Pelanggan POS (model Customer, dipakai Kasir)
+        Route::get('pelanggan', [\App\Http\Controllers\V2\CustomerController::class, 'index'])->name('customers.index');
+        Route::get('pelanggan/baru', [\App\Http\Controllers\V2\CustomerController::class, 'create'])->name('customers.create');
+        Route::post('pelanggan', [\App\Http\Controllers\V2\CustomerController::class, 'store'])->name('customers.store');
+        Route::get('pelanggan/{customer}/edit', [\App\Http\Controllers\V2\CustomerController::class, 'edit'])->name('customers.edit');
+        Route::put('pelanggan/{customer}', [\App\Http\Controllers\V2\CustomerController::class, 'update'])->name('customers.update');
+        Route::delete('pelanggan/{customer}', [\App\Http\Controllers\V2\CustomerController::class, 'destroy'])->name('customers.destroy');
+
         // Data Master sederhana (Satuan, Gudang, Departemen, Proyek, Mata Uang, Pajak)
         foreach ([
             'satuan' => ['units', \App\Http\Controllers\V2\Master\UnitController::class],

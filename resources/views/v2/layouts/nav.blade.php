@@ -58,6 +58,7 @@
             'items' => [
                 ['v2.products.index', 'Produk'],
                 ['v2.contacts', 'Kontak'],
+                ['v2.customers.index', 'Pelanggan (Kasir)'],
                 ['v2.units.index', 'Satuan'],
                 ['v2.warehouses.index', 'Gudang'],
                 ['v2.departments.index', 'Departemen'],

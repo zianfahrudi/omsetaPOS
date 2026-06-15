@@ -1,25 +1,25 @@
         :root {
-            --bg: #f3f4f8;
+            --bg: #f6f7f9;
             --panel: #ffffff;
-            --ink: #1e293b;
-            --muted: #64748b;
-            --line: #e2e8f0;
-            --soft: #f1f5f9;
-            --brand: #6366f1;
+            --ink: #0f172a;
+            --muted: #6b7280;
+            --line: #ebedf1;
+            --soft: #f4f5f7;
+            --brand: #4f46e5;
             /* Indigo */
-            --brand-dark: #4f46e5;
-            --brand-light: #e0e7ff;
+            --brand-dark: #4338ca;
+            --brand-light: #eef2ff;
             --danger: #ef4444;
-            --danger-soft: #fee2e2;
+            --danger-soft: #fef2f2;
             --success: #10b981;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+            --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+            --shadow-lg: 0 8px 24px -8px rgb(15 23 42 / 0.12);
             --radius-sm: 0.5rem;
             --radius-md: 0.75rem;
-            --radius-lg: 1rem;
-            --radius-xl: 1.5rem;
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --radius-lg: 0.875rem;
+            --radius-xl: 1.25rem;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -88,22 +88,21 @@
 
         .brand-mark {
             display: grid;
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             place-items: center;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            border-radius: 12px;
+            background: var(--brand);
             color: white;
             font-size: 18px;
             font-weight: 800;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .brand h1 {
-            font-size: 24px;
-            font-weight: 800;
+            font-size: 20px;
+            font-weight: 700;
             line-height: 1.2;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.01em;
             color: var(--ink);
         }
 
@@ -161,10 +160,10 @@
 
         .field span {
             color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
         .input-group {
@@ -222,13 +221,13 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            border: none;
+            border: 1px solid var(--line);
             border-radius: var(--radius-lg);
             background: var(--panel);
             cursor: pointer;
             text-align: left;
             transition: var(--transition);
-            box-shadow: var(--shadow-sm);
+            box-shadow: none;
             overflow: hidden;
             outline: none;
         }
@@ -244,7 +243,8 @@
         }
 
         .product:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
+            border-color: transparent;
             box-shadow: var(--shadow-lg);
         }
 

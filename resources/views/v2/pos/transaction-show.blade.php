@@ -7,6 +7,13 @@
 @section('content')
     <a href="{{ route('v2.pos.transactions') }}" class="mb-4 inline-block text-sm font-medium text-indigo-600 hover:underline">← Kembali ke Riwayat</a>
 
+    @if ($sale->status !== 'void' && in_array(auth()->user()->role, ['admin', 'superuser'], true))
+        <form method="POST" action="{{ route('v2.pos.transactions.void', $sale) }}" class="mb-4" onsubmit="return confirm('Batalkan (void) transaksi ini? Stok dikembalikan & jurnal dibalik.')">
+            @csrf
+            <button class="rounded-lg border border-rose-300 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50">Batalkan Transaksi (Void)</button>
+        </form>
+    @endif
+
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
         <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
             <div>

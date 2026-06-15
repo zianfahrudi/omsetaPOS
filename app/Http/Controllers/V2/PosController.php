@@ -5,9 +5,12 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\CashierSession;
 use App\Models\Sale;
+use App\Services\SaleVoidService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Throwable;
 
 class PosController extends Controller
 {
@@ -37,6 +40,20 @@ class PosController extends Controller
         $sale->load(['items', 'store', 'cashier', 'customer']);
 
         return view('v2.pos.transaction-show', compact('sale'));
+    }
+
+    public function void(Sale $sale, SaleVoidService $service): RedirectResponse
+    {
+        abort_unless(Auth::user()->accessibleStores()->pluck('id')->contains($sale->store_id), 403);
+        abort_unless(in_array(Auth::user()->role, ['admin', 'superuser'], true), 403, 'Hanya admin yang dapat membatalkan transaksi.');
+
+        try {
+            $service->void($sale, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withErrors(['void' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.pos.transactions.show', $sale)->with('status', "Transaksi {$sale->number} berhasil dibatalkan.");
     }
 
     public function sessions(Request $request): View

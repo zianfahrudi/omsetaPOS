@@ -5,19 +5,22 @@
 @php($rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.'))
 
 @section('content')
-    <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
-        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nomor / keterangan…"
-               class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <select name="type" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <option value="">Semua tipe</option>
-            @foreach ($typeLabels as $key => $label)
-                <option value="{{ $key }}" @selected(request('type') === $key)>{{ $label }}</option>
-            @endforeach
-        </select>
-        <button class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Filter</button>
-    </form>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <form method="GET" class="flex flex-wrap items-center gap-2">
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nomor / keterangan…"
+                   class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select name="type" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">Semua tipe</option>
+                @foreach ($typeLabels as $key => $label)
+                    <option value="{{ $key }}" @selected(request('type') === $key)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <button class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Filter</button>
+        </form>
+        <a href="{{ route('v2.cash.transactions.create') }}" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">+ Transaksi</a>
+    </div>
 
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>

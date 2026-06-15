@@ -67,6 +67,8 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         // Kas & Bank
         Route::get('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'transactions'])->name('cash.transactions');
+        Route::get('kas/transaksi/baru', [\App\Http\Controllers\V2\CashController::class, 'create'])->name('cash.transactions.create');
+        Route::post('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'store'])->name('cash.transactions.store');
 
         // Kontak (Data Master)
         Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');

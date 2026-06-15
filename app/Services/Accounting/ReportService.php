@@ -332,6 +332,94 @@ class ReportService
     }
 
     /**
+     * Sales analysis (faktur penjualan + POS) grouped by product and by customer.
+     *
+     * @return array{by_product:Collection, by_customer:Collection, total:float, from:string, to:string}
+     */
+    public function salesAnalysis(Company $company, Carbon|string $from, Carbon|string $to): array
+    {
+        $storeIds = $company->stores()->pluck('id');
+
+        $invoiceItems = \App\Models\SalesInvoiceItem::query()
+            ->with('invoice.customer')
+            ->whereHas('invoice', fn ($q) => $q->where('company_id', $company->id)->whereBetween('date', [$from, $to]))
+            ->get()
+            ->map(fn ($i) => [
+                'product' => $i->product_name,
+                'customer' => $i->invoice?->customer?->name ?? 'Pelanggan',
+                'quantity' => (int) $i->quantity,
+                'total' => (float) $i->line_total,
+            ]);
+
+        $posItems = \App\Models\SaleItem::query()
+            ->with('sale')
+            ->whereHas('sale', fn ($q) => $q->whereIn('store_id', $storeIds)->whereBetween('created_at', [
+                Carbon::parse($from)->startOfDay(), Carbon::parse($to)->endOfDay(),
+            ]))
+            ->get()
+            ->map(fn ($i) => [
+                'product' => $i->product_name,
+                'customer' => $i->sale?->customer_name ?? 'Pelanggan Umum',
+                'quantity' => (int) $i->quantity,
+                'total' => (float) $i->line_total,
+            ]);
+
+        $all = $invoiceItems->concat($posItems);
+
+        return [
+            'by_product' => $this->groupAnalysis($all, 'product'),
+            'by_customer' => $this->groupAnalysis($all, 'customer'),
+            'total' => round($all->sum('total'), 2),
+            'from' => Carbon::parse($from)->toDateString(),
+            'to' => Carbon::parse($to)->toDateString(),
+        ];
+    }
+
+    /**
+     * Purchase analysis grouped by product and by supplier.
+     *
+     * @return array{by_product:Collection, by_supplier:Collection, total:float, from:string, to:string}
+     */
+    public function purchaseAnalysis(Company $company, Carbon|string $from, Carbon|string $to): array
+    {
+        $items = \App\Models\PurchaseItem::query()
+            ->with('purchase.supplier')
+            ->whereHas('purchase', fn ($q) => $q->where('company_id', $company->id)->whereBetween('date', [$from, $to]))
+            ->get()
+            ->map(fn ($i) => [
+                'product' => $i->product_name,
+                'supplier' => $i->purchase?->supplier?->name ?? 'Supplier',
+                'quantity' => (int) $i->quantity,
+                'total' => (float) $i->line_total,
+            ]);
+
+        return [
+            'by_product' => $this->groupAnalysis($items, 'product'),
+            'by_supplier' => $this->groupAnalysis($items, 'supplier'),
+            'total' => round($items->sum('total'), 2),
+            'from' => Carbon::parse($from)->toDateString(),
+            'to' => Carbon::parse($to)->toDateString(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, array{quantity:int, total:float}>  $rows
+     * @return Collection<int, array{label:string, quantity:int, total:float}>
+     */
+    private function groupAnalysis(Collection $rows, string $key): Collection
+    {
+        return $rows
+            ->groupBy($key)
+            ->map(fn ($group, $label) => [
+                'label' => (string) $label,
+                'quantity' => (int) $group->sum('quantity'),
+                'total' => round((float) $group->sum('total'), 2),
+            ])
+            ->sortByDesc('total')
+            ->values();
+    }
+
+    /**
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */

@@ -149,6 +149,8 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('pos/transaksi/{sale}', [\App\Http\Controllers\V2\PosController::class, 'transactionShow'])->name('pos.transactions.show');
         Route::post('pos/transaksi/{sale}/void', [\App\Http\Controllers\V2\PosController::class, 'void'])->name('pos.transactions.void');
         Route::get('pos/sesi-kasir', [\App\Http\Controllers\V2\PosController::class, 'sessions'])->name('pos.sessions');
+        Route::post('pos/sesi-kasir/buka', [\App\Http\Controllers\V2\PosController::class, 'sessionOpen'])->name('pos.sessions.open');
+        Route::post('pos/sesi-kasir/{session}/tutup', [\App\Http\Controllers\V2\PosController::class, 'sessionClose'])->name('pos.sessions.close');
 
         // Kontak (Data Master)
         Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');

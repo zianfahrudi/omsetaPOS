@@ -5,6 +5,8 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\CashierSession;
 use App\Models\Sale;
+use App\Models\Store;
+use App\Services\CashierSessionService;
 use App\Services\SaleVoidService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,6 +70,54 @@ class PosController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('v2.pos.sessions', compact('records'));
+        $openSession = CashierSession::query()
+            ->with('store')
+            ->whereIn('store_id', $storeIds)
+            ->where('user_id', Auth::id())
+            ->where('status', 'open')
+            ->first();
+
+        return view('v2.pos.sessions', [
+            'records' => $records,
+            'openSession' => $openSession,
+            'stores' => Auth::user()->accessibleStores(),
+        ]);
+    }
+
+    public function sessionOpen(Request $request, CashierSessionService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'store_id' => ['required', 'integer'],
+            'opening_cash' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $store = Store::query()->findOrFail((int) $data['store_id']);
+        abort_unless(Auth::user()->accessibleStores()->pluck('id')->contains($store->id), 403);
+
+        try {
+            $service->open($store, Auth::id(), (float) $data['opening_cash'], Auth::id());
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['opening_cash' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.pos.sessions')->with('status', 'Sesi kasir dibuka.');
+    }
+
+    public function sessionClose(Request $request, CashierSession $session, CashierSessionService $service): RedirectResponse
+    {
+        abort_unless(Auth::user()->accessibleStores()->pluck('id')->contains($session->store_id), 403);
+
+        $data = $request->validate([
+            'closing_cash' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $service->close($session, (float) $data['closing_cash'], $data['notes'] ?? null);
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['closing_cash' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.pos.sessions')->with('status', "Sesi {$session->number} ditutup.");
     }
 }

@@ -181,6 +181,8 @@ class CheckoutService
                     $product->decrement('stock', $quantity);
                     $product->refresh();
 
+                    app(\App\Services\WarehouseStockService::class)->adjustDefault($product, -$quantity);
+
                     StockMovement::create([
                         'store_id' => $storeId,
                         'product_id' => $product->id,

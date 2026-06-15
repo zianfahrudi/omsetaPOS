@@ -146,6 +146,8 @@ class PurchaseService
             'cost_price' => $newCost,
         ])->save();
 
+        app(\App\Services\WarehouseStockService::class)->adjustDefault($product, $quantity);
+
         StockMovement::create([
             'store_id' => $purchase->store_id ?? $product->store_id,
             'product_id' => $product->id,

@@ -134,6 +134,8 @@ class SalesInvoiceService
         $before = (int) $product->stock;
         $product->decrement('stock', $quantity);
 
+        app(\App\Services\WarehouseStockService::class)->adjustDefault($product, -$quantity);
+
         StockMovement::create([
             'store_id' => $invoice->store_id ?? $product->store_id,
             'product_id' => $product->id,

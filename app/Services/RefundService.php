@@ -149,6 +149,8 @@ class RefundService
                     $product->increment('stock', $quantity);
                     $product->refresh();
 
+                    app(\App\Services\WarehouseStockService::class)->adjustDefault($product, $quantity);
+
                     StockMovement::create([
                         'store_id' => $sale->store_id,
                         'product_id' => $product->id,
@@ -183,6 +185,8 @@ class RefundService
                 if ($product->tracksStock()) {
                     $product->decrement('stock', $quantity);
                     $product->refresh();
+
+                    app(\App\Services\WarehouseStockService::class)->adjustDefault($product, -$quantity);
 
                     StockMovement::create([
                         'store_id' => $sale->store_id,

@@ -206,7 +206,7 @@ class CashierController extends Controller
         $term = trim((string) $request->query('q', ''));
 
         $vehicles = CustomerVehicle::query()
-            ->with('customer')
+            ->with(['customer', 'latestServiceSale.items'])
             ->where('store_id', $storeId)
             ->when($term !== '', function ($query) use ($term) {
                 $like = '%'.$term.'%';
@@ -226,6 +226,9 @@ class CashierController extends Controller
                 'name' => $vehicle->name,
                 'plate_number' => $vehicle->plate_number,
                 'mileage' => $vehicle->mileage,
+                'last_service_mileage' => $vehicle->last_service_mileage,
+                'last_service_at' => $vehicle->last_service_at?->toDateString(),
+                'last_service_summary' => $vehicle->last_service_summary,
                 'customer' => [
                     'id' => $vehicle->customer?->id,
                     'name' => $vehicle->customer?->name,

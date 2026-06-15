@@ -3,6 +3,7 @@
             products: [],
             cart: new Map(),
             lastQuery: '',
+            vehicleResults: [],
             customerDuplicate: false,
             transactions: [],
             refundSales: [],
@@ -71,6 +72,15 @@
         };
 
         const rupiah = (value) => money.format(Number(value || 0));
+
+        const formatDate = (value) => {
+            if (!value) return '-';
+            try {
+                return new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch (e) {
+                return value;
+            }
+        };
 
         const currencyDigits = (value) => String(value ?? '').replace(/\D/g, '');
 
@@ -411,6 +421,10 @@
         const renderOrder = () => {
             const items = Array.from(state.cart.values());
             root.classList.toggle('cart-empty', items.length === 0);
+            if (els.vehiclePlateNumber && !els.vehiclePlateNumber.value.trim()) {
+                const box = document.getElementById('vehicle-service-info');
+                if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+            }
 
             els.itemCount.textContent = items.reduce((total, item) => total + item.quantity, 0);
 
@@ -1030,16 +1044,25 @@
                 }
 
                 if ((data.vehicles || []).length === 0) {
+                    state.vehicleResults = [];
                     vehicleList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light);">Tidak ada kendaraan ditemukan.</div>';
                     return;
                 }
 
-                vehicleList.innerHTML = data.vehicles.map((vehicle) => `
+                state.vehicleResults = data.vehicles;
+
+                vehicleList.innerHTML = data.vehicles.map((vehicle) => {
+                    const svc = vehicle.last_service_at
+                        ? `Servis terakhir ${formatDate(vehicle.last_service_at)}${vehicle.last_service_mileage ? ` · ${Number(vehicle.last_service_mileage).toLocaleString('id-ID')} km` : ''}`
+                        : 'Belum ada riwayat servis';
+                    return `
                     <div class="customer-item" onclick="selectVehicle(${vehicle.id}, '${escapeHtml(vehicle.plate_number)}', '${escapeHtml(vehicle.mileage || '')}', ${vehicle.customer?.id || 'null'}, '${escapeHtml(vehicle.customer?.name || '')}', '${escapeHtml(vehicle.customer?.phone || '')}')">
                         <h4>${escapeHtml(vehicle.plate_number)}${vehicle.name ? ` · ${escapeHtml(vehicle.name)}` : ''}</h4>
-                        <p>${escapeHtml(vehicle.customer?.name || 'Tanpa customer')}${vehicle.customer?.phone ? ` · ${escapeHtml(vehicle.customer.phone)}` : ''}${vehicle.mileage ? ` · ${Number(vehicle.mileage).toLocaleString('id-ID')} km` : ''}</p>
+                        <p>${escapeHtml(vehicle.customer?.name || 'Tanpa customer')}${vehicle.customer?.phone ? ` · ${escapeHtml(vehicle.customer.phone)}` : ''}</p>
+                        <p style="color:var(--brand); font-weight:600;">${svc}</p>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } catch (err) {
                 vehicleList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Gagal memuat kendaraan.</div>';
             }
@@ -1092,9 +1115,34 @@
                 state.customerDuplicate = false;
             }
 
+            const vehicle = state.vehicleResults.find((v) => String(v.id) === String(id));
+            renderVehicleService(vehicle);
+
             vehicleList.style.display = 'none';
             customerList.style.display = 'none';
             renderOrder();
+        };
+
+        const renderVehicleService = (vehicle) => {
+            const box = document.getElementById('vehicle-service-info');
+            if (!box) return;
+
+            if (!vehicle) {
+                box.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+
+            const km = vehicle.last_service_mileage ? `${Number(vehicle.last_service_mileage).toLocaleString('id-ID')} km` : '-';
+            const when = vehicle.last_service_at ? formatDate(vehicle.last_service_at) : '-';
+            const summary = vehicle.last_service_summary || '';
+
+            box.style.display = 'block';
+            box.innerHTML = vehicle.last_service_at
+                ? `<div class="svc-row"><span>Servis terakhir</span><strong>${when}</strong></div>
+                   <div class="svc-row"><span>KM saat itu</span><strong>${km}</strong></div>
+                   ${summary ? `<div class="svc-summary">${escapeHtml(summary)}</div>` : ''}`
+                : `<div class="svc-empty">Belum ada riwayat servis untuk kendaraan ini.</div>`;
         };
 
         const validateCustomerDuplicate = async (showMessage = false) => {

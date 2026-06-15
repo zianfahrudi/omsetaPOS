@@ -27,23 +27,26 @@
                         </div>
                     </div>
 
-                    <div class="vehicle-grid">
+                    <div class="vehicle-block">
                         <label class="field" style="position: relative;">
-                            <span>Nomor Plat</span>
-                            <input class="input" id="vehicle-plate-number" type="text" placeholder="Contoh: DD 1234 XY"
+                            <span>Nomor Plat Kendaraan</span>
+                            <input class="input" id="vehicle-plate-number" type="text" placeholder="Ketik plat untuk lihat riwayat servis…"
                                 autocomplete="off">
                             <div id="vehicle-list" class="customer-list"
-                                style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 45; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; display: none; flex-direction: column; gap: 8px; padding: 8px;">
+                                style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 45; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 240px; overflow-y: auto; display: none; flex-direction: column; gap: 8px; padding: 8px;">
                                 <!-- Vehicle list rendered here -->
                             </div>
                         </label>
+
+                        <div id="vehicle-service-info" class="vehicle-service" style="display: none;"></div>
+
                         <label class="field">
-                            <span>Kilometer</span>
+                            <span>KM Sekarang <small style="font-weight:500;text-transform:none;letter-spacing:0;">(diperbarui saat servis)</small></span>
                             <div style="display: flex; gap: 8px;">
                                 <input class="input" id="vehicle-mileage" type="number" min="0" inputmode="numeric"
-                                    placeholder="0">
+                                    placeholder="Masukkan KM terkini">
                                 <button type="button" class="small-btn" id="btn-open-vehicle-modal"
-                                    style="width: 48px; flex-shrink: 0; padding: 0;" title="Tambah kendaraan">
+                                    style="width: 48px; flex-shrink: 0; padding: 0;" title="Tambah kendaraan baru">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M12 5v14M5 12h14" />

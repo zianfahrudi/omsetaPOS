@@ -1398,3 +1398,51 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* --- Panel kendaraan (revamp) --- */
+        .vehicle-block {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-service {
+            border: 1px solid var(--brand-light);
+            background: var(--brand-light);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+        }
+
+        .vehicle-service .svc-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 2px 0;
+        }
+
+        .vehicle-service .svc-row span {
+            color: var(--brand-dark);
+            font-weight: 500;
+        }
+
+        .vehicle-service .svc-row strong {
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .vehicle-service .svc-summary {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(79, 70, 229, 0.15);
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .vehicle-service .svc-empty {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+        }

@@ -55,6 +55,12 @@
             'items' => [
                 ['v2.products.index', 'Produk'],
                 ['v2.contacts', 'Kontak'],
+                ['v2.units.index', 'Satuan'],
+                ['v2.warehouses.index', 'Gudang'],
+                ['v2.departments.index', 'Departemen'],
+                ['v2.projects.index', 'Proyek'],
+                ['v2.currencies.index', 'Mata Uang'],
+                ['v2.taxes.index', 'Pajak'],
             ],
         ],
     ];

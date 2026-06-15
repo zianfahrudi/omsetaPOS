@@ -82,6 +82,23 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::put('kontak/{contact}', [\App\Http\Controllers\V2\ContactController::class, 'update'])->name('contacts.update');
         Route::delete('kontak/{contact}', [\App\Http\Controllers\V2\ContactController::class, 'destroy'])->name('contacts.destroy');
 
+        // Data Master sederhana (Satuan, Gudang, Departemen, Proyek, Mata Uang, Pajak)
+        foreach ([
+            'satuan' => ['units', \App\Http\Controllers\V2\Master\UnitController::class],
+            'gudang' => ['warehouses', \App\Http\Controllers\V2\Master\WarehouseController::class],
+            'departemen' => ['departments', \App\Http\Controllers\V2\Master\DepartmentController::class],
+            'proyek' => ['projects', \App\Http\Controllers\V2\Master\ProjectController::class],
+            'mata-uang' => ['currencies', \App\Http\Controllers\V2\Master\CurrencyController::class],
+            'pajak' => ['taxes', \App\Http\Controllers\V2\Master\TaxController::class],
+        ] as $slug => [$name, $controller]) {
+            Route::get($slug, [$controller, 'index'])->name("{$name}.index");
+            Route::get("{$slug}/baru", [$controller, 'create'])->name("{$name}.create");
+            Route::post($slug, [$controller, 'store'])->name("{$name}.store");
+            Route::get("{$slug}/{id}/edit", [$controller, 'edit'])->name("{$name}.edit");
+            Route::put("{$slug}/{id}", [$controller, 'update'])->name("{$name}.update");
+            Route::delete("{$slug}/{id}", [$controller, 'destroy'])->name("{$name}.destroy");
+        }
+
         Route::get('segera', [\App\Http\Controllers\V2\PageController::class, 'soon'])->name('soon');
     });
 });

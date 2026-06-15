@@ -2,6 +2,14 @@
     // Definisi menu: tiap grup punya ikon (path svg) + daftar item [route, label].
     $groups = [
         [
+            'label' => 'Point of Sale',
+            'icon' => 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z',
+            'items' => [
+                ['v2.pos.transactions', 'Riwayat Transaksi'],
+                ['v2.pos.sessions', 'Sesi Kasir'],
+            ],
+        ],
+        [
             'label' => 'Penjualan',
             'icon' => 'M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z',
             'items' => [
@@ -27,6 +35,7 @@
             'items' => [
                 ['v2.inventory.adjustments', 'Penyesuaian Stok'],
                 ['v2.inventory.transfers', 'Pemindahan Barang'],
+                ['v2.inventory.stock-card', 'Kartu Stok'],
             ],
         ],
         [
@@ -41,6 +50,7 @@
             'icon' => 'M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25',
             'items' => [
                 ['v2.accounting.accounts', 'Daftar Akun'],
+                ['v2.accounting.ledger', 'Buku Besar'],
                 ['v2.accounting.journals', 'Jurnal'],
             ],
         ],
@@ -50,6 +60,11 @@
             'items' => [
                 ['v2.reports.balance-sheet', 'Neraca'],
                 ['v2.reports.income-statement', 'Laba Rugi'],
+                ['v2.reports.cash-flow', 'Arus Kas'],
+                ['v2.reports.sales', 'Penjualan'],
+                ['v2.reports.purchases', 'Pembelian'],
+                ['v2.reports.inventory', 'Persediaan'],
+                ['v2.reports.tax', 'Pajak'],
             ],
         ],
         [

@@ -3,11 +3,14 @@
 @section('heading', 'Pemindahan Barang')
 
 @section('content')
-    <form method="GET" class="mb-4 flex items-center gap-2">
-        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nomor…"
-               class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <button class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Cari</button>
-    </form>
+    <div class="mb-4 flex items-center justify-between gap-3">
+        <form method="GET" class="flex items-center gap-2">
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nomor…"
+                   class="w-full max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <button class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Cari</button>
+        </form>
+        <a href="{{ route('v2.inventory.transfers.create') }}" class="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">+ Pemindahan</a>
+    </div>
 
     <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="overflow-x-auto">

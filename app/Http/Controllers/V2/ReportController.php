@@ -35,4 +35,57 @@ class ReportController extends Controller
             'to' => $to->toDateString(),
         ]);
     }
+
+    public function cashFlow(Request $request, ReportService $reports): View
+    {
+        [$company, $from, $to] = $this->period($request);
+        $report = $company ? $reports->cashFlow($company, $from, $to) : null;
+
+        return view('v2.reports.cash-flow', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    public function sales(Request $request, ReportService $reports): View
+    {
+        [$company, $from, $to] = $this->period($request);
+        $report = $company ? $reports->salesAnalysis($company, $from, $to) : null;
+
+        return view('v2.reports.sales', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    public function purchases(Request $request, ReportService $reports): View
+    {
+        [$company, $from, $to] = $this->period($request);
+        $report = $company ? $reports->purchaseAnalysis($company, $from, $to) : null;
+
+        return view('v2.reports.purchases', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    public function inventory(Request $request, ReportService $reports): View
+    {
+        $company = Company::query()->first();
+        $lowOnly = $request->boolean('low');
+        $report = $company ? $reports->inventoryReport($company, null, $lowOnly) : null;
+
+        return view('v2.reports.inventory', ['report' => $report, 'lowOnly' => $lowOnly]);
+    }
+
+    public function tax(Request $request, ReportService $reports): View
+    {
+        [$company, $from, $to] = $this->period($request);
+        $report = $company ? $reports->taxReport($company, $from, $to) : null;
+
+        return view('v2.reports.tax', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    /**
+     * @return array{0: ?Company, 1: \Illuminate\Support\Carbon, 2: \Illuminate\Support\Carbon}
+     */
+    private function period(Request $request): array
+    {
+        return [
+            Company::query()->first(),
+            $request->date('from') ?? now()->startOfMonth(),
+            $request->date('to') ?? now(),
+        ];
+    }
 }

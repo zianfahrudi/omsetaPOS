@@ -45,9 +45,17 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         Route::get('laporan/neraca', [\App\Http\Controllers\V2\ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
         Route::get('laporan/laba-rugi', [\App\Http\Controllers\V2\ReportController::class, 'incomeStatement'])->name('reports.income-statement');
+        Route::get('laporan/arus-kas', [\App\Http\Controllers\V2\ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+        Route::get('laporan/penjualan', [\App\Http\Controllers\V2\ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('laporan/pembelian', [\App\Http\Controllers\V2\ReportController::class, 'purchases'])->name('reports.purchases');
+        Route::get('laporan/persediaan', [\App\Http\Controllers\V2\ReportController::class, 'inventory'])->name('reports.inventory');
+        Route::get('laporan/pajak', [\App\Http\Controllers\V2\ReportController::class, 'tax'])->name('reports.tax');
 
         Route::get('akuntansi/akun', [\App\Http\Controllers\V2\AccountController::class, 'index'])->name('accounting.accounts');
+        Route::get('akuntansi/buku-besar', [\App\Http\Controllers\V2\LedgerController::class, 'index'])->name('accounting.ledger');
         Route::get('akuntansi/jurnal', [\App\Http\Controllers\V2\JournalController::class, 'index'])->name('accounting.journals');
+        Route::get('akuntansi/jurnal/baru', [\App\Http\Controllers\V2\JournalController::class, 'create'])->name('accounting.journals.create');
+        Route::post('akuntansi/jurnal', [\App\Http\Controllers\V2\JournalController::class, 'store'])->name('accounting.journals.store');
         Route::get('akuntansi/jurnal/{journal}', [\App\Http\Controllers\V2\JournalController::class, 'show'])->name('accounting.journals.show');
 
         // Penjualan
@@ -96,12 +104,22 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         // Persediaan
         Route::get('persediaan/penyesuaian', [\App\Http\Controllers\V2\InventoryController::class, 'adjustments'])->name('inventory.adjustments');
+        Route::get('persediaan/penyesuaian/baru', [\App\Http\Controllers\V2\InventoryController::class, 'adjustmentCreate'])->name('inventory.adjustments.create');
+        Route::post('persediaan/penyesuaian', [\App\Http\Controllers\V2\InventoryController::class, 'adjustmentStore'])->name('inventory.adjustments.store');
         Route::get('persediaan/pemindahan', [\App\Http\Controllers\V2\InventoryController::class, 'transfers'])->name('inventory.transfers');
+        Route::get('persediaan/pemindahan/baru', [\App\Http\Controllers\V2\InventoryController::class, 'transferCreate'])->name('inventory.transfers.create');
+        Route::post('persediaan/pemindahan', [\App\Http\Controllers\V2\InventoryController::class, 'transferStore'])->name('inventory.transfers.store');
+        Route::get('persediaan/kartu-stok', [\App\Http\Controllers\V2\InventoryController::class, 'stockCard'])->name('inventory.stock-card');
 
         // Kas & Bank
         Route::get('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'transactions'])->name('cash.transactions');
         Route::get('kas/transaksi/baru', [\App\Http\Controllers\V2\CashController::class, 'create'])->name('cash.transactions.create');
         Route::post('kas/transaksi', [\App\Http\Controllers\V2\CashController::class, 'store'])->name('cash.transactions.store');
+
+        // Point of Sale
+        Route::get('pos/transaksi', [\App\Http\Controllers\V2\PosController::class, 'transactions'])->name('pos.transactions');
+        Route::get('pos/transaksi/{sale}', [\App\Http\Controllers\V2\PosController::class, 'transactionShow'])->name('pos.transactions.show');
+        Route::get('pos/sesi-kasir', [\App\Http\Controllers\V2\PosController::class, 'sessions'])->name('pos.sessions');
 
         // Kontak (Data Master)
         Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');

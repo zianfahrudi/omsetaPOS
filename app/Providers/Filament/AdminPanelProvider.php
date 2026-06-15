@@ -37,7 +37,14 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
                 'Point of Sale',
+                'Penjualan',
+                'Pembelian',
+                'Persediaan',
                 'Inventory',
+                'Kas & Bank',
+                'Akuntansi',
+                'Laporan',
+                'Data Master',
                 'Management',
                 'System',
             ])

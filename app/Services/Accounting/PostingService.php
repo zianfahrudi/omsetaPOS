@@ -95,6 +95,8 @@ class PostingService
                     'memo' => $line['memo'],
                     'contact_id' => $line['contact_id'],
                     'store_id' => $line['store_id'],
+                    'department_id' => $line['department_id'],
+                    'project_id' => $line['project_id'],
                 ]);
             }
 
@@ -165,6 +167,8 @@ class PostingService
                 'memo' => $line['memo'] ?? null,
                 'contact_id' => isset($line['contact_id']) ? (int) $line['contact_id'] : null,
                 'store_id' => isset($line['store_id']) ? (int) $line['store_id'] : null,
+                'department_id' => isset($line['department_id']) ? (int) $line['department_id'] : null,
+                'project_id' => isset($line['project_id']) ? (int) $line['project_id'] : null,
             ];
         }
 

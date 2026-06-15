@@ -67,6 +67,14 @@ class JournalForm
                         TextInput::make('memo')
                             ->label('Catatan')
                             ->columnSpan(12),
+                        Select::make('department_id')
+                            ->label('Departemen')
+                            ->options(fn ($get) => \App\Models\Department::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
+                            ->columnSpan(6),
+                        Select::make('project_id')
+                            ->label('Proyek')
+                            ->options(fn ($get) => \App\Models\Project::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
+                            ->columnSpan(6),
                     ]),
             ]);
     }

@@ -420,6 +420,46 @@ class ReportService
     }
 
     /**
+     * Profit (revenue - expense) for an analytic dimension (project/department)
+     * based on tagged journal lines.
+     *
+     * @return array{revenue:float, expense:float, net:float}
+     */
+    public function dimensionProfit(Company $company, string $column, int $id, Carbon|string $from, Carbon|string $to): array
+    {
+        if (! in_array($column, ['project_id', 'department_id'], true)) {
+            return ['revenue' => 0.0, 'expense' => 0.0, 'net' => 0.0];
+        }
+
+        $lines = JournalLine::query()
+            ->with('account:id,type')
+            ->where($column, $id)
+            ->whereHas('journal', fn ($q) => $q
+                ->where('company_id', $company->id)
+                ->where('status', 'posted')
+                ->whereBetween('date', [$from, $to]))
+            ->get();
+
+        $revenue = 0.0;
+        $expense = 0.0;
+
+        foreach ($lines as $line) {
+            $type = $line->account?->type;
+            if ($type === 'revenue') {
+                $revenue += (float) $line->credit - (float) $line->debit;
+            } elseif ($type === 'expense') {
+                $expense += (float) $line->debit - (float) $line->credit;
+            }
+        }
+
+        return [
+            'revenue' => round($revenue, 2),
+            'expense' => round($expense, 2),
+            'net' => round($revenue - $expense, 2),
+        ];
+    }
+
+    /**
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */

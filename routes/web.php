@@ -141,6 +141,18 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::put('pelanggan/{customer}', [\App\Http\Controllers\V2\CustomerController::class, 'update'])->name('customers.update');
         Route::delete('pelanggan/{customer}', [\App\Http\Controllers\V2\CustomerController::class, 'destroy'])->name('customers.destroy');
 
+        // Kendaraan (model CustomerVehicle)
+        Route::get('kendaraan', [\App\Http\Controllers\V2\VehicleController::class, 'index'])->name('vehicles.index');
+        Route::get('kendaraan/baru', [\App\Http\Controllers\V2\VehicleController::class, 'create'])->name('vehicles.create');
+        Route::post('kendaraan', [\App\Http\Controllers\V2\VehicleController::class, 'store'])->name('vehicles.store');
+        Route::get('kendaraan/{vehicle}/edit', [\App\Http\Controllers\V2\VehicleController::class, 'edit'])->name('vehicles.edit');
+        Route::put('kendaraan/{vehicle}', [\App\Http\Controllers\V2\VehicleController::class, 'update'])->name('vehicles.update');
+        Route::delete('kendaraan/{vehicle}', [\App\Http\Controllers\V2\VehicleController::class, 'destroy'])->name('vehicles.destroy');
+
+        // Wilayah (Provinsi & Kabupaten/Kota)
+        Route::get('wilayah/provinsi', [\App\Http\Controllers\V2\RegionController::class, 'provinces'])->name('regions.provinces');
+        Route::get('wilayah/kabupaten-kota', [\App\Http\Controllers\V2\RegionController::class, 'regencies'])->name('regions.regencies');
+
         // Data Master sederhana (Satuan, Gudang, Departemen, Proyek, Mata Uang, Pajak)
         foreach ([
             'satuan' => ['units', \App\Http\Controllers\V2\Master\UnitController::class],

@@ -10,7 +10,13 @@
 @endphp
 
 @section('content')
-    <form method="POST" action="{{ $action }}" class="max-w-2xl">
+    <form method="POST" action="{{ $action }}" class="max-w-2xl"
+          x-data="{
+              regencies: @js($regencies),
+              province: '{{ $val('province_id') }}',
+              regency: '{{ $val('regency_id') }}',
+              get filtered() { return this.regencies.filter(r => String(r.province_id) === String(this.province)); }
+          }">
         @csrf
         @if ($customer->exists) @method('PUT') @endif
 
@@ -39,6 +45,24 @@
                 <div class="sm:col-span-2">
                     <label class="{{ $label }}">Alamat</label>
                     <textarea name="address" rows="2" class="{{ $input }}">{{ $val('address') }}</textarea>
+                </div>
+                <div>
+                    <label class="{{ $label }}">Provinsi</label>
+                    <select name="province_id" x-model="province" @change="regency = ''" class="{{ $input }}">
+                        <option value="">— Pilih provinsi —</option>
+                        @foreach ($provinces as $p)
+                            <option value="{{ $p->id }}">{{ $p->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="{{ $label }}">Kabupaten/Kota</label>
+                    <select name="regency_id" x-model="regency" class="{{ $input }}" :disabled="!province">
+                        <option value="">— Pilih kabupaten/kota —</option>
+                        <template x-for="r in filtered" :key="r.id">
+                            <option :value="r.id" x-text="r.name"></option>
+                        </template>
+                    </select>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="{{ $label }}">Catatan</label>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Province;
+use App\Models\Regency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +41,8 @@ class CustomerController extends Controller
         return view('v2.customers.form', [
             'customer' => new Customer,
             'stores' => $this->stores(),
+            'provinces' => $this->provinces(),
+            'regencies' => $this->regencies(),
         ]);
     }
 
@@ -56,6 +60,8 @@ class CustomerController extends Controller
         return view('v2.customers.form', [
             'customer' => $customer,
             'stores' => $this->stores(),
+            'provinces' => $this->provinces(),
+            'regencies' => $this->regencies(),
         ]);
     }
 
@@ -86,12 +92,26 @@ class CustomerController extends Controller
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],
+            'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
+            'regency_id' => ['nullable', 'integer', 'exists:regencies,id'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
         abort_unless($this->storeIds()->contains((int) $data['store_id']), 403);
 
         return $data;
+    }
+
+    private function provinces()
+    {
+        return Province::query()->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function regencies()
+    {
+        return Regency::query()->orderBy('name')->get(['id', 'province_id', 'name'])
+            ->map(fn (Regency $r) => ['id' => $r->id, 'province_id' => $r->province_id, 'name' => $r->name])
+            ->values();
     }
 
     private function canAccess(Customer $customer): bool

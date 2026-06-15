@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'phone',
     'email',
     'address',
+    'province_id',
+    'regency_id',
     'visit_count',
     'total_spent',
     'outstanding_debt',
@@ -40,6 +42,16 @@ class Customer extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class);
+    }
+
+    public function regency(): BelongsTo
+    {
+        return $this->belongsTo(Regency::class);
     }
 
     public function sales(): HasMany

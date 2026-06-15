@@ -21,13 +21,13 @@ class StoreChargeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-calculator';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Point of Sale';
+    protected static \UnitEnum|string|null $navigationGroup = 'Kasir';
 
-    protected static ?string $navigationLabel = 'Tax & Service Fee';
+    protected static ?string $navigationLabel = 'Pajak & Biaya Layanan';
 
-    protected static ?string $modelLabel = 'Tax & Service Fee';
+    protected static ?string $modelLabel = 'Pajak & Biaya Layanan';
 
-    protected static ?string $pluralModelLabel = 'Tax & Service Fee';
+    protected static ?string $pluralModelLabel = 'Pajak & Biaya Layanan';
 
     protected static ?int $navigationSort = 3;
 

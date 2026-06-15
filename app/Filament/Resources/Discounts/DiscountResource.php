@@ -21,7 +21,7 @@ class DiscountResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-ticket';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Point of Sale';
+    protected static \UnitEnum|string|null $navigationGroup = 'Kasir';
 
     protected static ?string $navigationLabel = 'Diskon';
 

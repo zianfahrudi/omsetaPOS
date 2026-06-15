@@ -36,23 +36,22 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('omsetaPOS CMS')
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
-                'Point of Sale',
+                'Kasir',
                 'Penjualan',
                 'Pembelian',
                 'Persediaan',
-                'Inventory',
                 'Kas & Bank',
                 'Akuntansi',
                 'Laporan',
                 'Data Master',
-                'Management',
-                'System',
+                'Manajemen',
+                'Sistem',
             ])
             ->navigationItems([
                 NavigationItem::make('Buka Kasir')
                     ->url(fn (): string => route('cashier.index'))
                     ->icon('heroicon-o-computer-desktop')
-                    ->group('Point of Sale')
+                    ->group('Kasir')
                     ->sort(0),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

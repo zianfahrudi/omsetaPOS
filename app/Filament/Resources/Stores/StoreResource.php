@@ -21,7 +21,13 @@ class StoreResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-storefront';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Management';
+    protected static \UnitEnum|string|null $navigationGroup = 'Manajemen';
+
+    protected static ?string $navigationLabel = 'Toko';
+
+    protected static ?string $modelLabel = 'Toko';
+
+    protected static ?string $pluralModelLabel = 'Toko';
 
     protected static ?int $navigationSort = 1;
 

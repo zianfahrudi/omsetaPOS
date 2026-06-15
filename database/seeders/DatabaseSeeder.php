@@ -204,5 +204,21 @@ class DatabaseSeeder extends Seeder
                 );
             }
         }
+
+        // Seed per-warehouse stock so warehouse_stocks stays consistent with
+        // products.stock (the migration backfill runs before products exist).
+        $warehouse = $company->defaultWarehouse();
+        if ($warehouse) {
+            Product::query()
+                ->whereIn('store_id', [$mainStore->id, $branchStore->id])
+                ->where('stock', '>', 0)
+                ->get()
+                ->each(function (Product $product) use ($warehouse) {
+                    \App\Models\WarehouseStock::query()->updateOrCreate(
+                        ['warehouse_id' => $warehouse->id, 'product_id' => $product->id],
+                        ['quantity' => (int) $product->stock],
+                    );
+                });
+        }
     }
 }

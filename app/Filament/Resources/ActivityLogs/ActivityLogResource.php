@@ -19,7 +19,13 @@ class ActivityLogResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'System';
+    protected static \UnitEnum|string|null $navigationGroup = 'Sistem';
+
+    protected static ?string $navigationLabel = 'Log Aktivitas';
+
+    protected static ?string $modelLabel = 'Log Aktivitas';
+
+    protected static ?string $pluralModelLabel = 'Log Aktivitas';
 
     protected static ?int $navigationSort = 1;
 

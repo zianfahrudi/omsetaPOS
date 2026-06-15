@@ -20,7 +20,13 @@ class SaleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Point of Sale';
+    protected static \UnitEnum|string|null $navigationGroup = 'Kasir';
+
+    protected static ?string $navigationLabel = 'Transaksi POS';
+
+    protected static ?string $modelLabel = 'Transaksi POS';
+
+    protected static ?string $pluralModelLabel = 'Transaksi POS';
 
     protected static ?int $navigationSort = 1;
 

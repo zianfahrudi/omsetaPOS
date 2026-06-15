@@ -28,7 +28,7 @@ class CustomerVehicleResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Kendaraan';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Management';
+    protected static \UnitEnum|string|null $navigationGroup = 'Manajemen';
 
     protected static ?int $navigationSort = 2;
 

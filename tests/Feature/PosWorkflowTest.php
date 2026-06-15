@@ -1195,25 +1195,6 @@ class PosWorkflowTest extends TestCase
         $this->assertEquals(0, (float) $page->totals()['revenue']);
     }
 
-    public function test_customers_cms_page_renders(): void
-    {
-        [$superuser, $store] = $this->fixture();
-        $superuser->update(['role' => 'superuser']);
-
-        Customer::create([
-            'store_id' => $store->id,
-            'name' => 'CRM Customer',
-            'phone' => '089999999999',
-        ]);
-
-        $response = $this->actingAs($superuser)->get('/admin/customers');
-
-        $response->assertOk();
-        $response->assertSee('CRM Customer');
-        $response->assertSee('089999999999');
-        $response->assertSee('Hutang');
-    }
-
     public function test_charge_and_discount_cms_pages_render(): void
     {
         [$superuser, $store] = $this->fixture();

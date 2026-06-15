@@ -19,7 +19,7 @@ class CashierSessionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Point of Sale';
+    protected static string|\UnitEnum|null $navigationGroup = 'Kasir';
 
     protected static ?string $navigationLabel = 'Sesi Kasir';
 

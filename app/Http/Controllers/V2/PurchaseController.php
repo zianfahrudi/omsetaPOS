@@ -8,7 +8,13 @@ use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseRequest;
 use App\Models\Warehouse;
+use App\Services\Accounting\ReportService;
+use App\Services\PurchaseOrderService;
+use App\Services\PurchasePaymentService;
+use App\Services\PurchaseRequestService;
+use App\Services\PurchaseReturnService;
 use App\Services\PurchaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,12 +24,89 @@ use Throwable;
 
 class PurchaseController extends Controller
 {
+    // ---- Permintaan Pembelian ----------------------------------------------
+
+    public function requests(Request $request): View
+    {
+        $records = $this->base(PurchaseRequest::query()->with('supplier'), $request)->paginate(20)->withQueryString();
+
+        return view('v2.purchase.requests', compact('records'));
+    }
+
+    public function requestCreate(): View
+    {
+        return view('v2.purchase.request-form', $this->formData());
+    }
+
+    public function requestStore(Request $request, PurchaseRequestService $service): RedirectResponse
+    {
+        $company = $this->company();
+        $data = $this->validateDoc($request, 'unit_cost', 'needed_date');
+
+        return $this->run(fn () => $service->create(
+            company: $company,
+            contactId: (int) $data['contact_id'],
+            items: $this->mapItems($data['items'], 'unit_cost'),
+            date: $data['date'],
+            neededDate: $data['needed_date'] ?? null,
+            notes: $data['notes'] ?? null,
+            createdBy: Auth::id(),
+        ), 'v2.purchase.requests', 'Permintaan %s berhasil dibuat.');
+    }
+
+    public function requestConvert(PurchaseRequest $purchaseRequest, PurchaseRequestService $service): RedirectResponse
+    {
+        try {
+            $service->convertToOrder($purchaseRequest, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withErrors(['convert' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.purchase.orders')->with('status', 'Permintaan dikonversi menjadi pesanan.');
+    }
+
+    // ---- Pesanan Pembelian --------------------------------------------------
+
     public function orders(Request $request): View
     {
         $records = $this->base(PurchaseOrder::query()->with('supplier'), $request)->paginate(20)->withQueryString();
 
         return view('v2.purchase.orders', compact('records'));
     }
+
+    public function orderCreate(): View
+    {
+        return view('v2.purchase.order-form', $this->formData());
+    }
+
+    public function orderStore(Request $request, PurchaseOrderService $service): RedirectResponse
+    {
+        $company = $this->company();
+        $data = $this->validateDoc($request, 'unit_cost', 'expected_date');
+
+        return $this->run(fn () => $service->create(
+            company: $company,
+            contactId: (int) $data['contact_id'],
+            items: $this->mapItems($data['items'], 'unit_cost'),
+            date: $data['date'],
+            expectedDate: $data['expected_date'] ?? null,
+            notes: $data['notes'] ?? null,
+            createdBy: Auth::id(),
+        ), 'v2.purchase.orders', 'Pesanan %s berhasil dibuat.');
+    }
+
+    public function orderConvert(PurchaseOrder $purchaseOrder, PurchaseOrderService $service): RedirectResponse
+    {
+        try {
+            $purchaseOrder = $service->convertToPurchase($purchaseOrder, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withErrors(['convert' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.purchase.invoices.show', $purchaseOrder->purchase_id)->with('status', 'Pesanan dikonversi menjadi faktur.');
+    }
+
+    // ---- Faktur Pembelian ---------------------------------------------------
 
     public function invoices(Request $request): View
     {
@@ -41,56 +124,19 @@ class PurchaseController extends Controller
 
     public function invoiceCreate(): View
     {
-        $company = Company::query()->first();
-
-        return view('v2.purchase.invoice-form', [
-            'suppliers' => Contact::query()->where('type', 'supplier')->orderBy('name')->get(['id', 'name']),
-            'warehouses' => $this->warehouses($company),
-            'products' => $this->products($company),
-        ]);
+        return view('v2.purchase.invoice-form', $this->formData());
     }
 
     public function invoiceStore(Request $request, PurchaseService $service): RedirectResponse
     {
-        $company = Company::query()->first();
-        abort_unless($company, 404);
-
-        $data = $request->validate([
-            'contact_id' => ['required', 'integer'],
-            'date' => ['required', 'date'],
-            'due_date' => ['nullable', 'date'],
-            'warehouse_id' => ['nullable', 'integer'],
-            'supplier_invoice_no' => ['nullable', 'string', 'max:100'],
-            'notes' => ['nullable', 'string', 'max:500'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['nullable', 'integer'],
-            'items.*.product_name' => ['nullable', 'string', 'max:255'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0'],
-            'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
-            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        $items = collect($data['items'])
-            ->filter(fn ($i) => (float) ($i['quantity'] ?? 0) > 0)
-            ->map(fn ($i) => [
-                'product_id' => $i['product_id'] ?? null,
-                'product_name' => $i['product_name'] ?? null,
-                'quantity' => (int) $i['quantity'],
-                'unit_cost' => (float) $i['unit_cost'],
-                'tax_amount' => (float) ($i['tax_amount'] ?? 0),
-            ])
-            ->values()
-            ->all();
-
-        if ($items === []) {
-            return back()->withInput()->withErrors(['items' => 'Minimal 1 item dengan kuantitas lebih dari nol.']);
-        }
+        $company = $this->company();
+        $data = $this->validateDoc($request, 'unit_cost', 'due_date', withWarehouse: true, refField: 'supplier_invoice_no');
 
         try {
             $purchase = $service->create(
                 company: $company,
                 contactId: (int) $data['contact_id'],
-                items: $items,
+                items: $this->mapItems($data['items'], 'unit_cost'),
                 date: $data['date'],
                 warehouseId: $data['warehouse_id'] ?? null,
                 storeId: null,
@@ -106,45 +152,177 @@ class PurchaseController extends Controller
         return redirect()->route('v2.purchase.invoices.show', $purchase)->with('status', "Faktur {$purchase->number} berhasil dibuat.");
     }
 
+    // ---- Pembayaran hutang --------------------------------------------------
+
+    public function paymentCreate(Purchase $invoice): View
+    {
+        abort_if((float) $invoice->outstanding_amount <= 0, 404);
+        $invoice->load('supplier');
+
+        return view('v2.purchase.payment-form', compact('invoice'));
+    }
+
+    public function paymentStore(Request $request, Purchase $invoice, PurchasePaymentService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:1'],
+            'method' => ['required', 'in:cash,bank'],
+            'date' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $service->pay($invoice, (float) $data['amount'], $data['method'], $data['date'], $data['notes'] ?? null, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['amount' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.purchase.invoices.show', $invoice)->with('status', 'Pembayaran hutang berhasil dicatat.');
+    }
+
+    // ---- Retur pembelian ----------------------------------------------------
+
+    public function returnCreate(Purchase $invoice): View
+    {
+        $invoice->load('items.product', 'supplier');
+
+        return view('v2.purchase.return-form', compact('invoice'));
+    }
+
+    public function returnStore(Request $request, Purchase $invoice, PurchaseReturnService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['required', 'integer'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $items = collect($data['items'])
+            ->filter(fn ($i) => (float) ($i['quantity'] ?? 0) > 0)
+            ->map(fn ($i) => ['product_id' => (int) $i['product_id'], 'quantity' => (int) $i['quantity']])
+            ->values()->all();
+
+        if ($items === []) {
+            return back()->withInput()->withErrors(['items' => 'Pilih minimal 1 item dengan kuantitas.']);
+        }
+
+        try {
+            $service->create($invoice, $items, now(), $data['reason'] ?? null, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['items' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.purchase.invoices.show', $invoice)->with('status', 'Retur pembelian berhasil dicatat.');
+    }
+
+    // ---- Daftar hutang ------------------------------------------------------
+
+    public function payables(Request $request, ReportService $reports): View
+    {
+        $company = $this->company();
+        $asOf = $request->date('as_of') ?? now();
+        $report = $company ? $reports->payableAging($company, $asOf) : null;
+
+        return view('v2.purchase.payables', ['report' => $report, 'asOf' => $asOf->toDateString()]);
+    }
+
+    // ---- Helpers ------------------------------------------------------------
+
+    private function company(): ?Company
+    {
+        return Company::query()->first();
+    }
+
     private function base($query, Request $request)
     {
-        $company = Company::query()->first();
+        $company = $this->company();
 
         return $query
             ->when($company, fn ($q) => $q->where('company_id', $company->id))
-            ->when($request->string('q')->trim()->value(), function ($q, $term) {
-                $like = '%'.$term.'%';
-                $q->where('number', 'like', $like);
-            })
-            ->orderByDesc('date')
-            ->orderByDesc('id');
-    }
-
-    private function warehouses(?Company $company)
-    {
-        return Warehouse::query()
-            ->when($company, fn ($q) => $q->where('company_id', $company->id))
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'is_default']);
+            ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('number', 'like', '%'.$term.'%'))
+            ->orderByDesc('date')->orderByDesc('id');
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return array<string, mixed>
      */
+    private function formData(): array
+    {
+        $company = $this->company();
+
+        return [
+            'suppliers' => Contact::query()->where('type', 'supplier')->orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::query()->when($company, fn ($q) => $q->where('company_id', $company->id))->where('is_active', true)->orderBy('name')->get(['id', 'name', 'is_default']),
+            'products' => $this->products($company),
+        ];
+    }
+
     private function products(?Company $company)
     {
         return Product::query()
             ->when($company, fn ($q) => $q->whereHas('store', fn ($s) => $s->where('company_id', $company->id)))
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'sell_price', 'cost_price', 'product_type'])
-            ->map(fn (Product $p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'price' => (float) $p->cost_price,
-                'type' => $p->product_type,
-            ])
+            ->where('is_active', true)->orderBy('name')
+            ->get(['id', 'name', 'cost_price', 'product_type'])
+            ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'price' => (float) $p->cost_price, 'type' => $p->product_type])
             ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateDoc(Request $request, string $priceField, ?string $secondaryDate = null, bool $withWarehouse = false, ?string $refField = null): array
+    {
+        $rules = [
+            'contact_id' => ['required', 'integer'],
+            'date' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'integer'],
+            'items.*.product_name' => ['nullable', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0'],
+            'items.*.'.$priceField => ['required', 'numeric', 'min:0'],
+            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
+        ];
+        if ($secondaryDate) {
+            $rules[$secondaryDate] = ['nullable', 'date'];
+        }
+        if ($withWarehouse) {
+            $rules['warehouse_id'] = ['nullable', 'integer'];
+        }
+        if ($refField) {
+            $rules[$refField] = ['nullable', 'string', 'max:100'];
+        }
+
+        return $request->validate($rules);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function mapItems(array $rows, string $priceField): array
+    {
+        return collect($rows)
+            ->filter(fn ($i) => (float) ($i['quantity'] ?? 0) > 0)
+            ->map(fn ($i) => [
+                'product_id' => $i['product_id'] ?? null,
+                'product_name' => $i['product_name'] ?? null,
+                'quantity' => (int) $i['quantity'],
+                $priceField => (float) $i[$priceField],
+                'tax_amount' => (float) ($i['tax_amount'] ?? 0),
+            ])
+            ->values()->all();
+    }
+
+    private function run(callable $fn, string $redirectRoute, string $successMessage): RedirectResponse
+    {
+        try {
+            $doc = $fn();
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['items' => $e->getMessage()]);
+        }
+
+        return redirect()->route($redirectRoute)->with('status', sprintf($successMessage, $doc->number));
     }
 }

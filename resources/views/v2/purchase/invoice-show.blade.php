@@ -7,6 +7,13 @@
 @section('content')
     <a href="{{ route('v2.purchase.invoices') }}" class="mb-4 inline-block text-sm font-medium text-indigo-600 hover:underline">← Kembali ke Faktur Pembelian</a>
 
+    <div class="mb-4 flex flex-wrap gap-2">
+        @if ((float) $invoice->outstanding_amount > 0)
+            <a href="{{ route('v2.purchase.invoices.payment', $invoice) }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Catat Pembayaran</a>
+        @endif
+        <a href="{{ route('v2.purchase.invoices.return', $invoice) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Retur Pembelian</a>
+    </div>
+
     <div class="rounded-2xl border border-slate-200 bg-white p-6">
         <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
             <div>

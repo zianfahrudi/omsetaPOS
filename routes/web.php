@@ -75,6 +75,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('penjualan/faktur/baru', [\App\Http\Controllers\V2\SalesController::class, 'invoiceCreate'])->name('sales.invoices.create');
         Route::post('penjualan/faktur', [\App\Http\Controllers\V2\SalesController::class, 'invoiceStore'])->name('sales.invoices.store');
         Route::get('penjualan/faktur/{invoice}', [\App\Http\Controllers\V2\SalesController::class, 'invoiceShow'])->name('sales.invoices.show');
+        Route::get('penjualan/faktur/{invoice}/cetak', [\App\Http\Controllers\V2\SalesController::class, 'invoicePrint'])->name('sales.invoices.print');
         Route::get('penjualan/faktur/{invoice}/bayar', [\App\Http\Controllers\V2\SalesController::class, 'paymentCreate'])->name('sales.invoices.payment');
         Route::post('penjualan/faktur/{invoice}/bayar', [\App\Http\Controllers\V2\SalesController::class, 'paymentStore'])->name('sales.invoices.payment.store');
         Route::get('penjualan/faktur/{invoice}/retur', [\App\Http\Controllers\V2\SalesController::class, 'returnCreate'])->name('sales.invoices.return');
@@ -97,6 +98,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('pembelian/faktur/baru', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceCreate'])->name('purchase.invoices.create');
         Route::post('pembelian/faktur', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceStore'])->name('purchase.invoices.store');
         Route::get('pembelian/faktur/{invoice}', [\App\Http\Controllers\V2\PurchaseController::class, 'invoiceShow'])->name('purchase.invoices.show');
+        Route::get('pembelian/faktur/{invoice}/cetak', [\App\Http\Controllers\V2\PurchaseController::class, 'invoicePrint'])->name('purchase.invoices.print');
         Route::get('pembelian/faktur/{invoice}/bayar', [\App\Http\Controllers\V2\PurchaseController::class, 'paymentCreate'])->name('purchase.invoices.payment');
         Route::post('pembelian/faktur/{invoice}/bayar', [\App\Http\Controllers\V2\PurchaseController::class, 'paymentStore'])->name('purchase.invoices.payment.store');
         Route::get('pembelian/faktur/{invoice}/retur', [\App\Http\Controllers\V2\PurchaseController::class, 'returnCreate'])->name('purchase.invoices.return');

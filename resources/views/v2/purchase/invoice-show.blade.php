@@ -12,6 +12,7 @@
             <a href="{{ route('v2.purchase.invoices.payment', $invoice) }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Catat Pembayaran</a>
         @endif
         <a href="{{ route('v2.purchase.invoices.return', $invoice) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Retur Pembelian</a>
+        <a href="{{ route('v2.purchase.invoices.print', $invoice) }}" target="_blank" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cetak Faktur</a>
     </div>
 
     <div class="rounded-2xl border border-slate-200 bg-white p-6">

@@ -122,6 +122,35 @@ class PurchaseController extends Controller
         return view('v2.purchase.invoice-show', compact('invoice'));
     }
 
+    public function invoicePrint(Purchase $invoice): View
+    {
+        $invoice->load(['items', 'supplier', 'company']);
+
+        return view('v2.print.invoice', [
+            'title' => 'FAKTUR PEMBELIAN',
+            'company' => $invoice->company,
+            'number' => $invoice->number,
+            'date' => $invoice->date,
+            'dueDate' => $invoice->due_date,
+            'partnerLabel' => 'Pemasok',
+            'partnerName' => $invoice->supplier?->name ?? '—',
+            'ref' => $invoice->supplier_invoice_no,
+            'items' => $invoice->items->map(fn ($i) => [
+                'name' => $i->product_name ?: $i->product?->name,
+                'qty' => (int) $i->quantity,
+                'price' => (float) $i->unit_cost,
+                'tax' => (float) $i->tax_amount,
+                'total' => (float) $i->line_total,
+            ]),
+            'subtotal' => (float) $invoice->subtotal,
+            'taxTotal' => (float) $invoice->tax_total,
+            'grandTotal' => (float) $invoice->grand_total,
+            'paid' => (float) $invoice->paid_amount,
+            'outstanding' => (float) $invoice->outstanding_amount,
+            'backUrl' => route('v2.purchase.invoices.show', $invoice),
+        ]);
+    }
+
     public function invoiceCreate(): View
     {
         return view('v2.purchase.invoice-form', $this->formData());

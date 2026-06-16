@@ -122,6 +122,35 @@ class SalesController extends Controller
         return view('v2.sales.invoice-show', compact('invoice'));
     }
 
+    public function invoicePrint(SalesInvoice $invoice): View
+    {
+        $invoice->load(['items', 'customer', 'company']);
+
+        return view('v2.print.invoice', [
+            'title' => 'FAKTUR PENJUALAN',
+            'company' => $invoice->company,
+            'number' => $invoice->number,
+            'date' => $invoice->date,
+            'dueDate' => $invoice->due_date,
+            'partnerLabel' => 'Pelanggan',
+            'partnerName' => $invoice->customer?->name ?? '—',
+            'ref' => $invoice->customer_ref,
+            'items' => $invoice->items->map(fn ($i) => [
+                'name' => $i->product_name ?: $i->product?->name,
+                'qty' => (int) $i->quantity,
+                'price' => (float) $i->unit_price,
+                'tax' => (float) $i->tax_amount,
+                'total' => (float) $i->line_total,
+            ]),
+            'subtotal' => (float) $invoice->subtotal,
+            'taxTotal' => (float) $invoice->tax_total,
+            'grandTotal' => (float) $invoice->grand_total,
+            'paid' => (float) $invoice->paid_amount,
+            'outstanding' => (float) $invoice->outstanding_amount,
+            'backUrl' => route('v2.sales.invoices.show', $invoice),
+        ]);
+    }
+
     public function invoiceCreate(): View
     {
         return view('v2.sales.invoice-form', $this->formData());

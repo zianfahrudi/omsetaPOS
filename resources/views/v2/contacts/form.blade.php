@@ -77,7 +77,7 @@
                 </div>
                 <div>
                     <label class="{{ $label }}">Kabupaten/Kota</label>
-                    <select x-model="regency" @change="loadDistricts()" class="{{ $input }}" :class="{ 'opacity-60': !province }">
+                    <select x-model="regency" @change="loadDistricts()" x-effect="filteredRegencies; $nextTick(() => $el.value = regency)" class="{{ $input }}" :class="{ 'opacity-60': !province }">
                         <option value="">— Pilih kabupaten/kota —</option>
                         <template x-for="r in filteredRegencies" :key="r.id">
                             <option :value="r.id" x-text="r.name"></option>
@@ -87,7 +87,7 @@
                 </div>
                 <div>
                     <label class="{{ $label }}">Kecamatan</label>
-                    <select x-model="district" class="{{ $input }}" :class="{ 'opacity-60': !regency }">
+                    <select x-model="district" x-effect="districts; $nextTick(() => $el.value = district)" class="{{ $input }}" :class="{ 'opacity-60': !regency }">
                         <option value="">— Pilih kecamatan —</option>
                         <template x-for="d in districts" :key="d.id">
                             <option :value="d.id" x-text="d.name"></option>

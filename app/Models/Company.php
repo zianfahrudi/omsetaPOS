@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name',
     'code',
     'currency',
+    'default_overhead_percent',
+    'default_profit_percent',
     'phone',
     'email',
     'address',
@@ -21,6 +23,8 @@ class Company extends Model
     protected function casts(): array
     {
         return [
+            'default_overhead_percent' => 'decimal:2',
+            'default_profit_percent' => 'decimal:2',
             'book_opened_at' => 'date',
             'is_active' => 'boolean',
         ];

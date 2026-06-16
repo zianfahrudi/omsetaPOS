@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\V2\Master;
 
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Project;
@@ -50,10 +51,13 @@ class ProjectController extends SimpleCrudController
     {
         return [
             'name' => ['required', 'string', 'max:150'],
+            'location' => ['nullable', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:30'],
             'contact_id' => ['nullable', 'integer'],
             'budget' => ['nullable', 'numeric', 'min:0'],
             'contract_value' => ['nullable', 'numeric', 'min:0'],
+            'overhead_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'profit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'down_payment' => ['nullable', 'numeric', 'min:0'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
@@ -64,7 +68,14 @@ class ProjectController extends SimpleCrudController
 
     protected function defaults(): array
     {
-        return ['is_active' => true, 'status' => 'active'];
+        $company = Company::query()->first();
+
+        return [
+            'is_active' => true,
+            'status' => 'active',
+            'overhead_percent' => (float) ($company->default_overhead_percent ?? 0),
+            'profit_percent' => (float) ($company->default_profit_percent ?? 0),
+        ];
     }
 
     protected function formData(): array
@@ -91,8 +102,8 @@ class ProjectController extends SimpleCrudController
             ->whereIn('store_id', $storeIds)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'cost_price'])
-            ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'cost' => (float) $p->cost_price])
+            ->get(['id', 'name', 'cost_price', 'unit'])
+            ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'cost' => (float) $p->cost_price, 'unit' => (string) ($p->unit ?? '')])
             ->values();
 
         return view('v2.master.projects.show', [
@@ -112,6 +123,7 @@ class ProjectController extends SimpleCrudController
             'product_id' => ['nullable', 'integer'],
             'description' => ['nullable', 'string', 'max:255'],
             'quantity' => ['required', 'numeric', 'min:0.01'],
+            'unit' => ['nullable', 'string', 'max:30'],
             'unit_cost' => ['required', 'numeric', 'min:0'],
             'date' => ['nullable', 'date'],
         ]);
@@ -123,6 +135,7 @@ class ProjectController extends SimpleCrudController
             'product_id' => $data['type'] === 'material' ? ($data['product_id'] ?? null) : null,
             'description' => $data['description'] ?? null,
             'quantity' => (float) $data['quantity'],
+            'unit' => $data['unit'] ?? null,
             'unit_cost' => (float) $data['unit_cost'],
             'amount' => $amount,
             'date' => $data['date'] ?? now(),
@@ -138,5 +151,25 @@ class ProjectController extends SimpleCrudController
         $project->costs()->whereKey($cost)->delete();
 
         return redirect()->route('v2.projects.show', $project->id)->with('status', 'Biaya proyek dihapus.');
+    }
+
+    /**
+     * Atur persentase overhead & profit untuk proyek ini (penawaran/RAB).
+     */
+    public function updatePenawaran(Request $request, int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+
+        $data = $request->validate([
+            'overhead_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'profit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $project->update([
+            'overhead_percent' => (float) ($data['overhead_percent'] ?? 0),
+            'profit_percent' => (float) ($data['profit_percent'] ?? 0),
+        ]);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Persentase overhead & profit diperbarui.');
     }
 }

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'product_id',
     'description',
     'quantity',
+    'unit',
     'unit_cost',
     'amount',
     'date',

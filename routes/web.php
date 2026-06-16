@@ -222,6 +222,11 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('proyek/{id}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'show'])->name('projects.show');
         Route::post('proyek/{id}/biaya', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeCost'])->name('projects.costs.store');
         Route::delete('proyek/{id}/biaya/{cost}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyCost'])->name('projects.costs.destroy');
+        Route::post('proyek/{id}/penawaran', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updatePenawaran'])->name('projects.penawaran.update');
+
+        // Pengaturan default penawaran proyek (overhead & profit global)
+        Route::get('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'edit'])->name('settings.project');
+        Route::put('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'update'])->name('settings.project.update');
 
         Route::get('segera', [\App\Http\Controllers\V2\PageController::class, 'soon'])->name('soon');
     });

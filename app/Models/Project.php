@@ -10,9 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'company_id',
     'contact_id',
     'name',
+    'location',
     'code',
     'budget',
     'contract_value',
+    'overhead_percent',
+    'profit_percent',
     'down_payment',
     'start_date',
     'end_date',
@@ -26,6 +29,8 @@ class Project extends Model
         return [
             'budget' => 'decimal:2',
             'contract_value' => 'decimal:2',
+            'overhead_percent' => 'decimal:2',
+            'profit_percent' => 'decimal:2',
             'down_payment' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
@@ -56,6 +61,32 @@ class Project extends Model
     public function totalCost(): float
     {
         return round((float) $this->costs->sum('amount'), 2);
+    }
+
+    /**
+     * Subtotal bahan/biaya = dasar perhitungan penawaran (RAB).
+     */
+    public function penawaranSubtotal(): float
+    {
+        return $this->totalCost();
+    }
+
+    public function overheadAmount(): float
+    {
+        return round($this->penawaranSubtotal() * (float) $this->overhead_percent / 100, 2);
+    }
+
+    public function profitAmount(): float
+    {
+        return round($this->penawaranSubtotal() * (float) $this->profit_percent / 100, 2);
+    }
+
+    /**
+     * Total Penawaran = subtotal + overhead + profit.
+     */
+    public function totalPenawaran(): float
+    {
+        return round($this->penawaranSubtotal() + $this->overheadAmount() + $this->profitAmount(), 2);
     }
 
     public function remainingBill(): float

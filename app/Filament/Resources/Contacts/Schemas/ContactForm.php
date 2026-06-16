@@ -25,6 +25,7 @@ class ContactForm
                     ->options([
                         'customer' => 'Pelanggan',
                         'supplier' => 'Supplier',
+                        'employee' => 'Karyawan',
                         'other' => 'Lainnya',
                     ])
                     ->default('customer')

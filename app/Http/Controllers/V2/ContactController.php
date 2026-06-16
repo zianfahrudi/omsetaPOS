@@ -14,6 +14,7 @@ class ContactController extends Controller
     public const TYPE_LABELS = [
         'customer' => 'Pelanggan',
         'supplier' => 'Supplier',
+        'employee' => 'Karyawan',
         'other' => 'Lainnya',
     ];
 
@@ -80,7 +81,7 @@ class ContactController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:50'],
-            'type' => ['required', 'in:customer,supplier,other'],
+            'type' => ['required', 'in:customer,supplier,employee,other'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'tax_number' => ['nullable', 'string', 'max:50'],

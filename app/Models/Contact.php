@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class Contact extends Model
 {
-    public const TYPES = ['customer', 'supplier', 'other'];
+    public const TYPES = ['customer', 'supplier', 'employee', 'other'];
 
     protected function casts(): array
     {
@@ -46,5 +46,10 @@ class Contact extends Model
     public function scopeCustomers($query)
     {
         return $query->where('type', 'customer');
+    }
+
+    public function scopeEmployees($query)
+    {
+        return $query->where('type', 'employee');
     }
 }

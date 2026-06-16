@@ -163,7 +163,8 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::put('outlet/{store}', [\App\Http\Controllers\V2\StoreController::class, 'update'])->name('stores.update');
         Route::delete('outlet/{store}', [\App\Http\Controllers\V2\StoreController::class, 'destroy'])->name('stores.destroy');
 
-        // Kontak (Data Master)        Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');
+        // Kontak (Data Master)
+        Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');
         Route::get('kontak/baru', [\App\Http\Controllers\V2\ContactController::class, 'create'])->name('contacts.create');
         Route::post('kontak', [\App\Http\Controllers\V2\ContactController::class, 'store'])->name('contacts.store');
         Route::get('kontak/{contact}/edit', [\App\Http\Controllers\V2\ContactController::class, 'edit'])->name('contacts.edit');

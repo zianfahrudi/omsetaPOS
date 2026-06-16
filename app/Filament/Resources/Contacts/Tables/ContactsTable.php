@@ -15,6 +15,7 @@ class ContactsTable
     private const TYPE_LABELS = [
         'customer' => 'Pelanggan',
         'supplier' => 'Supplier',
+        'employee' => 'Karyawan',
         'other' => 'Lainnya',
     ];
 

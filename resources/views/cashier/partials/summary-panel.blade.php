@@ -5,12 +5,9 @@
             <div class="order-total" id="order-total-footer">
                 <div id="order-details-container" style="flex: 1;">
                     <!-- Data Pelanggan -->
-                    <div style="margin-bottom: 20px;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span style="font-size: 14px; font-weight: 600;">Data Pelanggan</span>
-                        </div>
-                        <div style="display: flex; gap: 8px; position: relative; margin-bottom: 12px;">
+                    <div class="panel-section">
+                        <span class="section-title">Data Pelanggan</span>
+                        <div style="display: flex; gap: 8px; position: relative;">
                             <input type="search" id="customer-search" class="input"
                                 placeholder="Cari nama atau no. hp dari database..." autocomplete="off">
                             <button type="button" class="small-btn" id="btn-open-manual-customer"
@@ -27,7 +24,8 @@
                         </div>
                     </div>
 
-                    <div class="vehicle-block">
+                    <div class="vehicle-block panel-section">
+                        <span class="section-title">Kendaraan</span>
                         <label class="field" style="position: relative;">
                             <span>Nomor Plat Kendaraan</span>
                             <input class="input" id="vehicle-plate-number" type="text" placeholder="Ketik plat untuk lihat riwayat servis…"
@@ -141,13 +139,15 @@
                     </div>
                 </div>
 
-                <button class="primary-btn" type="button" id="checkout" disabled style="margin-top: auto;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                    Proses Pembayaran
-                </button>
+                <div class="checkout-foot">
+                    <button class="primary-btn" type="button" id="checkout" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        Proses Pembayaran
+                    </button>
+                </div>
             </div>
         </aside>

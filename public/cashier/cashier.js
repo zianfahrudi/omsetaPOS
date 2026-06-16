@@ -184,23 +184,27 @@
                 return;
             }
 
-            els.catalog.innerHTML = state.products.map((product) => `
-                <button class="product" type="button" data-add="${product.id}" ${product.product_type !== 'service' && product.stock <= 0 ? 'disabled' : ''}>
-                    <div class="product-info">
+            els.catalog.innerHTML = state.products.map((product) => {
+                const isService = product.product_type === 'service';
+                const out = !isService && product.stock <= 0;
+                const low = !isService && product.stock < 5;
+                const stockText = isService ? 'Jasa' : `Stok ${product.stock} ${escapeHtml(product.unit || 'pcs')}`;
+                return `
+                <button class="product" type="button" data-add="${product.id}" ${out ? 'disabled' : ''}>
+                    <div class="product-thumb">${productImage(product)}</div>
+                    <div class="product-body">
                         <div class="product-name">${escapeHtml(product.name)}</div>
-                        <div class="product-meta">
-                            <span class="product-code">${escapeHtml(product.code || '-')}</span>
-                            <span class="stock ${product.product_type !== 'service' && product.stock < 5 ? 'low' : ''}">${product.product_type === 'service' ? 'Jasa' : `Sisa ${product.stock} ${escapeHtml(product.unit || 'pcs')}`}</span>
-                        </div>
+                        <div class="product-code">${escapeHtml(product.code || '-')}</div>
                     </div>
-                    <div class="product-aside">
-                        <div class="price">${rupiah(product.price)}</div>
-                        <span class="add-pill">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        </span>
+                    <div class="product-foot">
+                        <span class="price">${rupiah(product.price)}</span>
+                        <span class="stock ${low ? 'low' : ''} ${out ? 'out' : ''}">${stockText}</span>
                     </div>
-                </button>
-            `).join('');
+                    <span class="add-pill" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </span>
+                </button>`;
+            }).join('');
         };
 
         const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;

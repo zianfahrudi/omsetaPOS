@@ -57,12 +57,13 @@
                 </div>
                 <div>
                     <label class="{{ $label }}">Kabupaten/Kota</label>
-                    <select name="regency_id" x-model="regency" class="{{ $input }}" :disabled="!province">
+                    <select x-model="regency" class="{{ $input }}" :class="{ 'opacity-60': !province }">
                         <option value="">— Pilih kabupaten/kota —</option>
                         <template x-for="r in filtered" :key="r.id">
                             <option :value="r.id" x-text="r.name"></option>
                         </template>
                     </select>
+                    <input type="hidden" name="regency_id" :value="regency">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="{{ $label }}">Catatan</label>

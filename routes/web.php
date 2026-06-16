@@ -190,6 +190,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         // Wilayah (Provinsi & Kabupaten/Kota)
         Route::get('wilayah/provinsi', [\App\Http\Controllers\V2\RegionController::class, 'provinces'])->name('regions.provinces');
         Route::get('wilayah/kabupaten-kota', [\App\Http\Controllers\V2\RegionController::class, 'regencies'])->name('regions.regencies');
+        Route::get('wilayah/kecamatan', [\App\Http\Controllers\V2\RegionController::class, 'districts'])->name('regions.districts');
 
         // Harta Tetap
         Route::get('harta-tetap', [\App\Http\Controllers\V2\FixedAssetController::class, 'index'])->name('assets.index');

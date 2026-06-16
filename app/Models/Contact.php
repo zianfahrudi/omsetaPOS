@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'email',
     'tax_number',
     'address',
+    'province_id',
+    'regency_id',
+    'district_id',
     'receivable_balance',
     'payable_balance',
     'is_active',
@@ -36,6 +39,21 @@ class Contact extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class);
+    }
+
+    public function regency(): BelongsTo
+    {
+        return $this->belongsTo(Regency::class);
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
     }
 
     public function scopeSuppliers($query)

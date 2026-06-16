@@ -5,6 +5,8 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Province;
+use App\Models\Regency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,6 +43,8 @@ class ContactController extends Controller
         return view('v2.contacts.form', [
             'contact' => new Contact(['type' => 'customer', 'is_active' => true]),
             'typeLabels' => self::TYPE_LABELS,
+            'provinces' => $this->provinces(),
+            'regencies' => $this->regencies(),
         ]);
     }
 
@@ -56,6 +60,8 @@ class ContactController extends Controller
         return view('v2.contacts.form', [
             'contact' => $contact,
             'typeLabels' => self::TYPE_LABELS,
+            'provinces' => $this->provinces(),
+            'regencies' => $this->regencies(),
         ]);
     }
 
@@ -86,8 +92,23 @@ class ContactController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'tax_number' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],
+            'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
+            'regency_id' => ['nullable', 'integer', 'exists:regencies,id'],
+            'district_id' => ['nullable', 'integer', 'exists:districts,id'],
             'is_active' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+    }
+
+    private function provinces()
+    {
+        return Province::query()->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function regencies()
+    {
+        return Regency::query()->orderBy('name')->get(['id', 'province_id', 'name'])
+            ->map(fn (Regency $r) => ['id' => $r->id, 'province_id' => $r->province_id, 'name' => $r->name])
+            ->values();
     }
 }

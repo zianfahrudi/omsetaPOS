@@ -10,7 +10,23 @@
 @endphp
 
 @section('content')
-    <form method="POST" action="{{ $action }}" class="max-w-2xl">
+    <form method="POST" action="{{ $action }}" class="max-w-2xl"
+          x-data="{
+              regencies: @js($regencies),
+              districts: [],
+              province: '{{ $val('province_id') }}',
+              regency: '{{ $val('regency_id') }}',
+              district: '{{ $val('district_id') }}',
+              get filteredRegencies() { return this.regencies.filter(r => String(r.province_id) === String(this.province)); },
+              loadDistricts(keep = false) {
+                  if (! keep) { this.district = ''; }
+                  this.districts = [];
+                  if (! this.regency) { return; }
+                  fetch('{{ route('v2.regions.districts') }}?regency_id=' + this.regency)
+                      .then(r => r.json()).then(d => { this.districts = d; });
+              },
+              init() { if (this.regency) { this.loadDistricts(true); } }
+          }">
         @csrf
         @if ($contact->exists) @method('PUT') @endif
 
@@ -49,6 +65,35 @@
                 <div class="sm:col-span-2">
                     <label class="{{ $label }}">Alamat</label>
                     <textarea name="address" rows="2" class="{{ $input }}">{{ $val('address') }}</textarea>
+                </div>
+                <div>
+                    <label class="{{ $label }}">Provinsi</label>
+                    <select name="province_id" x-model="province" @change="regency = ''; loadDistricts()" class="{{ $input }}">
+                        <option value="">— Pilih provinsi —</option>
+                        @foreach ($provinces as $p)
+                            <option value="{{ $p->id }}">{{ $p->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="{{ $label }}">Kabupaten/Kota</label>
+                    <select x-model="regency" @change="loadDistricts()" class="{{ $input }}" :class="{ 'opacity-60': !province }">
+                        <option value="">— Pilih kabupaten/kota —</option>
+                        <template x-for="r in filteredRegencies" :key="r.id">
+                            <option :value="r.id" x-text="r.name"></option>
+                        </template>
+                    </select>
+                    <input type="hidden" name="regency_id" :value="regency">
+                </div>
+                <div>
+                    <label class="{{ $label }}">Kecamatan</label>
+                    <select x-model="district" class="{{ $input }}" :class="{ 'opacity-60': !regency }">
+                        <option value="">— Pilih kecamatan —</option>
+                        <template x-for="d in districts" :key="d.id">
+                            <option :value="d.id" x-text="d.name"></option>
+                        </template>
+                    </select>
+                    <input type="hidden" name="district_id" :value="district">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="{{ $label }}">Catatan</label>

@@ -155,8 +155,15 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::post('pos/sesi-kasir/buka', [\App\Http\Controllers\V2\PosController::class, 'sessionOpen'])->name('pos.sessions.open');
         Route::post('pos/sesi-kasir/{session}/tutup', [\App\Http\Controllers\V2\PosController::class, 'sessionClose'])->name('pos.sessions.close');
 
-        // Kontak (Data Master)
-        Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');
+        // Outlet (Store)
+        Route::get('outlet', [\App\Http\Controllers\V2\StoreController::class, 'index'])->name('stores.index');
+        Route::get('outlet/baru', [\App\Http\Controllers\V2\StoreController::class, 'create'])->name('stores.create');
+        Route::post('outlet', [\App\Http\Controllers\V2\StoreController::class, 'store'])->name('stores.store');
+        Route::get('outlet/{store}/edit', [\App\Http\Controllers\V2\StoreController::class, 'edit'])->name('stores.edit');
+        Route::put('outlet/{store}', [\App\Http\Controllers\V2\StoreController::class, 'update'])->name('stores.update');
+        Route::delete('outlet/{store}', [\App\Http\Controllers\V2\StoreController::class, 'destroy'])->name('stores.destroy');
+
+        // Kontak (Data Master)        Route::get('kontak', [\App\Http\Controllers\V2\ContactController::class, 'index'])->name('contacts');
         Route::get('kontak/baru', [\App\Http\Controllers\V2\ContactController::class, 'create'])->name('contacts.create');
         Route::post('kontak', [\App\Http\Controllers\V2\ContactController::class, 'store'])->name('contacts.store');
         Route::get('kontak/{contact}/edit', [\App\Http\Controllers\V2\ContactController::class, 'edit'])->name('contacts.edit');

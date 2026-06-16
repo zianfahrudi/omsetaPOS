@@ -35,10 +35,12 @@
                 <div>
                     <label class="{{ $label }}">Telepon</label>
                     <input type="text" name="phone" value="{{ $val('phone') }}" class="{{ $input }}">
+                    <p class="mt-1 text-xs text-slate-400">Lengkapi nomor telepon agar mudah dihubungi untuk tindak lanjut transaksi.</p>
                 </div>
                 <div>
                     <label class="{{ $label }}">Email</label>
                     <input type="email" name="email" value="{{ $val('email') }}" class="{{ $input }}">
+                    <p class="mt-1 text-xs text-slate-400">Lengkapi alamat email agar mudah dihubungi untuk tindak lanjut transaksi.</p>
                 </div>
                 <div>
                     <label class="{{ $label }}">NPWP</label>

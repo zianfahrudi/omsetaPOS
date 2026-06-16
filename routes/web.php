@@ -216,6 +216,11 @@ Route::prefix('app')->name('v2.')->group(function () {
             Route::delete("{$slug}/{id}", [$controller, 'destroy'])->name("{$name}.destroy");
         }
 
+        // Proyek: detail + rincian biaya
+        Route::get('proyek/{id}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'show'])->name('projects.show');
+        Route::post('proyek/{id}/biaya', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeCost'])->name('projects.costs.store');
+        Route::delete('proyek/{id}/biaya/{cost}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyCost'])->name('projects.costs.destroy');
+
         Route::get('segera', [\App\Http\Controllers\V2\PageController::class, 'soon'])->name('soon');
     });
 });

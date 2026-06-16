@@ -36,6 +36,14 @@
                     <input type="number" step="0.01" min="0" name="budget" value="{{ old('budget', $record->budget) }}" class="{{ $input }}">
                 </div>
                 <div>
+                    <label class="{{ $lbl }}">Nilai Kontrak / Tagihan</label>
+                    <input type="number" step="0.01" min="0" name="contract_value" value="{{ old('contract_value', $record->contract_value) }}" class="{{ $input }}">
+                </div>
+                <div>
+                    <label class="{{ $lbl }}">Jumlah DP (Down Payment)</label>
+                    <input type="number" step="0.01" min="0" name="down_payment" value="{{ old('down_payment', $record->down_payment) }}" class="{{ $input }}">
+                </div>
+                <div>
                     <label class="{{ $lbl }}">Status</label>
                     <select name="status" class="{{ $input }}" required>
                         @foreach ($statusLabels as $key => $text)

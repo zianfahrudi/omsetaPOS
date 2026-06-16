@@ -13,7 +13,7 @@ class ContactController extends Controller
 {
     public const TYPE_LABELS = [
         'customer' => 'Pelanggan',
-        'supplier' => 'Pemasok',
+        'supplier' => 'Supplier',
         'other' => 'Lainnya',
     ];
 

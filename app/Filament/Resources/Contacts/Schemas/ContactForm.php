@@ -39,11 +39,13 @@ class ContactForm
                 TextInput::make('phone')
                     ->label('Telepon')
                     ->tel()
-                    ->maxLength(40),
+                    ->maxLength(40)
+                    ->helperText('Lengkapi nomor telepon agar mudah dihubungi untuk tindak lanjut transaksi.'),
                 TextInput::make('email')
                     ->label('Email')
                     ->email()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->helperText('Lengkapi alamat email agar mudah dihubungi untuk tindak lanjut transaksi.'),
                 TextInput::make('tax_number')
                     ->label('NPWP')
                     ->maxLength(50),

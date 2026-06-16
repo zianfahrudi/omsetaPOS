@@ -44,6 +44,14 @@ class PosController extends Controller
         return view('v2.pos.transaction-show', compact('sale'));
     }
 
+    public function receipt(Sale $sale): View
+    {
+        abort_unless(Auth::user()->accessibleStores()->pluck('id')->contains($sale->store_id), 403);
+        $sale->load(['items', 'store.company', 'cashier']);
+
+        return view('v2.pos.receipt', compact('sale'));
+    }
+
     public function void(Sale $sale, SaleVoidService $service): RedirectResponse
     {
         abort_unless(Auth::user()->accessibleStores()->pluck('id')->contains($sale->store_id), 403);

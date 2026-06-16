@@ -147,6 +147,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         // Point of Sale
         Route::get('pos/transaksi', [\App\Http\Controllers\V2\PosController::class, 'transactions'])->name('pos.transactions');
         Route::get('pos/transaksi/{sale}', [\App\Http\Controllers\V2\PosController::class, 'transactionShow'])->name('pos.transactions.show');
+        Route::get('pos/transaksi/{sale}/struk', [\App\Http\Controllers\V2\PosController::class, 'receipt'])->name('pos.transactions.receipt');
         Route::post('pos/transaksi/{sale}/void', [\App\Http\Controllers\V2\PosController::class, 'void'])->name('pos.transactions.void');
         Route::get('pos/sesi-kasir', [\App\Http\Controllers\V2\PosController::class, 'sessions'])->name('pos.sessions');
         Route::post('pos/sesi-kasir/buka', [\App\Http\Controllers\V2\PosController::class, 'sessionOpen'])->name('pos.sessions.open');

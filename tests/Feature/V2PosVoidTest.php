@@ -59,4 +59,14 @@ class V2PosVoidTest extends TestCase
         $this->actingAs($cashier)->post(route('v2.pos.transactions.void', $sale))->assertForbidden();
         $this->assertNotEquals('void', $sale->fresh()->status);
     }
+
+    public function test_receipt_renders(): void
+    {
+        $this->seed();
+        [$admin, , $sale] = $this->makeSale();
+
+        $this->actingAs($admin)->get(route('v2.pos.transactions.receipt', $sale))
+            ->assertOk()
+            ->assertSee($sale->number);
+    }
 }

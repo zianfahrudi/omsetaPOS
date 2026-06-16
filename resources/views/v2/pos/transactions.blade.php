@@ -33,6 +33,7 @@
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="px-4 py-3">
                                 <a href="{{ route('v2.pos.transactions.show', $sale) }}" class="font-medium text-indigo-600 hover:underline">{{ $sale->number }}</a>
+                                <a href="{{ route('v2.pos.transactions.receipt', $sale) }}" target="_blank" class="ml-2 text-xs text-slate-400 hover:text-indigo-600">struk</a>
                             </td>
                             <td class="px-4 py-3 text-slate-500">{{ $sale->created_at->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-slate-500">{{ $sale->cashier?->name }}</td>

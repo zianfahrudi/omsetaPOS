@@ -7,6 +7,10 @@
 @section('content')
     <a href="{{ route('v2.pos.transactions') }}" class="mb-4 inline-block text-sm font-medium text-indigo-600 hover:underline">← Kembali ke Riwayat</a>
 
+    <div class="mb-4 flex flex-wrap gap-2">
+        <a href="{{ route('v2.pos.transactions.receipt', $sale) }}" target="_blank" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Cetak Ulang Struk</a>
+    </div>
+
     @if ($sale->status !== 'void' && in_array(auth()->user()->role, ['admin', 'superuser'], true))
         <form method="POST" action="{{ route('v2.pos.transactions.void', $sale) }}" class="mb-4" onsubmit="return confirm('Batalkan (void) transaksi ini? Stok dikembalikan & jurnal dibalik.')">
             @csrf

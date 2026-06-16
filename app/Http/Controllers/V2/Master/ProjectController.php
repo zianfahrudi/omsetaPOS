@@ -7,6 +7,9 @@ use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCost;
+use App\Models\Province;
+use App\Models\Regency;
+use App\Models\Unit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,12 +24,16 @@ class ProjectController extends SimpleCrudController
 
     protected string $viewForm = 'v2.master.projects.form';
 
+    protected string $viewIndex = 'v2.master.projects.index';
+
     protected string $label = 'Proyek';
 
     public const STATUS_LABELS = [
         'planned' => 'Direncanakan',
+        'approved' => 'Penawaran Disetujui',
         'active' => 'Berjalan',
         'completed' => 'Selesai',
+        'paid' => 'Lunas',
         'on_hold' => 'Ditunda',
         'cancelled' => 'Batal',
     ];
@@ -37,12 +44,16 @@ class ProjectController extends SimpleCrudController
         'operasional' => 'Operasional',
     ];
 
+    public function index(Request $request): View
+    {
+        return parent::index($request)->with('statusLabels', self::STATUS_LABELS);
+    }
+
     protected function indexColumns(): array
     {
         return [
             'Nama' => fn (Model $m) => '<a href="'.route('v2.projects.show', $m->id).'" class="font-medium text-indigo-600 hover:underline">'.e($m->name).'</a>'.($m->code ? '<span class="ml-1 text-xs text-slate-400">'.e($m->code).'</span>' : ''),
-            'Status' => fn (Model $m) => e(self::STATUS_LABELS[$m->status] ?? $m->status),
-            'Nilai Kontrak' => fn (Model $m) => 'Rp '.number_format((float) $m->contract_value, 0, ',', '.'),
+            'Nilai Kontrak' => fn (Model $m) => 'Rp '.number_format($m->effectiveContractValue(), 0, ',', '.'),
             'Sisa Tagihan' => fn (Model $m) => 'Rp '.number_format($m->remainingBill(), 0, ',', '.'),
         ];
     }
@@ -51,7 +62,10 @@ class ProjectController extends SimpleCrudController
     {
         return [
             'name' => ['required', 'string', 'max:150'],
-            'location' => ['nullable', 'string', 'max:255'],
+            'location' => ['nullable', 'string', 'max:500'],
+            'province_id' => ['nullable', 'integer', 'exists:provinces,id'],
+            'regency_id' => ['nullable', 'integer', 'exists:regencies,id'],
+            'district_id' => ['nullable', 'integer', 'exists:districts,id'],
             'code' => ['nullable', 'string', 'max:30'],
             'contact_id' => ['nullable', 'integer'],
             'budget' => ['nullable', 'numeric', 'min:0'],
@@ -61,21 +75,32 @@ class ProjectController extends SimpleCrudController
             'down_payment' => ['nullable', 'numeric', 'min:0'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', 'in:planned,active,completed,on_hold,cancelled'],
+            'status' => ['nullable', 'in:planned,approved,active,completed,paid,on_hold,cancelled'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
 
     protected function defaults(): array
     {
+        return ['is_active' => true, 'status' => 'planned'];
+    }
+
+    /**
+     * Proyek baru mewarisi default overhead & profit dari pengaturan perusahaan.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate($this->rules($request, new Project));
         $company = Company::query()->first();
 
-        return [
-            'is_active' => true,
-            'status' => 'active',
-            'overhead_percent' => (float) ($company->default_overhead_percent ?? 0),
-            'profit_percent' => (float) ($company->default_profit_percent ?? 0),
-        ];
+        $data['company_id'] = $company?->id;
+        $data['status'] = 'planned';
+        $data['overhead_percent'] = (float) ($company->default_overhead_percent ?? 0);
+        $data['profit_percent'] = (float) ($company->default_profit_percent ?? 0);
+
+        Project::create($data);
+
+        return redirect()->route('v2.projects.index')->with('status', 'Proyek berhasil ditambahkan.');
     }
 
     protected function formData(): array
@@ -87,6 +112,10 @@ class ProjectController extends SimpleCrudController
                 ->where('type', 'customer')
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'provinces' => Province::query()->orderBy('name')->get(['id', 'name']),
+            'regencies' => Regency::query()->orderBy('name')->get(['id', 'province_id', 'name'])
+                ->map(fn (Regency $r) => ['id' => $r->id, 'province_id' => $r->province_id, 'name' => $r->name])
+                ->values(),
         ];
     }
 
@@ -95,7 +124,7 @@ class ProjectController extends SimpleCrudController
     public function show(int $id): View
     {
         $project = $this->find($id);
-        $project->load(['customer', 'costs.product']);
+        $project->load(['customer', 'province', 'regency', 'district', 'costs.product']);
 
         $storeIds = Auth::user()->accessibleStores()->pluck('id');
         $products = Product::query()
@@ -109,8 +138,61 @@ class ProjectController extends SimpleCrudController
         return view('v2.master.projects.show', [
             'project' => $project,
             'products' => $products,
+            'units' => Unit::query()
+                ->where('company_id', $this->companyId())
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->pluck('name'),
             'costLabels' => self::COST_LABELS,
             'statusLabels' => self::STATUS_LABELS,
+        ]);
+    }
+
+    // ---- Preview & Export (Cetak / Excel / Word) ----
+
+    public function print(int $id): View
+    {
+        return view('v2.master.projects.print', $this->documentData($id));
+    }
+
+    public function exportExcel(int $id): \Symfony\Component\HttpFoundation\Response
+    {
+        return $this->downloadDocument($id, 'xls', 'application/vnd.ms-excel');
+    }
+
+    public function exportWord(int $id): \Symfony\Component\HttpFoundation\Response
+    {
+        return $this->downloadDocument($id, 'doc', 'application/msword');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function documentData(int $id): array
+    {
+        $project = $this->find($id);
+        $project->load(['customer', 'province', 'regency', 'district', 'costs.product']);
+
+        return [
+            'project' => $project,
+            'company' => Company::query()->first(),
+            'costLabels' => self::COST_LABELS,
+            'statusLabels' => self::STATUS_LABELS,
+        ];
+    }
+
+    private function downloadDocument(int $id, string $ext, string $mime): \Symfony\Component\HttpFoundation\Response
+    {
+        $data = $this->documentData($id);
+        $body = view('v2.master.projects.document-body', $data)->render();
+        $name = 'Penawaran-'.str($data['project']->name)->slug().'.'.$ext;
+
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
+            .'<head><meta charset="utf-8"></head><body>'.$body.'</body></html>';
+
+        return response($html, 200, [
+            'Content-Type' => $mime.'; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$name.'"',
         ]);
     }
 
@@ -171,5 +253,71 @@ class ProjectController extends SimpleCrudController
         ]);
 
         return redirect()->route('v2.projects.show', $project->id)->with('status', 'Persentase overhead & profit diperbarui.');
+    }
+
+    /**
+     * Setujui penawaran: status berubah ke "Penawaran Disetujui" sehingga DP bisa dicatat.
+     */
+    public function approve(int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+        $project->load('costs');
+
+        if ($project->totalPenawaran() <= 0) {
+            return redirect()->route('v2.projects.show', $project->id)->with('status', 'Belum ada penawaran untuk disetujui.');
+        }
+
+        $project->update(['status' => 'approved']);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Penawaran disetujui. DP sudah bisa dicatat.');
+    }
+
+    /**
+     * Ubah status proyek secara manual.
+     */
+    public function updateStatus(Request $request, int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+
+        $data = $request->validate([
+            'status' => ['required', 'in:planned,approved,active,completed,paid,on_hold,cancelled'],
+        ]);
+
+        $project->update(['status' => $data['status']]);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Status proyek diperbarui.');
+    }
+
+    /**
+     * Catat DP setelah penawaran disepakati. Nilai kontrak dikunci ke total penawaran.
+     */
+    public function updateDownPayment(Request $request, int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+        $project->load('costs');
+
+        $data = $request->validate([
+            'down_payment' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $total = $project->totalPenawaran();
+        $dp = min((float) $data['down_payment'], $total);
+
+        $attributes = [
+            'contract_value' => $total,
+            'down_payment' => $dp,
+        ];
+
+        // DP melunasi seluruh nilai → status otomatis "Lunas".
+        if ($total > 0 && $dp >= $total) {
+            $attributes['status'] = 'paid';
+        } elseif ($project->status === 'approved') {
+            // Penawaran disetujui & DP diterima → proyek berjalan.
+            $attributes['status'] = 'active';
+        }
+
+        $project->update($attributes);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'DP dicatat. Nilai kontrak dikunci ke total penawaran.');
     }
 }

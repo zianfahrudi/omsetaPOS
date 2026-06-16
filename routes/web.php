@@ -220,9 +220,15 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         // Proyek: detail + rincian biaya
         Route::get('proyek/{id}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'show'])->name('projects.show');
+        Route::get('proyek/{id}/cetak', [\App\Http\Controllers\V2\Master\ProjectController::class, 'print'])->name('projects.print');
+        Route::get('proyek/{id}/export/excel', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportExcel'])->name('projects.export.excel');
+        Route::get('proyek/{id}/export/word', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportWord'])->name('projects.export.word');
         Route::post('proyek/{id}/biaya', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeCost'])->name('projects.costs.store');
         Route::delete('proyek/{id}/biaya/{cost}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyCost'])->name('projects.costs.destroy');
         Route::post('proyek/{id}/penawaran', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updatePenawaran'])->name('projects.penawaran.update');
+        Route::post('proyek/{id}/setujui', [\App\Http\Controllers\V2\Master\ProjectController::class, 'approve'])->name('projects.approve');
+        Route::post('proyek/{id}/status', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updateStatus'])->name('projects.status.update');
+        Route::post('proyek/{id}/dp', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updateDownPayment'])->name('projects.dp.update');
 
         // Pengaturan default penawaran proyek (overhead & profit global)
         Route::get('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'edit'])->name('settings.project');

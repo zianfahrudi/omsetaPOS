@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'contact_id',
     'name',
     'location',
+    'province_id',
+    'regency_id',
+    'district_id',
     'code',
     'budget',
     'contract_value',
@@ -46,6 +49,21 @@ class Project extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'contact_id');
+    }
+
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Province::class);
+    }
+
+    public function regency(): BelongsTo
+    {
+        return $this->belongsTo(Regency::class);
+    }
+
+    public function district(): BelongsTo
+    {
+        return $this->belongsTo(District::class);
     }
 
     public function costs(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -89,9 +107,21 @@ class Project extends Model
         return round($this->penawaranSubtotal() + $this->overheadAmount() + $this->profitAmount(), 2);
     }
 
+    /**
+     * Nilai kontrak efektif: pakai nilai kontrak bila diisi, jika tidak pakai total penawaran.
+     */
+    public function effectiveContractValue(): float
+    {
+        return (float) $this->contract_value > 0 ? (float) $this->contract_value : $this->totalPenawaran();
+    }
+
     public function remainingBill(): float
     {
-        return round((float) $this->contract_value - (float) $this->down_payment, 2);
+        if ($this->status === 'paid') {
+            return 0.0;
+        }
+
+        return round($this->effectiveContractValue() - (float) $this->down_payment, 2);
     }
 
     public function tentativeProfit(): float

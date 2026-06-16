@@ -16,3 +16,25 @@
     height: 2.5rem;
     line-height: 1.25rem;
 }
+
+/* Admin v2: cetak laporan — sembunyikan navigasi & elemen non-cetak. */
+@media print {
+    .v2-app aside,
+    .v2-app > div > div > header,
+    .no-print {
+        display: none !important;
+    }
+
+    .v2-app .v2-main {
+        padding-left: 0 !important;
+    }
+
+    .v2-app main {
+        padding: 0 !important;
+    }
+
+    .v2-app,
+    html.h-full {
+        background: #fff !important;
+    }
+}

@@ -26,7 +26,7 @@
     <div x-show="sidebar" x-cloak @click="sidebar = false" class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"></div>
 
     {{-- Main --}}
-    <div class="lg:pl-64">
+    <div class="v2-main lg:pl-64">
         <header class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6">
             <button @click="sidebar = !sidebar" class="lg:hidden rounded-lg p-2 hover:bg-slate-100" aria-label="Menu">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>

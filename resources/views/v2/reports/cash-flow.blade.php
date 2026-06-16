@@ -5,7 +5,11 @@
 @php($rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.'))
 
 @section('content')
-    @include('v2.reports._period')
+    <h1 class="mb-4 hidden text-xl font-bold text-slate-900 print:block">Laporan Arus Kas {{ \Illuminate\Support\Carbon::parse($from)->format('d/m/Y') }} – {{ \Illuminate\Support\Carbon::parse($to)->format('d/m/Y') }}</h1>
+    <div class="no-print flex flex-wrap items-end gap-2">
+        @include('v2.reports._period')
+        <x-v2.print-button />
+    </div>
 
     @if (! $report)
         <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">Perusahaan belum dikonfigurasi.</div>

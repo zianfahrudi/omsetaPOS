@@ -43,8 +43,7 @@ class PayrollDashboardController extends Controller
 
         $totalLoan = (float) EmployeeLoan::query()
             ->whereIn('employee_id', $employeeIds)
-            ->where('status', 'pending')
-            ->sum('amount');
+            ->sum('outstanding');
 
         $recentPayrolls = Payroll::with('employee')
             ->where('company_id', $companyId)

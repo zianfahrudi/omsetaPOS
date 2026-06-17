@@ -251,8 +251,15 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::post('karyawan/{employee}/kasbon', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeLoan'])->name('employees.loan.store');
         Route::post('karyawan/{employee}/kasbon/{loan}/status', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'updateLoan'])->name('employees.loan.update');
         Route::delete('karyawan/{employee}/kasbon/{loan}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyLoan'])->name('employees.loan.destroy');
-        Route::post('karyawan/{employee}/arisan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'saveArisan'])->name('employees.arisan.save');
+        Route::post('karyawan/{employee}/kasbon/{loan}/cicilan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeRepayment'])->name('employees.loan.repayment.store');
+        Route::delete('karyawan/{employee}/kasbon/{loan}/cicilan/{repayment}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyRepayment'])->name('employees.loan.repayment.destroy');
+        Route::post('karyawan/{employee}/potongan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeDeduction'])->name('employees.deduction.store');
+        Route::delete('karyawan/{employee}/potongan/{deduction}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyDeduction'])->name('employees.deduction.destroy');
+        Route::post('karyawan/{employee}/borongan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeWorkItem'])->name('employees.workitem.store');
+        Route::delete('karyawan/{employee}/borongan/{workItem}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyWorkItem'])->name('employees.workitem.destroy');
         Route::post('karyawan/{employee}/tabungan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'saveSaving'])->name('employees.saving.save');
+        Route::post('karyawan/{employee}/tabungan/transaksi', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeSavingEntry'])->name('employees.saving.entry.store');
+        Route::delete('karyawan/{employee}/tabungan/transaksi/{entry}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroySavingEntry'])->name('employees.saving.entry.destroy');
 
         // Shift
         Route::get('shift', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'index'])->name('shifts.index');
@@ -269,6 +276,8 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         // Absensi
         Route::get('absensi', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'index'])->name('attendances.index');
+        Route::get('absensi/mingguan', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'weekly'])->name('attendances.weekly');
+        Route::post('absensi/mingguan', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'weeklySave'])->name('attendances.weekly.save');
         Route::post('absensi', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'store'])->name('attendances.store');
         Route::post('absensi/dari-jadwal', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'generateFromSchedule'])->name('attendances.from-schedule');
         Route::post('absensi/{attendance}/checkin', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'checkIn'])->name('attendances.checkin');
@@ -284,6 +293,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'show'])->name('payrolls.show');
         Route::post('payroll/{payroll}/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'approve'])->name('payrolls.approve');
         Route::post('payroll/{payroll}/paid', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'markPaid'])->name('payrolls.paid');
+        Route::post('payroll/{payroll}/sisa-gaji', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'updateCarryOver'])->name('payrolls.carryover');
         Route::delete('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'destroy'])->name('payrolls.destroy');
 
         // Rekap bulanan: gaji & bon (kasbon) dipisah

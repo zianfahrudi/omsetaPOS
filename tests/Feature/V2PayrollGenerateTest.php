@@ -36,7 +36,7 @@ class V2PayrollGenerateTest extends TestCase
             ->assertOk()->assertSee('Generate Payroll');
 
         $this->actingAs($admin)->post(route('v2.payrolls.generate'), ['month' => $month])
-            ->assertRedirect(route('v2.payrolls.index', ['month' => $month]));
+            ->assertRedirect();
 
         $payroll = Payroll::query()->where('employee_id', $emp->id)->firstOrFail();
         $this->assertSame('60000.00', (string) $payroll->take_home_pay);

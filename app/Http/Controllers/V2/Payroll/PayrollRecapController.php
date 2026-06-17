@@ -79,8 +79,11 @@ class PayrollRecapController extends Controller
             'total_hours' => (float) $payrolls->sum('total_hours'),
             'gross_salary' => (float) $payrolls->sum('gross_salary'),
             'total_bonus' => (float) $payrolls->sum('total_bonus'),
+            'total_loan' => (float) $payrolls->sum('total_loan'),
+            'total_deduction' => (float) $payrolls->sum('total_deduction'),
             'total_arisan' => (float) $payrolls->sum('total_arisan'),
             'total_savings' => (float) $payrolls->sum('total_savings'),
+            'carry_over' => (float) $payrolls->sum('carry_over'),
             'take_home_pay' => (float) $payrolls->sum('take_home_pay'),
         ];
 
@@ -113,9 +116,8 @@ class PayrollRecapController extends Controller
 
         $totals = [
             'amount' => (float) $loans->sum('amount'),
-            'pending' => (float) $loans->where('status', 'pending')->sum('amount'),
-            'deducted' => (float) $loans->where('status', 'deducted')->sum('amount'),
-            'paid' => (float) $loans->where('status', 'paid')->sum('amount'),
+            'repaid' => (float) $loans->sum(fn (EmployeeLoan $l) => (float) $l->amount - (float) $l->outstanding),
+            'outstanding' => (float) $loans->sum('outstanding'),
         ];
 
         return array_merge($period, [

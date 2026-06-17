@@ -15,8 +15,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'gross_salary',
     'total_bonus',
     'total_loan',
+    'total_deduction',
     'total_arisan',
     'total_savings',
+    'carry_over',
     'take_home_pay',
     'status',
 ])]
@@ -33,8 +35,10 @@ class Payroll extends Model
             'gross_salary' => 'decimal:2',
             'total_bonus' => 'decimal:2',
             'total_loan' => 'decimal:2',
+            'total_deduction' => 'decimal:2',
             'total_arisan' => 'decimal:2',
             'total_savings' => 'decimal:2',
+            'carry_over' => 'decimal:2',
             'take_home_pay' => 'decimal:2',
         ];
     }

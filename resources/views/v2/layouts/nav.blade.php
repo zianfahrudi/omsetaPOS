@@ -95,6 +95,7 @@
                 ['v2.shifts.index', 'Master Shift'],
                 ['v2.schedules.index', 'Jadwal Shift'],
                 ['v2.attendances.index', 'Absensi'],
+                ['v2.attendances.weekly', 'Absensi Mingguan'],
                 ['v2.payrolls.index', 'Generate Payroll'],
                 ['v2.payrolls.recap.salary', 'Rekap Gaji'],
                 ['v2.payrolls.recap.loan', 'Rekap Bon'],

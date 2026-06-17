@@ -32,6 +32,7 @@
                 <span class="hidden text-sm text-slate-500 sm:block">{{ $fmtDate }}</span>
             </form>
             <div class="flex items-center gap-2">
+                <a href="{{ route('v2.attendances.weekly', ['week_start' => $date]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Mode Mingguan</a>
                 <form method="POST" action="{{ route('v2.attendances.from-schedule') }}">
                     @csrf <input type="hidden" name="work_date" value="{{ $date }}">
                     <button class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
@@ -93,10 +94,10 @@
                                 <td class="px-4 py-3 font-medium text-slate-800">{{ $a->employee?->name }}</td>
                                 <td class="px-4 py-3 text-slate-500">{{ $a->shift?->name ?? '—' }}</td>
                                 <td class="px-4 py-3">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <span class="text-slate-600">{{ $a->check_in?->format('H:i') ?? '—' }}</span>
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <input type="time" name="check_in" form="att-{{ $a->id }}" value="{{ $a->check_in?->format('H:i') }}" class="w-24 rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                         <span class="text-slate-300">→</span>
-                                        <span class="text-slate-600">{{ $a->check_out?->format('H:i') ?? '—' }}</span>
+                                        <input type="time" name="check_out" form="att-{{ $a->id }}" value="{{ $a->check_out?->format('H:i') }}" class="w-24 rounded-md border border-slate-200 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                         @if (!$a->check_in)
                                             <form method="POST" action="{{ route('v2.attendances.checkin', $a) }}">@csrf<button class="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">In</button></form>
                                         @elseif (!$a->check_out)
@@ -130,6 +131,6 @@
                 </table>
             </div>
         </div>
-        <p class="mt-3 text-xs text-slate-400">Ubah <strong>Jam Dibayar</strong> & <strong>Status</strong> langsung di baris, lalu klik Simpan. Jam dibayar inilah yang dipakai saat generate payroll.</p>
+        <p class="mt-3 text-xs text-slate-400">Ubah <strong>Jam Check In/Out</strong>, <strong>Jam Dibayar</strong> & <strong>Status</strong> langsung di baris, lalu klik Simpan. Jam dibayar inilah yang dipakai saat generate payroll.</p>
     </div>
 @endsection

@@ -5,28 +5,33 @@ namespace App\Services;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\EmployeeBonus;
-use App\Models\EmployeeLoan;
+use App\Models\EmployeeDeduction;
+use App\Models\EmployeeLoanRepayment;
+use App\Models\EmployeeSavingEntry;
+use App\Models\EmployeeWorkItem;
 use App\Models\Payroll;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Perhitungan payroll per periode.
  *
- * Formula (PRD Modul 11):
- *   Take Home Pay = Gaji Kotor + Bonus − Kasbon − Arisan − Tabungan
+ * Formula:
+ *   Take Home Pay = Gaji Kotor + Bonus + Sisa Gaji Kemarin
+ *                   − Kasbon − Potongan − Tabungan
  *
- * Prinsip "seluruh transaksi DALAM periode": bonus & kasbon yang dihitung
- * adalah yang tanggalnya berada di rentang periode (bukan seluruh histori).
- * Kasbon yang belum lunas (pending) di periode itu yang dipotong.
+ * Prinsip "seluruh transaksi DALAM periode": bonus, kasbon & potongan yang
+ * dihitung adalah yang tanggalnya berada di rentang periode (bukan seluruh
+ * histori). Kasbon yang belum lunas (pending) di periode itu yang dipotong.
  */
 class PayrollService
 {
     /**
      * Hitung komponen payroll satu karyawan untuk satu periode.
      *
+     * @param  float  $carryOver  Sisa gaji kemarin / penyesuaian manual (+/-).
      * @return array<string, float>
      */
-    public function computeForEmployee(Employee $employee, string $start, string $end): array
+    public function computeForEmployee(Employee $employee, string $start, string $end, float $carryOver = 0.0): array
     {
         $attendances = Attendance::query()
             ->where('employee_id', $employee->id)
@@ -34,8 +39,18 @@ class PayrollService
             ->whereDate('work_date', '<=', $end)
             ->get();
 
-        $hours = round($attendances->sum(fn (Attendance $a) => $a->payableHours()), 2);
-        $gross = round($hours * (float) $employee->hourly_rate, 2);
+        if ($employee->earning_type === 'piecework') {
+            // Borongan/proyek: gaji = total item pekerjaan dalam periode, tanpa jam.
+            $hours = 0.0;
+            $gross = round((float) EmployeeWorkItem::query()
+                ->where('employee_id', $employee->id)
+                ->whereDate('date', '>=', $start)
+                ->whereDate('date', '<=', $end)
+                ->sum('amount'), 2);
+        } else {
+            $hours = round($attendances->sum(fn (Attendance $a) => $a->payableHours()), 2);
+            $gross = round($attendances->sum(fn (Attendance $a) => $a->payableAmount((float) $employee->hourly_rate)), 2);
+        }
 
         $bonus = (float) EmployeeBonus::query()
             ->where('employee_id', $employee->id)
@@ -43,26 +58,36 @@ class PayrollService
             ->whereDate('date', '<=', $end)
             ->sum('amount');
 
-        // Kasbon belum lunas yang tanggalnya di dalam periode ini.
-        $loan = (float) EmployeeLoan::query()
+        // Kasbon: jumlah cicilan (repayment) yang tanggalnya di dalam periode ini.
+        $loan = (float) EmployeeLoanRepayment::query()
             ->where('employee_id', $employee->id)
-            ->where('status', 'pending')
             ->whereDate('date', '>=', $start)
             ->whereDate('date', '<=', $end)
             ->sum('amount');
 
-        $arisan = (float) $employee->arisan->where('active', true)->sum('amount');
+        // Potongan ad-hoc (POTONGAN) yang tanggalnya di dalam periode ini.
+        $deduction = (float) EmployeeDeduction::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('date', '>=', $start)
+            ->whereDate('date', '<=', $end)
+            ->sum('amount');
+
+        // Catatan: iuran ARISAN tidak lagi dipotong di payroll. Iuran arisan
+        // dikelola sepenuhnya oleh modul Arisan (kelompok/periode/iuran sendiri),
+        // sehingga rekap gaji tidak terkait dengan arisan.
         $savings = (float) $employee->savings->where('active', true)->sum('amount');
 
-        $thp = round($gross + $bonus - $loan - $arisan - $savings, 2);
+        $thp = round($gross + $bonus + $carryOver - $loan - $deduction - $savings, 2);
 
         return [
             'total_hours' => $hours,
             'gross_salary' => $gross,
             'total_bonus' => round($bonus, 2),
             'total_loan' => round($loan, 2),
-            'total_arisan' => round($arisan, 2),
+            'total_deduction' => round($deduction, 2),
+            'total_arisan' => 0.0,
             'total_savings' => round($savings, 2),
+            'carry_over' => round($carryOver, 2),
             'take_home_pay' => $thp,
         ];
     }
@@ -78,7 +103,7 @@ class PayrollService
         $employees = Employee::query()
             ->where('company_id', $companyId)
             ->where('is_active', true)
-            ->with(['arisan', 'savings'])
+            ->with(['savings'])
             ->get();
 
         $generated = 0;
@@ -99,7 +124,9 @@ class PayrollService
                     continue;
                 }
 
-                $components = $this->computeForEmployee($employee, $start, $end);
+                // Pertahankan sisa gaji kemarin (input manual) saat hitung ulang.
+                $carryOver = (float) ($existing->carry_over ?? 0);
+                $components = $this->computeForEmployee($employee, $start, $end, $carryOver);
 
                 if ($existing) {
                     $existing->update(array_merge($components, ['status' => 'draft']));
@@ -120,7 +147,8 @@ class PayrollService
     }
 
     /**
-     * Tandai payroll dibayar + kasbon dalam periode itu sebagai "deducted".
+     * Tandai payroll dibayar lalu catat setoran tabungan periode itu.
+     * (Cicilan kasbon sudah tercatat sebagai repayment, tidak diubah di sini.)
      */
     public function markPaid(Payroll $payroll): void
     {
@@ -131,12 +159,19 @@ class PayrollService
         DB::transaction(function () use ($payroll) {
             $payroll->update(['status' => 'paid']);
 
-            EmployeeLoan::query()
-                ->where('employee_id', $payroll->employee_id)
-                ->where('status', 'pending')
-                ->whereDate('date', '>=', $payroll->period_start)
-                ->whereDate('date', '<=', $payroll->period_end)
-                ->update(['status' => 'deducted']);
+            // Catat setoran tabungan ke buku tabungan (idempoten per payroll).
+            $savings = (float) $payroll->total_savings;
+            if ($savings > 0) {
+                EmployeeSavingEntry::query()->firstOrCreate(
+                    ['payroll_id' => $payroll->id, 'type' => 'deposit'],
+                    [
+                        'employee_id' => $payroll->employee_id,
+                        'date' => $payroll->period_end,
+                        'amount' => $savings,
+                        'note' => 'Setoran dari payroll '.$payroll->period_start->format('d/m/Y').'–'.$payroll->period_end->format('d/m/Y'),
+                    ],
+                );
+            }
         });
     }
 }

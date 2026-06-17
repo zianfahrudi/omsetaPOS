@@ -6,20 +6,60 @@
     $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.');
     $statusBadge = ['draft' => 'bg-slate-100 text-slate-600', 'approved' => 'bg-amber-50 text-amber-700', 'paid' => 'bg-emerald-50 text-emerald-700'];
     $statusLabel = ['draft' => 'Draft', 'approved' => 'Disetujui', 'paid' => 'Dibayar'];
-    $totalDeduction = $totals['total_loan'] + $totals['total_arisan'] + $totals['total_savings'];
+    $totalDeduction = $totals['total_loan'] + $totals['total_deduction'] + $totals['total_savings'];
+    $input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500';
+    // Field tersembunyi periode, diteruskan ke setiap aksi (generate/approve/bayar).
+    $periodFields = [
+        'period_type' => $period['period_type'],
+        'month' => $period['month'],
+        'week_start' => $period['week_start'],
+        'start' => $period['start'],
+        'end' => $period['end'],
+    ];
 @endphp
 
 @section('content')
     {{-- Toolbar: pilih periode + aksi --}}
     <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 lg:flex-row lg:items-end lg:justify-between">
-        <form method="GET" class="flex items-end gap-3">
-            <x-v2.month-picker name="month" :value="$month" />
+        <form method="GET" x-data="{ type: '{{ $period['period_type'] }}' }" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-500">Tipe Periode</label>
+                <select name="period_type" x-model="type" onchange="this.form.requestSubmit()" class="{{ $input }}">
+                    <option value="monthly">Bulanan</option>
+                    <option value="weekly">Mingguan</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+
+            {{-- Bulanan --}}
+            <div x-show="type === 'monthly'">
+                <x-v2.month-picker name="month" :value="$period['month']" label="Bulan" />
+            </div>
+
+            {{-- Mingguan: tanggal mulai, otomatis 7 hari --}}
+            <div x-show="type === 'weekly'" x-cloak>
+                <label class="mb-1 block text-xs font-medium text-slate-500">Mulai Minggu (7 hari)</label>
+                <input type="date" name="week_start" value="{{ $period['week_start'] }}" onchange="this.form.requestSubmit()" class="{{ $input }}">
+            </div>
+
+            {{-- Custom: rentang bebas --}}
+            <div x-show="type === 'custom'" x-cloak class="flex items-end gap-2">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Dari</label>
+                    <input type="date" name="start" value="{{ $period['start'] }}" class="{{ $input }}">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Sampai</label>
+                    <input type="date" name="end" value="{{ $period['end'] }}" class="{{ $input }}">
+                </div>
+                <button class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">Tampilkan</button>
+            </div>
         </form>
         <div class="flex flex-wrap items-center gap-2">
             <form method="POST" action="{{ route('v2.payrolls.generate') }}"
                   onsubmit="return confirm('Generate / hitung ulang payroll {{ $periodLabel }} untuk semua karyawan aktif? Payroll yang sudah dibayar tidak diubah.')">
                 @csrf
-                <input type="hidden" name="month" value="{{ $month }}">
+                @foreach ($periodFields as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
                 <button class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
                     {{ $payrolls->isEmpty() ? 'Generate Payroll' : 'Hitung Ulang' }}
@@ -27,14 +67,16 @@
             </form>
             @if ($draftCount > 0)
                 <form method="POST" action="{{ route('v2.payrolls.bulk.approve') }}">
-                    @csrf<input type="hidden" name="month" value="{{ $month }}">
+                    @csrf
+                    @foreach ($periodFields as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
                     <button class="rounded-lg bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100">Setujui Semua ({{ $draftCount }})</button>
                 </form>
             @endif
             @if ($approvedCount > 0)
                 <form method="POST" action="{{ route('v2.payrolls.bulk.pay') }}"
                       onsubmit="return confirm('Tandai {{ $approvedCount }} payroll sebagai DIBAYAR? Kasbon terkait akan ditandai terpotong.')">
-                    @csrf<input type="hidden" name="month" value="{{ $month }}">
+                    @csrf
+                    @foreach ($periodFields as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
                     <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Bayar Semua ({{ $approvedCount }})</button>
                 </form>
             @endif
@@ -56,7 +98,7 @@
         <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <p class="text-xs font-medium text-slate-500">Total Potongan</p>
             <p class="mt-1 text-xl font-bold text-rose-600">{{ $rp($totalDeduction) }}</p>
-            <p class="mt-0.5 text-xs text-slate-400">kasbon + arisan + tabungan</p>
+            <p class="mt-0.5 text-xs text-slate-400">kasbon + potongan + tabungan</p>
         </div>
         <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
             <p class="text-xs font-medium text-indigo-500">Total Take Home Pay</p>
@@ -92,11 +134,11 @@
                 </thead>
                 <tbody>
                     @forelse ($payrolls as $p)
-                        @php $deduction = (float) $p->total_loan + (float) $p->total_arisan + (float) $p->total_savings; @endphp
+                        @php $deduction = (float) $p->total_loan + (float) $p->total_deduction + (float) $p->total_savings; @endphp
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="px-4 py-3">
                                 <a href="{{ route('v2.payrolls.show', $p) }}" class="font-medium text-slate-800 hover:text-indigo-600">{{ $p->employee?->name }}</a>
-                                <span class="block text-xs text-slate-400">{{ $rp($p->employee?->hourly_rate) }}/jam</span>
+                                <span class="block text-xs text-slate-400">{{ $p->employee?->isPiecework() ? 'Borongan/Proyek' : $rp($p->employee?->hourly_rate).'/jam' }}</span>
                             </td>
                             <td class="px-4 py-3 text-right text-slate-600">{{ number_format($p->total_hours, 1) }}</td>
                             <td class="px-4 py-3 text-right text-slate-700">{{ $rp($p->gross_salary) }}</td>

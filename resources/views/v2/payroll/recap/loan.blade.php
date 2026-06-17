@@ -34,11 +34,10 @@
     <p class="mt-4 text-sm text-slate-500">Periode <strong class="text-slate-700">{{ $periodLabel }}</strong> — {{ $loans->count() }} transaksi bon</p>
 
     {{-- Ringkasan --}}
-    <div class="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div class="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Total Bon</p><p class="mt-1 text-lg font-bold text-slate-800">{{ $rp($totals['amount']) }}</p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Belum Dipotong</p><p class="mt-1 text-lg font-bold text-amber-600">{{ $rp($totals['pending']) }}</p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Dipotong Gaji</p><p class="mt-1 text-lg font-bold text-slate-700">{{ $rp($totals['deducted']) }}</p></div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Lunas</p><p class="mt-1 text-lg font-bold text-emerald-600">{{ $rp($totals['paid']) }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Sudah Dibayar</p><p class="mt-1 text-lg font-bold text-emerald-600">{{ $rp($totals['repaid']) }}</p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5"><p class="text-xs font-medium text-slate-500">Sisa Bon</p><p class="mt-1 text-lg font-bold text-rose-600">{{ $rp($totals['outstanding']) }}</p></div>
     </div>
 
     <div class="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -50,20 +49,25 @@
                         <th class="px-4 py-3 font-medium">Karyawan</th>
                         <th class="px-4 py-3 font-medium">Keterangan</th>
                         <th class="px-4 py-3 text-right font-medium">Nominal</th>
+                        <th class="px-4 py-3 text-right font-medium">Dibayar</th>
+                        <th class="px-4 py-3 text-right font-medium">Sisa</th>
                         <th class="px-4 py-3 text-center font-medium">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($loans as $l)
+                        @php $outstanding = (float) $l->outstanding; @endphp
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="px-4 py-3 text-slate-500">{{ optional($l->date)->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 font-medium text-slate-800">{{ $l->employee?->name ?? '—' }}<span class="ml-1 text-xs text-slate-400">{{ $l->employee?->code }}</span></td>
                             <td class="px-4 py-3 text-slate-600">{{ $l->description ?: '—' }}</td>
                             <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ $rp($l->amount) }}</td>
-                            <td class="px-4 py-3 text-center"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium {{ $statusBadge[$l->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $statusLabel[$l->status] ?? ucfirst($l->status) }}</span></td>
+                            <td class="px-4 py-3 text-right text-emerald-600">{{ $rp((float) $l->amount - $outstanding) }}</td>
+                            <td class="px-4 py-3 text-right font-semibold {{ $outstanding > 0 ? 'text-rose-600' : 'text-slate-400' }}">{{ $rp($outstanding) }}</td>
+                            <td class="px-4 py-3 text-center"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium {{ $outstanding > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700' }}">{{ $outstanding > 0 ? 'Belum Lunas' : 'Lunas' }}</span></td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">Tidak ada bon/kasbon untuk periode ini.</td></tr>
+                        <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">Tidak ada bon/kasbon untuk periode ini.</td></tr>
                     @endforelse
                 </tbody>
                 @if ($loans->isNotEmpty())
@@ -71,6 +75,8 @@
                         <tr class="border-t-2 border-slate-300 bg-slate-50 font-bold text-slate-800">
                             <td class="px-4 py-3" colspan="3">TOTAL</td>
                             <td class="px-4 py-3 text-right text-rose-700">{{ $rp($totals['amount']) }}</td>
+                            <td class="px-4 py-3 text-right text-emerald-700">{{ $rp($totals['repaid']) }}</td>
+                            <td class="px-4 py-3 text-right text-rose-700">{{ $rp($totals['outstanding']) }}</td>
                             <td></td>
                         </tr>
                     </tfoot>

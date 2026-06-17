@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'total_minutes',
     'total_hours',
     'paid_hours',
+    'hourly_rate',
     'status',
 ])]
 class Attendance extends Model
@@ -30,6 +31,7 @@ class Attendance extends Model
             'total_minutes' => 'integer',
             'total_hours' => 'decimal:2',
             'paid_hours' => 'decimal:2',
+            'hourly_rate' => 'decimal:2',
         ];
     }
 
@@ -49,6 +51,17 @@ class Attendance extends Model
     public function payableHours(): float
     {
         return (float) ($this->paid_hours ?? $this->total_hours);
+    }
+
+    /**
+     * Nominal gaji baris ini = jam dibayar × tarif snapshot.
+     * Pakai tarif snapshot bila ada, jika tidak fallback ke tarif karyawan saat ini.
+     */
+    public function payableAmount(float $fallbackRate = 0.0): float
+    {
+        $rate = $this->hourly_rate !== null ? (float) $this->hourly_rate : $fallbackRate;
+
+        return $this->payableHours() * $rate;
     }
 
     public function recalculate(): void

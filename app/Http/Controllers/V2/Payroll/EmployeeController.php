@@ -62,6 +62,10 @@ class EmployeeController extends Controller
         $employee->load([
             'bonuses' => fn ($q) => $q->latest('date'),
             'loans' => fn ($q) => $q->latest('date'),
+            'loans.repayments' => fn ($q) => $q->latest('date')->latest('id'),
+            'deductions' => fn ($q) => $q->latest('date'),
+            'workItems' => fn ($q) => $q->latest('date'),
+            'savingEntries' => fn ($q) => $q->latest('date')->latest('id'),
             'arisan',
             'savings',
             'attendances' => fn ($q) => $q->latest('work_date')->limit(30),
@@ -82,6 +86,7 @@ class EmployeeController extends Controller
             'phone' => ['nullable', 'string', 'max:40'],
             'position' => ['nullable', 'string', 'max:100'],
             'hourly_rate' => ['required', 'numeric', 'min:0'],
+            'earning_type' => ['required', 'in:'.implode(',', \App\Models\Employee::EARNING_TYPES)],
             'join_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
         ]);

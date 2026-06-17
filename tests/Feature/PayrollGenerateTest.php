@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeBonus;
 use App\Models\EmployeeLoan;
+use App\Models\EmployeeLoanRepayment;
 use App\Models\Payroll;
 use App\Services\PayrollService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,10 +34,12 @@ class PayrollGenerateTest extends TestCase
 
         EmployeeBonus::create(['employee_id' => $emp->id, 'date' => '2026-06-10', 'amount' => 50000, 'type' => 'target']);
 
-        // Kasbon DALAM periode → dipotong.
-        EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 30000, 'date' => '2026-06-05', 'status' => 'pending']);
-        // Kasbon LUAR periode (bulan lalu) → TIDAK dipotong di Juni.
-        EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 999000, 'date' => '2026-05-20', 'status' => 'pending']);
+        // Kasbon dengan cicilan DALAM periode → cicilan dipotong.
+        $loanIn = EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 30000, 'outstanding' => 30000, 'date' => '2026-06-05', 'status' => 'pending']);
+        EmployeeLoanRepayment::create(['employee_loan_id' => $loanIn->id, 'employee_id' => $emp->id, 'date' => '2026-06-05', 'amount' => 30000]);
+        // Kasbon + cicilan LUAR periode (bulan lalu) → TIDAK dipotong di Juni.
+        $loanOut = EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 999000, 'outstanding' => 999000, 'date' => '2026-05-20', 'status' => 'pending']);
+        EmployeeLoanRepayment::create(['employee_loan_id' => $loanOut->id, 'employee_id' => $emp->id, 'date' => '2026-05-20', 'amount' => 999000]);
 
         $service = app(PayrollService::class);
         $c = $service->computeForEmployee($emp, $start, $end);
@@ -45,7 +48,7 @@ class PayrollGenerateTest extends TestCase
         $this->assertSame(8.0, $c['total_hours']);
         $this->assertSame(97136.0, $c['gross_salary']);
         $this->assertSame(50000.0, $c['total_bonus']);
-        $this->assertSame(30000.0, $c['total_loan']); // bukan 1.029.000
+        $this->assertSame(30000.0, $c['total_loan']); // hanya cicilan Juni
         // THP = 97.136 + 50.000 - 30.000 = 117.136
         $this->assertSame(117136.0, $c['take_home_pay']);
     }
@@ -58,7 +61,8 @@ class PayrollGenerateTest extends TestCase
             'hourly_rate' => 10000, 'is_active' => true,
         ]);
         Attendance::create(['employee_id' => $emp->id, 'work_date' => '2026-06-02', 'total_hours' => 5, 'paid_hours' => 5, 'status' => 'present']);
-        $loan = EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 20000, 'date' => '2026-06-05', 'status' => 'pending']);
+        $loan = EmployeeLoan::create(['employee_id' => $emp->id, 'amount' => 20000, 'outstanding' => 20000, 'date' => '2026-06-05', 'status' => 'pending']);
+        EmployeeLoanRepayment::create(['employee_loan_id' => $loan->id, 'employee_id' => $emp->id, 'date' => '2026-06-05', 'amount' => 20000]);
 
         $service = app(PayrollService::class);
         $res = $service->generateForPeriod($company->id, '2026-06-01', '2026-06-30');
@@ -72,10 +76,9 @@ class PayrollGenerateTest extends TestCase
         $service->generateForPeriod($company->id, '2026-06-01', '2026-06-30');
         $this->assertSame(1, Payroll::query()->where('employee_id', $emp->id)->count());
 
-        // Mark paid → kasbon periode jadi deducted, payroll tidak ditimpa lagi.
+        // Mark paid → payroll tidak ditimpa lagi pada generate berikutnya.
         $payroll->update(['status' => 'approved']);
         $service->markPaid($payroll->fresh());
-        $this->assertSame('deducted', $loan->fresh()->status);
 
         $res2 = $service->generateForPeriod($company->id, '2026-06-01', '2026-06-30');
         $this->assertSame(1, $res2['skipped']);

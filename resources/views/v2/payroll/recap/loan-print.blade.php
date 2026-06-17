@@ -35,25 +35,28 @@
         <p class="sub">{{ $company?->name }} — Periode {{ $periodLabel }}</p>
         <table>
             <thead>
-                <tr><th>No</th><th>Tanggal</th><th>Karyawan</th><th>Keterangan</th><th class="num">Nominal</th><th>Status</th></tr>
+                <tr><th>No</th><th>Tanggal</th><th>Karyawan</th><th>Keterangan</th><th class="num">Nominal</th><th class="num">Dibayar</th><th class="num">Sisa</th><th>Status</th></tr>
             </thead>
             <tbody>
                 @forelse ($loans as $i => $l)
+                    @php $outstanding = (float) $l->outstanding; @endphp
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         <td>{{ optional($l->date)->format('d/m/Y') }}</td>
                         <td>{{ $l->employee?->name ?? '—' }} @if($l->employee?->code)({{ $l->employee->code }})@endif</td>
                         <td>{{ $l->description ?: '—' }}</td>
                         <td class="num">{{ $rp($l->amount) }}</td>
-                        <td>{{ $statusLabel[$l->status] ?? ucfirst($l->status) }}</td>
+                        <td class="num">{{ $rp((float) $l->amount - $outstanding) }}</td>
+                        <td class="num">{{ $rp($outstanding) }}</td>
+                        <td>{{ $outstanding > 0 ? 'Belum Lunas' : 'Lunas' }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada bon/kasbon untuk periode ini.</td></tr>
+                    <tr><td colspan="8" style="text-align:center;padding:24px;color:#94a3b8;">Tidak ada bon/kasbon untuk periode ini.</td></tr>
                 @endforelse
             </tbody>
             @if ($loans->isNotEmpty())
                 <tfoot>
-                    <tr><td colspan="4">TOTAL</td><td class="num">{{ $rp($totals['amount']) }}</td><td></td></tr>
+                    <tr><td colspan="4">TOTAL</td><td class="num">{{ $rp($totals['amount']) }}</td><td class="num">{{ $rp($totals['repaid']) }}</td><td class="num">{{ $rp($totals['outstanding']) }}</td><td></td></tr>
                 </tfoot>
             @endif
         </table>

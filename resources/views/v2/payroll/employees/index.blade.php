@@ -27,7 +27,7 @@
                     <tr class="border-b border-slate-100 hover:bg-slate-50">
                         <td class="px-4 py-3"><a href="{{ route('v2.employees.show', $emp) }}" class="font-medium text-indigo-600 hover:underline">{{ $emp->name }}</a>@if($emp->code)<span class="ml-1 text-xs text-slate-400">{{ $emp->code }}</span>@endif</td>
                         <td class="px-4 py-3 text-slate-500">{{ $emp->position ?: '—' }}</td>
-                        <td class="px-4 py-3 text-right">{{ $rp($emp->hourly_rate) }}</td>
+                        <td class="px-4 py-3 text-right">{{ $emp->isPiecework() ? '—' : $rp($emp->hourly_rate) }}@if($emp->isPiecework())<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">Borongan</span>@endif</td>
                         <td class="px-4 py-3 text-center">
                             @if ($emp->is_active)<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">Aktif</span>
                             @else<span class="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600">Nonaktif</span>@endif

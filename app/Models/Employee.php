@@ -14,11 +14,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'phone',
     'position',
     'hourly_rate',
+    'earning_type',
     'join_date',
     'is_active',
 ])]
 class Employee extends Model
 {
+    public const EARNING_TYPES = ['hourly', 'piecework'];
+
     protected function casts(): array
     {
         return [
@@ -53,6 +56,31 @@ class Employee extends Model
         return $this->hasMany(EmployeeLoan::class);
     }
 
+    public function loanRepayments(): HasMany
+    {
+        return $this->hasMany(EmployeeLoanRepayment::class);
+    }
+
+    public function outstandingLoanTotal(): float
+    {
+        return (float) $this->loans->sum(fn (EmployeeLoan $l) => (float) $l->outstanding);
+    }
+
+    public function deductions(): HasMany
+    {
+        return $this->hasMany(EmployeeDeduction::class);
+    }
+
+    public function workItems(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkItem::class);
+    }
+
+    public function isPiecework(): bool
+    {
+        return $this->earning_type === 'piecework';
+    }
+
     public function arisan(): HasMany
     {
         return $this->hasMany(EmployeeArisan::class);
@@ -61,5 +89,16 @@ class Employee extends Model
     public function savings(): HasMany
     {
         return $this->hasMany(EmployeeSaving::class);
+    }
+
+    public function savingEntries(): HasMany
+    {
+        return $this->hasMany(EmployeeSavingEntry::class);
+    }
+
+    public function savingBalance(): float
+    {
+        return (float) $this->savingEntries
+            ->reduce(fn (float $carry, EmployeeSavingEntry $e) => $carry + $e->signedAmount(), 0.0);
     }
 }

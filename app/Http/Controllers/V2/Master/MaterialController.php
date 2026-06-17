@@ -18,6 +18,17 @@ class MaterialController extends SimpleCrudController
 
     protected array $searchColumns = ['name', 'category'];
 
+    protected function formData(): array
+    {
+        return [
+            'categories' => \App\Models\MaterialCategory::query()
+                ->where('company_id', $this->companyId())
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->pluck('name'),
+        ];
+    }
+
     protected function indexColumns(): array
     {
         $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.');

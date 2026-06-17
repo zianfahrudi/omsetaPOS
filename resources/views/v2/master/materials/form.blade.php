@@ -20,7 +20,8 @@
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Kategori</label>
-                    <input type="text" name="category" value="{{ old('category', $record->category) }}" class="{{ $input }}" placeholder="Aluminium / Kaca / Besi">
+                    <input type="text" name="category" value="{{ old('category', $record->category) }}" list="material-category-list" class="{{ $input }}" placeholder="Aluminium / Kaca / Besi">
+                    <datalist id="material-category-list">@foreach (($categories ?? []) as $cat)<option value="{{ $cat }}">@endforeach</datalist>
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Satuan</label>

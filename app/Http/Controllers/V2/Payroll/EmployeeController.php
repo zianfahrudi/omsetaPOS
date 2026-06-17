@@ -28,7 +28,7 @@ class EmployeeController extends Controller
 
     public function create(): View
     {
-        return view('v2.payroll.employees.form', ['employee' => new Employee(['is_active' => true])]);
+        return view('v2.payroll.employees.form', ['employee' => new Employee(['is_active' => true]), 'positions' => $this->positions()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -40,7 +40,19 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee): View
     {
-        return view('v2.payroll.employees.form', ['employee' => $employee]);
+        return view('v2.payroll.employees.form', ['employee' => $employee, 'positions' => $this->positions()]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    private function positions(): \Illuminate\Support\Collection
+    {
+        return \App\Models\Position::query()
+            ->where('company_id', $this->companyId())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->pluck('name');
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse

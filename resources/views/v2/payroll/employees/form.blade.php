@@ -16,7 +16,7 @@
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div class="sm:col-span-2"><label class="{{ $lbl }}">Nama</label><input type="text" name="name" value="{{ old('name', $employee->name) }}" class="{{ $input }}" required></div>
                 <div><label class="{{ $lbl }}">Kode</label><input type="text" name="code" value="{{ old('code', $employee->code) }}" class="{{ $input }}"></div>
-                <div><label class="{{ $lbl }}">Jabatan</label><input type="text" name="position" value="{{ old('position', $employee->position) }}" class="{{ $input }}"></div>
+                <div><label class="{{ $lbl }}">Jabatan</label><input type="text" name="position" value="{{ old('position', $employee->position) }}" list="position-list" class="{{ $input }}"><datalist id="position-list">@foreach (($positions ?? []) as $pos)<option value="{{ $pos }}">@endforeach</datalist></div>
                 <div><label class="{{ $lbl }}">Telepon</label><input type="text" name="phone" value="{{ old('phone', $employee->phone) }}" class="{{ $input }}"></div>
                 <div>
                     <label class="{{ $lbl }}">Tipe Gaji</label>

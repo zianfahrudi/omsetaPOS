@@ -7,6 +7,8 @@ use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCost;
+use App\Models\ProjectExpense;
+use App\Models\ProjectPaymentTerm;
 use App\Models\Province;
 use App\Models\Regency;
 use App\Models\Unit;
@@ -124,8 +126,7 @@ class ProjectController extends SimpleCrudController
     public function show(int $id): View
     {
         $project = $this->find($id);
-        $project->load(['customer', 'province', 'regency', 'district', 'costs.product']);
-
+        $project->load(['customer', 'province', 'regency', 'district', 'costs.product', 'expenses', 'paymentTerms']);
         $storeIds = Auth::user()->accessibleStores()->pluck('id');
         $products = Product::query()
             ->whereIn('store_id', $storeIds)
@@ -145,6 +146,7 @@ class ProjectController extends SimpleCrudController
                 ->pluck('name'),
             'costLabels' => self::COST_LABELS,
             'statusLabels' => self::STATUS_LABELS,
+            'expenseCategories' => ProjectExpense::CATEGORIES,
         ]);
     }
 
@@ -210,11 +212,20 @@ class ProjectController extends SimpleCrudController
             'date' => ['nullable', 'date'],
         ]);
 
+        $productId = $data['type'] === 'material' ? ($data['product_id'] ?? null) : null;
+
+        // Wajib ada identitas item: produk (material) atau keterangan bebas.
+        if (! $productId && blank($data['description'] ?? null)) {
+            return back()->withInput()->with('status', 'Isi nama/keterangan item atau pilih produk.');
+        }
+
         $amount = round((float) $data['quantity'] * (float) $data['unit_cost'], 2);
+        $nextOrder = (int) $project->costs()->max('sort_order') + 1;
 
         $project->costs()->create([
+            'sort_order' => $nextOrder,
             'type' => $data['type'],
-            'product_id' => $data['type'] === 'material' ? ($data['product_id'] ?? null) : null,
+            'product_id' => $productId,
             'description' => $data['description'] ?? null,
             'quantity' => (float) $data['quantity'],
             'unit' => $data['unit'] ?? null,
@@ -227,6 +238,35 @@ class ProjectController extends SimpleCrudController
         return redirect()->route('v2.projects.show', $project->id)->with('status', 'Biaya proyek ditambahkan.');
     }
 
+    public function updateCost(Request $request, int $id, int $cost): RedirectResponse
+    {
+        $project = $this->find($id);
+        $row = $project->costs()->whereKey($cost)->firstOrFail();
+
+        $data = $request->validate([
+            'type' => ['required', 'in:material,upah,operasional'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'quantity' => ['required', 'numeric', 'min:0.01'],
+            'unit' => ['nullable', 'string', 'max:30'],
+            'unit_cost' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        if (blank($data['description'] ?? null) && ! $row->product_id) {
+            return back()->with('status', 'Isi nama/keterangan item.');
+        }
+
+        $row->update([
+            'type' => $data['type'],
+            'description' => $data['description'] ?? null,
+            'quantity' => (float) $data['quantity'],
+            'unit' => $data['unit'] ?? null,
+            'unit_cost' => (float) $data['unit_cost'],
+            'amount' => round((float) $data['quantity'] * (float) $data['unit_cost'], 2),
+        ]);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Item RAB diperbarui.');
+    }
+
     public function destroyCost(int $id, int $cost): RedirectResponse
     {
         $project = $this->find($id);
@@ -236,7 +276,7 @@ class ProjectController extends SimpleCrudController
     }
 
     /**
-     * Atur persentase overhead & profit untuk proyek ini (penawaran/RAB).
+     * Atur persentase overhead, profit & PPN untuk proyek ini (penawaran/RAB).
      */
     public function updatePenawaran(Request $request, int $id): RedirectResponse
     {
@@ -245,14 +285,16 @@ class ProjectController extends SimpleCrudController
         $data = $request->validate([
             'overhead_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'profit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $project->update([
             'overhead_percent' => (float) ($data['overhead_percent'] ?? 0),
             'profit_percent' => (float) ($data['profit_percent'] ?? 0),
+            'tax_percent' => (float) ($data['tax_percent'] ?? 0),
         ]);
 
-        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Persentase overhead & profit diperbarui.');
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Persentase overhead, profit & PPN diperbarui.');
     }
 
     /**
@@ -319,5 +361,79 @@ class ProjectController extends SimpleCrudController
         $project->update($attributes);
 
         return redirect()->route('v2.projects.show', $project->id)->with('status', 'DP dicatat. Nilai kontrak dikunci ke total penawaran.');
+    }
+
+    // ---- Realisasi biaya (anggaran RAB vs aktual) ----
+
+    public function storeExpense(Request $request, int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+
+        $data = $request->validate([
+            'date' => ['required', 'date'],
+            'category' => ['required', 'in:'.implode(',', ProjectExpense::CATEGORIES)],
+            'description' => ['nullable', 'string', 'max:255'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+        ]);
+        $data['created_by'] = Auth::id();
+        $project->expenses()->create($data);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Realisasi biaya dicatat.');
+    }
+
+    public function destroyExpense(int $id, int $expense): RedirectResponse
+    {
+        $project = $this->find($id);
+        $project->expenses()->whereKey($expense)->delete();
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Realisasi biaya dihapus.');
+    }
+
+    // ---- Termin pembayaran ----
+
+    public function storeTerm(Request $request, int $id): RedirectResponse
+    {
+        $project = $this->find($id);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'due_date' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+        $data['sort_order'] = (int) $project->paymentTerms()->max('sort_order') + 1;
+        $project->paymentTerms()->create($data);
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Termin pembayaran ditambahkan.');
+    }
+
+    public function payTerm(Request $request, int $id, int $term): RedirectResponse
+    {
+        $project = $this->find($id);
+        $row = $project->paymentTerms()->whereKey($term)->firstOrFail();
+
+        $paid = ! $row->is_paid;
+        $row->update([
+            'is_paid' => $paid,
+            'paid_date' => $paid ? now() : null,
+        ]);
+
+        // Sinkronkan status proyek bila seluruh termin lunas.
+        $project->load('paymentTerms');
+        if ($project->paymentTerms->isNotEmpty() && $project->paymentTerms->every(fn ($t) => $t->is_paid)) {
+            $project->update(['status' => 'paid']);
+        } elseif ($project->status === 'paid') {
+            $project->update(['status' => 'active']);
+        }
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', $paid ? 'Termin ditandai lunas.' : 'Termin dibatalkan lunasnya.');
+    }
+
+    public function destroyTerm(int $id, int $term): RedirectResponse
+    {
+        $project = $this->find($id);
+        $project->paymentTerms()->whereKey($term)->delete();
+
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Termin dihapus.');
     }
 }

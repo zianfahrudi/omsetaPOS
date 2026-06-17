@@ -9,38 +9,28 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'project_id',
     'sort_order',
-    'type',
-    'product_id',
-    'description',
-    'quantity',
-    'unit',
-    'unit_cost',
+    'name',
     'amount',
-    'date',
-    'created_by',
+    'due_date',
+    'is_paid',
+    'paid_date',
+    'note',
 ])]
-class ProjectCost extends Model
+class ProjectPaymentTerm extends Model
 {
-    public const TYPES = ['material', 'upah', 'operasional'];
-
     protected function casts(): array
     {
         return [
             'sort_order' => 'integer',
-            'quantity' => 'decimal:2',
-            'unit_cost' => 'decimal:2',
             'amount' => 'decimal:2',
-            'date' => 'date',
+            'due_date' => 'date',
+            'is_paid' => 'boolean',
+            'paid_date' => 'date',
         ];
     }
 
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
     }
 }

@@ -224,11 +224,19 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('proyek/{id}/export/excel', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportExcel'])->name('projects.export.excel');
         Route::get('proyek/{id}/export/word', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportWord'])->name('projects.export.word');
         Route::post('proyek/{id}/biaya', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeCost'])->name('projects.costs.store');
+        Route::put('proyek/{id}/biaya/{cost}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updateCost'])->name('projects.costs.update');
         Route::delete('proyek/{id}/biaya/{cost}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyCost'])->name('projects.costs.destroy');
         Route::post('proyek/{id}/penawaran', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updatePenawaran'])->name('projects.penawaran.update');
         Route::post('proyek/{id}/setujui', [\App\Http\Controllers\V2\Master\ProjectController::class, 'approve'])->name('projects.approve');
         Route::post('proyek/{id}/status', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updateStatus'])->name('projects.status.update');
         Route::post('proyek/{id}/dp', [\App\Http\Controllers\V2\Master\ProjectController::class, 'updateDownPayment'])->name('projects.dp.update');
+        // Realisasi biaya (anggaran vs aktual)
+        Route::post('proyek/{id}/realisasi', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeExpense'])->name('projects.expenses.store');
+        Route::delete('proyek/{id}/realisasi/{expense}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyExpense'])->name('projects.expenses.destroy');
+        // Termin pembayaran
+        Route::post('proyek/{id}/termin', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeTerm'])->name('projects.terms.store');
+        Route::post('proyek/{id}/termin/{term}/bayar', [\App\Http\Controllers\V2\Master\ProjectController::class, 'payTerm'])->name('projects.terms.pay');
+        Route::delete('proyek/{id}/termin/{term}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'destroyTerm'])->name('projects.terms.destroy');
 
         // Pengaturan default penawaran proyek (overhead & profit global)
         Route::get('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'edit'])->name('settings.project');

@@ -51,7 +51,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($project->costs->sortBy('type') as $i => $cost)
+            @forelse ($project->costs as $i => $cost)
                 <tr>
                     <td style="border:1px solid #cbd5e1;">{{ $loop->iteration }}</td>
                     <td style="border:1px solid #cbd5e1;">{{ $cost->product?->name ?: ($cost->description ?: '—') }} ({{ $costLabels[$cost->type] ?? $cost->type }})</td>
@@ -77,6 +77,12 @@
                 <td colspan="5" style="border:1px solid #cbd5e1; text-align:right;">Profit ({{ rtrim(rtrim(number_format((float) $project->profit_percent, 2, ',', '.'), '0'), ',') }}%)</td>
                 <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($project->profitAmount()) }}</td>
             </tr>
+            @if ((float) $project->tax_percent > 0)
+            <tr>
+                <td colspan="5" style="border:1px solid #cbd5e1; text-align:right;">PPN ({{ rtrim(rtrim(number_format((float) $project->tax_percent, 2, ',', '.'), '0'), ',') }}%)</td>
+                <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($project->taxAmount()) }}</td>
+            </tr>
+            @endif
             <tr style="background:#eef2ff;">
                 <td colspan="5" style="border:1px solid #cbd5e1; text-align:right; font-weight:bold;">TOTAL PENAWARAN</td>
                 <td style="border:1px solid #cbd5e1; text-align:right; font-weight:bold;">{{ $rp($project->totalPenawaran()) }}</td>

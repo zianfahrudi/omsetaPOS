@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'contract_value',
     'overhead_percent',
     'profit_percent',
+    'tax_percent',
     'down_payment',
     'start_date',
     'end_date',
@@ -34,6 +35,7 @@ class Project extends Model
             'contract_value' => 'decimal:2',
             'overhead_percent' => 'decimal:2',
             'profit_percent' => 'decimal:2',
+            'tax_percent' => 'decimal:2',
             'down_payment' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
@@ -68,7 +70,17 @@ class Project extends Model
 
     public function costs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(ProjectCost::class);
+        return $this->hasMany(ProjectCost::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProjectExpense::class)->orderByDesc('date')->orderByDesc('id');
+    }
+
+    public function paymentTerms(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProjectPaymentTerm::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function costByType(string $type): float
@@ -100,11 +112,24 @@ class Project extends Model
     }
 
     /**
-     * Total Penawaran = subtotal + overhead + profit.
+     * Dasar pengenaan PPN = subtotal + overhead + profit.
+     */
+    public function taxBase(): float
+    {
+        return round($this->penawaranSubtotal() + $this->overheadAmount() + $this->profitAmount(), 2);
+    }
+
+    public function taxAmount(): float
+    {
+        return round($this->taxBase() * (float) $this->tax_percent / 100, 2);
+    }
+
+    /**
+     * Total Penawaran = subtotal + overhead + profit + PPN.
      */
     public function totalPenawaran(): float
     {
-        return round($this->penawaranSubtotal() + $this->overheadAmount() + $this->profitAmount(), 2);
+        return round($this->taxBase() + $this->taxAmount(), 2);
     }
 
     /**
@@ -121,7 +146,55 @@ class Project extends Model
             return 0.0;
         }
 
+        // Bila ada termin, sisa = nilai kontrak − total termin dibayar.
+        if ($this->paymentTerms->isNotEmpty()) {
+            return round($this->effectiveContractValue() - $this->totalPaidTerms(), 2);
+        }
+
         return round($this->effectiveContractValue() - (float) $this->down_payment, 2);
+    }
+
+    // ---- Realisasi biaya (anggaran RAB vs aktual) ----
+
+    /**
+     * Biaya aktual yang sudah dikeluarkan (realisasi).
+     */
+    public function actualCostTotal(): float
+    {
+        return round((float) $this->expenses->sum('amount'), 2);
+    }
+
+    public function actualByCategory(string $category): float
+    {
+        return (float) $this->expenses->where('category', $category)->sum('amount');
+    }
+
+    /**
+     * Laba kotor estimasi (berbasis RAB): nilai kontrak − total RAB.
+     */
+    public function estimatedGrossProfit(): float
+    {
+        return round($this->effectiveContractValue() - $this->totalCost(), 2);
+    }
+
+    /**
+     * Laba kotor aktual: nilai kontrak − realisasi biaya.
+     */
+    public function actualGrossProfit(): float
+    {
+        return round($this->effectiveContractValue() - $this->actualCostTotal(), 2);
+    }
+
+    // ---- Termin pembayaran ----
+
+    public function totalTerms(): float
+    {
+        return round((float) $this->paymentTerms->sum('amount'), 2);
+    }
+
+    public function totalPaidTerms(): float
+    {
+        return round((float) $this->paymentTerms->where('is_paid', true)->sum('amount'), 2);
     }
 
     public function tentativeProfit(): float

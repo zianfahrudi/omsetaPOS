@@ -51,6 +51,9 @@
         @if (session('status'))
             <div class="mx-4 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700 sm:mx-6">{{ session('status') }}</div>
         @endif
+        @if (session('error'))
+            <div class="mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700 sm:mx-6">{{ session('error') }}</div>
+        @endif
         @if ($errors->any())
             <div class="mx-4 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700 sm:mx-6">{{ $errors->first() }}</div>
         @endif

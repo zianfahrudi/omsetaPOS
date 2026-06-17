@@ -234,6 +234,71 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'edit'])->name('settings.project');
         Route::put('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'update'])->name('settings.project.update');
 
+        // ═══════════ Absensi & Payroll ═══════════
+        Route::get('payroll', [\App\Http\Controllers\V2\Payroll\PayrollDashboardController::class, 'index'])->name('payroll.dashboard');
+
+        // Karyawan
+        Route::get('karyawan', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('karyawan/baru', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('karyawan', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'store'])->name('employees.store');
+        Route::get('karyawan/{employee}', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'show'])->name('employees.show');
+        Route::get('karyawan/{employee}/edit', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('karyawan/{employee}', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'update'])->name('employees.update');
+        Route::delete('karyawan/{employee}', [\App\Http\Controllers\V2\Payroll\EmployeeController::class, 'destroy'])->name('employees.destroy');
+        // Komponen karyawan (bonus, kasbon, arisan, tabungan)
+        Route::post('karyawan/{employee}/bonus', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeBonus'])->name('employees.bonus.store');
+        Route::delete('karyawan/{employee}/bonus/{bonus}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyBonus'])->name('employees.bonus.destroy');
+        Route::post('karyawan/{employee}/kasbon', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeLoan'])->name('employees.loan.store');
+        Route::post('karyawan/{employee}/kasbon/{loan}/status', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'updateLoan'])->name('employees.loan.update');
+        Route::delete('karyawan/{employee}/kasbon/{loan}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroyLoan'])->name('employees.loan.destroy');
+        Route::post('karyawan/{employee}/arisan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'saveArisan'])->name('employees.arisan.save');
+        Route::post('karyawan/{employee}/tabungan', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'saveSaving'])->name('employees.saving.save');
+
+        // Shift
+        Route::get('shift', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'index'])->name('shifts.index');
+        Route::get('shift/baru', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'create'])->name('shifts.create');
+        Route::post('shift', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'store'])->name('shifts.store');
+        Route::get('shift/{shift}/edit', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'edit'])->name('shifts.edit');
+        Route::put('shift/{shift}', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'update'])->name('shifts.update');
+        Route::delete('shift/{shift}', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+        // Jadwal Shift
+        Route::get('jadwal-shift', [\App\Http\Controllers\V2\Payroll\ScheduleController::class, 'index'])->name('schedules.index');
+        Route::post('jadwal-shift', [\App\Http\Controllers\V2\Payroll\ScheduleController::class, 'store'])->name('schedules.store');
+        Route::delete('jadwal-shift/{schedule}', [\App\Http\Controllers\V2\Payroll\ScheduleController::class, 'destroy'])->name('schedules.destroy');
+
+        // Absensi
+        Route::get('absensi', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'index'])->name('attendances.index');
+        Route::post('absensi', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'store'])->name('attendances.store');
+        Route::post('absensi/dari-jadwal', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'generateFromSchedule'])->name('attendances.from-schedule');
+        Route::post('absensi/{attendance}/checkin', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'checkIn'])->name('attendances.checkin');
+        Route::post('absensi/{attendance}/checkout', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'checkOut'])->name('attendances.checkout');
+        Route::put('absensi/{attendance}', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'update'])->name('attendances.update');
+        Route::delete('absensi/{attendance}', [\App\Http\Controllers\V2\Payroll\AttendanceController::class, 'destroy'])->name('attendances.destroy');
+
+        // Payroll
+        Route::get('payroll/list', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'index'])->name('payrolls.index');
+        Route::post('payroll/generate', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'generate'])->name('payrolls.generate');
+        Route::get('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'show'])->name('payrolls.show');
+        Route::post('payroll/{payroll}/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'approve'])->name('payrolls.approve');
+        Route::post('payroll/{payroll}/paid', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'markPaid'])->name('payrolls.paid');
+        Route::delete('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'destroy'])->name('payrolls.destroy');
+
+        // ═══════════ Arisan Karyawan ═══════════
+        Route::get('arisan', [\App\Http\Controllers\V2\ArisanController::class, 'dashboard'])->name('arisan.dashboard');
+        Route::get('arisan/kelompok', [\App\Http\Controllers\V2\ArisanController::class, 'index'])->name('arisan.index');
+        Route::get('arisan/kelompok/baru', [\App\Http\Controllers\V2\ArisanController::class, 'create'])->name('arisan.create');
+        Route::post('arisan/kelompok', [\App\Http\Controllers\V2\ArisanController::class, 'store'])->name('arisan.store');
+        Route::get('arisan/kelompok/{id}', [\App\Http\Controllers\V2\ArisanController::class, 'show'])->name('arisan.show');
+        Route::get('arisan/kelompok/{id}/edit', [\App\Http\Controllers\V2\ArisanController::class, 'edit'])->name('arisan.edit');
+        Route::put('arisan/kelompok/{id}', [\App\Http\Controllers\V2\ArisanController::class, 'update'])->name('arisan.update');
+        Route::delete('arisan/kelompok/{id}', [\App\Http\Controllers\V2\ArisanController::class, 'destroy'])->name('arisan.destroy');
+        Route::post('arisan/kelompok/{id}/anggota', [\App\Http\Controllers\V2\ArisanController::class, 'addMember'])->name('arisan.members.add');
+        Route::delete('arisan/kelompok/{id}/anggota/{member}', [\App\Http\Controllers\V2\ArisanController::class, 'removeMember'])->name('arisan.members.remove');
+        Route::post('arisan/kelompok/{id}/periode', [\App\Http\Controllers\V2\ArisanController::class, 'openPeriod'])->name('arisan.periods.open');
+        Route::post('arisan/kelompok/{id}/periode/{period}/collect', [\App\Http\Controllers\V2\ArisanController::class, 'collectPeriod'])->name('arisan.periods.collect');
+        Route::post('arisan/kelompok/{id}/periode/{period}/undi', [\App\Http\Controllers\V2\ArisanController::class, 'drawWinner'])->name('arisan.periods.draw');
+
         Route::get('segera', [\App\Http\Controllers\V2\PageController::class, 'soon'])->name('soon');
     });
 });

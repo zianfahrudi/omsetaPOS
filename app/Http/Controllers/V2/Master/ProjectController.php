@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V2\Master;
 
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Material;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ProjectCost;
@@ -139,6 +140,13 @@ class ProjectController extends SimpleCrudController
         return view('v2.master.projects.show', [
             'project' => $project,
             'products' => $products,
+            'materials' => Material::query()
+                ->where('company_id', $this->companyId())
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'unit', 'price'])
+                ->map(fn (Material $m) => ['id' => $m->id, 'name' => $m->name, 'unit' => (string) ($m->unit ?? ''), 'cost' => (float) $m->price])
+                ->values(),
             'units' => Unit::query()
                 ->where('company_id', $this->companyId())
                 ->where('is_active', true)
@@ -205,6 +213,7 @@ class ProjectController extends SimpleCrudController
         $data = $request->validate([
             'type' => ['required', 'in:material,upah,operasional'],
             'product_id' => ['nullable', 'integer'],
+            'group_name' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
             'quantity' => ['required', 'numeric', 'min:0.01'],
             'unit' => ['nullable', 'string', 'max:30'],
@@ -224,6 +233,7 @@ class ProjectController extends SimpleCrudController
 
         $project->costs()->create([
             'sort_order' => $nextOrder,
+            'group_name' => $data['group_name'] ?? null,
             'type' => $data['type'],
             'product_id' => $productId,
             'description' => $data['description'] ?? null,
@@ -245,6 +255,7 @@ class ProjectController extends SimpleCrudController
 
         $data = $request->validate([
             'type' => ['required', 'in:material,upah,operasional'],
+            'group_name' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
             'quantity' => ['required', 'numeric', 'min:0.01'],
             'unit' => ['nullable', 'string', 'max:30'],
@@ -257,6 +268,7 @@ class ProjectController extends SimpleCrudController
 
         $row->update([
             'type' => $data['type'],
+            'group_name' => $data['group_name'] ?? null,
             'description' => $data['description'] ?? null,
             'quantity' => (float) $data['quantity'],
             'unit' => $data['unit'] ?? null,
@@ -286,15 +298,17 @@ class ProjectController extends SimpleCrudController
             'overhead_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'profit_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'rounding_unit' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $project->update([
             'overhead_percent' => (float) ($data['overhead_percent'] ?? 0),
             'profit_percent' => (float) ($data['profit_percent'] ?? 0),
             'tax_percent' => (float) ($data['tax_percent'] ?? 0),
+            'rounding_unit' => (float) ($data['rounding_unit'] ?? 0),
         ]);
 
-        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Persentase overhead, profit & PPN diperbarui.');
+        return redirect()->route('v2.projects.show', $project->id)->with('status', 'Pengaturan penawaran diperbarui.');
     }
 
     /**
@@ -412,11 +426,21 @@ class ProjectController extends SimpleCrudController
         $project = $this->find($id);
         $row = $project->paymentTerms()->whereKey($term)->firstOrFail();
 
+        $method = in_array($request->input('method'), ['cash', 'bank'], true) ? $request->input('method') : 'cash';
         $paid = ! $row->is_paid;
+        $service = app(\App\Services\ProjectTermPaymentService::class);
+
         $row->update([
             'is_paid' => $paid,
             'paid_date' => $paid ? now() : null,
         ]);
+
+        // Posting / batalkan jurnal (Dr Kas/Bank, Cr Pendapatan Proyek).
+        if ($paid) {
+            $service->markPaid($row, $method, Auth::id());
+        } else {
+            $service->reverse($row);
+        }
 
         // Sinkronkan status proyek bila seluruh termin lunas.
         $project->load('paymentTerms');
@@ -426,7 +450,7 @@ class ProjectController extends SimpleCrudController
             $project->update(['status' => 'active']);
         }
 
-        return redirect()->route('v2.projects.show', $project->id)->with('status', $paid ? 'Termin ditandai lunas.' : 'Termin dibatalkan lunasnya.');
+        return redirect()->route('v2.projects.show', $project->id)->with('status', $paid ? 'Termin lunas & jurnal dicatat.' : 'Termin dibatalkan, jurnal dihapus.');
     }
 
     public function destroyTerm(int $id, int $term): RedirectResponse

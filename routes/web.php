@@ -207,6 +207,7 @@ Route::prefix('app')->name('v2.')->group(function () {
             'gudang' => ['warehouses', \App\Http\Controllers\V2\Master\WarehouseController::class],
             'departemen' => ['departments', \App\Http\Controllers\V2\Master\DepartmentController::class],
             'proyek' => ['projects', \App\Http\Controllers\V2\Master\ProjectController::class],
+            'material' => ['materials', \App\Http\Controllers\V2\Master\MaterialController::class],
             'mata-uang' => ['currencies', \App\Http\Controllers\V2\Master\CurrencyController::class],
             'pajak' => ['taxes', \App\Http\Controllers\V2\Master\TaxController::class],
         ] as $slug => [$name, $controller]) {

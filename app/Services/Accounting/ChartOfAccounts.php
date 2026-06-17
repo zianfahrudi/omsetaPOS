@@ -49,6 +49,7 @@ class ChartOfAccounts
             ['4-1000', 'Penjualan', 'revenue', 'sales'],
             ['4-2000', 'Retur Penjualan', 'revenue', 'sales_return'],
             ['4-3000', 'Diskon Penjualan', 'revenue', 'sales_discount'],
+            ['4-5000', 'Pendapatan Proyek', 'revenue', 'project_revenue'],
             ['4-9000', 'Pendapatan Lain-lain', 'revenue', 'other_income'],
         ]],
         ['5-0000', 'HARGA POKOK PENJUALAN', 'expense', null, [
@@ -68,7 +69,7 @@ class ChartOfAccounts
         'cash', 'bank', 'accounts_receivable', 'inventory', 'tax_input',
         'accounts_payable', 'tax_output', 'equity', 'retained_earnings',
         'income_summary', 'sales', 'sales_return', 'sales_discount', 'cogs',
-        'giro_receivable', 'consignment_inventory',
+        'giro_receivable', 'consignment_inventory', 'project_revenue',
     ];
 
     public function install(Company $company): void

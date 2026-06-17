@@ -65,6 +65,7 @@
                                 <td class="py-2.5 text-slate-700">
                                     {{ $cost->product?->name ?: ($cost->description ?: '—') }}
                                     <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{{ $costLabels[$cost->type] ?? $cost->type }}</span>
+                                    @if ($cost->group_name)<span class="ml-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-600">{{ $cost->group_name }}</span>@endif
                                 </td>
                                 <td class="py-2.5 text-right text-slate-500">{{ $qtyFmt($cost->quantity) }}{{ $cost->unit ? ' '.$cost->unit : '' }}</td>
                                 <td class="py-2.5 text-right text-slate-500">{{ $rp($cost->unit_cost) }}</td>
@@ -86,6 +87,10 @@
                                         <div class="col-span-2">
                                             <label class="mb-1 block text-xs text-slate-500">Nama/Keterangan</label>
                                             <input type="text" name="description" value="{{ $cost->product?->name ?: $cost->description }}" class="{{ $input }}" @if($cost->product_id) readonly @endif>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="mb-1 block text-xs text-slate-500">Kelompok</label>
+                                            <input type="text" name="group_name" value="{{ $cost->group_name }}" class="{{ $input }}">
                                         </div>
                                         <div>
                                             <label class="mb-1 block text-xs text-slate-500">Jenis</label>
@@ -129,13 +134,17 @@
         <form method="POST" action="{{ route('v2.projects.costs.store', $project->id) }}" class="rounded-2xl border border-slate-200 bg-white p-5"
               x-data="{
                   products: @js($products),
+                  materials: @js($materials),
                   type: 'material',
                   productId: '',
+                  materialId: '',
                   name: '',
+                  group: '',
                   qty: 1,
                   unit: '',
                   unitCost: 0,
-                  onProduct() { const p = this.products.find(x => String(x.id) === String(this.productId)); if (p) { this.unitCost = p.cost; if (p.unit) this.unit = p.unit; this.name = p.name; } },
+                  onProduct() { const p = this.products.find(x => String(x.id) === String(this.productId)); if (p) { this.unitCost = p.cost; if (p.unit) this.unit = p.unit; this.name = p.name; this.materialId = ''; } },
+                  onMaterial() { const m = this.materials.find(x => String(x.id) === String(this.materialId)); if (m) { this.unitCost = m.cost; if (m.unit) this.unit = m.unit; this.name = m.name; this.productId = ''; } },
                   get amount() { return (Number(this.qty)||0) * (Number(this.unitCost)||0); },
                   rp(v){ return 'Rp ' + (Number(v)||0).toLocaleString('id-ID'); }
               }">
@@ -150,12 +159,26 @@
                         <option value="operasional">Operasional</option>
                     </select>
                 </div>
+                <div>
+                    <label class="{{ $lbl }}">Kelompok <span class="text-slate-400">(opsional)</span></label>
+                    <input type="text" name="group_name" x-model="group" list="group-list" class="{{ $input }}" placeholder="Mis: Pekerjaan Aluminium">
+                    <datalist id="group-list">@foreach ($project->costs->pluck('group_name')->filter()->unique() as $g)<option value="{{ $g }}">@endforeach</datalist>
+                </div>
                 <div x-show="type === 'material'">
                     <label class="{{ $lbl }}">Ambil dari Produk <span class="text-slate-400">(opsional)</span></label>
                     <select name="product_id" x-model="productId" @change="onProduct()" class="{{ $input }}">
                         <option value="">— Ketik manual / pilih produk —</option>
                         @foreach ($products as $p)
                             <option value="{{ $p['id'] }}">{{ $p['name'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div x-show="type === 'material'">
+                    <label class="{{ $lbl }}">Ambil dari Master Material <span class="text-slate-400">(opsional)</span></label>
+                    <select x-model="materialId" @change="onMaterial()" class="{{ $input }}">
+                        <option value="">— Pilih material —</option>
+                        @foreach ($materials as $m)
+                            <option value="{{ $m['id'] }}">{{ $m['name'] }}@if($m['unit']) ({{ $m['unit'] }})@endif</option>
                         @endforeach
                     </select>
                 </div>
@@ -194,11 +217,14 @@
               overhead: {{ (float) $project->overhead_percent }},
               profit: {{ (float) $project->profit_percent }},
               tax: {{ (float) $project->tax_percent }},
+              roundUnit: {{ (float) $project->rounding_unit }},
               get overheadAmt(){ return Math.round(this.subtotal * (Number(this.overhead)||0) / 100); },
               get profitAmt(){ return Math.round(this.subtotal * (Number(this.profit)||0) / 100); },
               get base(){ return this.subtotal + this.overheadAmt + this.profitAmt; },
               get taxAmt(){ return Math.round(this.base * (Number(this.tax)||0) / 100); },
-              get total(){ return this.base + this.taxAmt; },
+              get preRound(){ return this.base + this.taxAmt; },
+              get roundAmt(){ const u = Number(this.roundUnit)||0; return u > 0 ? (Math.ceil(this.preRound / u) * u - this.preRound) : 0; },
+              get total(){ return this.preRound + this.roundAmt; },
               rp(v){ return 'Rp ' + (Number(v)||0).toLocaleString('id-ID'); }
           }">
         @csrf @method('PUT')
@@ -227,6 +253,16 @@
                         <input type="number" step="0.01" min="0" max="100" name="tax_percent" x-model.number="tax" class="{{ $input }} text-right">
                     </div>
                 </div>
+                <div>
+                    <label class="{{ $lbl }}">Pembulatan ke</label>
+                    <select name="rounding_unit" x-model.number="roundUnit" class="{{ $input }}">
+                        <option value="0">Tanpa pembulatan</option>
+                        <option value="100">Rp 100</option>
+                        <option value="1000">Rp 1.000</option>
+                        <option value="10000">Rp 10.000</option>
+                        <option value="100000">Rp 100.000</option>
+                    </select>
+                </div>
                 <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">Simpan Persentase</button>
             </div>
 
@@ -246,6 +282,10 @@
                 <div class="flex items-center justify-between py-1" x-show="(Number(tax)||0) > 0">
                     <span class="text-slate-500">PPN (<span x-text="tax"></span>%)</span>
                     <span class="font-medium text-slate-800" x-text="rp(taxAmt)"></span>
+                </div>
+                <div class="flex items-center justify-between py-1" x-show="(Number(roundUnit)||0) > 0 && roundAmt > 0">
+                    <span class="text-slate-500">Pembulatan</span>
+                    <span class="font-medium text-slate-800" x-text="rp(roundAmt)"></span>
                 </div>
                 <div class="mt-2 flex items-center justify-between border-t border-slate-200 pt-3">
                     <span class="font-semibold text-slate-900">Total Penawaran</span>
@@ -447,7 +487,13 @@
                             </td>
                             <td class="py-2 text-right">
                                 <div class="flex items-center justify-end gap-1">
-                                    <form method="POST" action="{{ route('v2.projects.terms.pay', [$project->id, $term->id]) }}">@csrf
+                                    <form method="POST" action="{{ route('v2.projects.terms.pay', [$project->id, $term->id]) }}" class="flex items-center gap-1">@csrf
+                                        @unless ($term->is_paid)
+                                            <select name="method" class="rounded-md border border-slate-300 px-1.5 py-1 text-xs focus:border-indigo-500 focus:outline-none">
+                                                <option value="cash">Kas</option>
+                                                <option value="bank">Bank</option>
+                                            </select>
+                                        @endunless
                                         <button class="rounded-md px-2 py-1 text-xs font-medium {{ $term->is_paid ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50' }}">{{ $term->is_paid ? 'Batal' : 'Tandai Lunas' }}</button>
                                     </form>
                                     <form method="POST" action="{{ route('v2.projects.terms.destroy', [$project->id, $term->id]) }}" onsubmit="return confirm('Hapus termin?')">@csrf @method('DELETE')<button class="rounded-md px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50">✕</button></form>

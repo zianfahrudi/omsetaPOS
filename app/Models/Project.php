@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'overhead_percent',
     'profit_percent',
     'tax_percent',
+    'rounding_unit',
     'down_payment',
     'start_date',
     'end_date',
@@ -36,6 +37,7 @@ class Project extends Model
             'overhead_percent' => 'decimal:2',
             'profit_percent' => 'decimal:2',
             'tax_percent' => 'decimal:2',
+            'rounding_unit' => 'decimal:2',
             'down_payment' => 'decimal:2',
             'start_date' => 'date',
             'end_date' => 'date',
@@ -125,11 +127,29 @@ class Project extends Model
     }
 
     /**
-     * Total Penawaran = subtotal + overhead + profit + PPN.
+     * Total sebelum pembulatan = subtotal + overhead + profit + PPN.
+     */
+    public function totalBeforeRounding(): float
+    {
+        return round($this->taxBase() + $this->taxAmount(), 2);
+    }
+
+    public function roundingAmount(): float
+    {
+        $unit = (float) $this->rounding_unit;
+        if ($unit <= 0) {
+            return 0.0;
+        }
+
+        return round(ceil($this->totalBeforeRounding() / $unit) * $unit - $this->totalBeforeRounding(), 2);
+    }
+
+    /**
+     * Total Penawaran = subtotal + overhead + profit + PPN + pembulatan.
      */
     public function totalPenawaran(): float
     {
-        return round($this->taxBase() + $this->taxAmount(), 2);
+        return round($this->totalBeforeRounding() + $this->roundingAmount(), 2);
     }
 
     /**

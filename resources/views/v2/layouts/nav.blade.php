@@ -117,6 +117,7 @@
                 ['v2.currencies.index', 'Mata Uang'],
                 ['v2.taxes.index', 'Pajak'],
                 ['v2.assets.index', 'Harta Tetap'],
+                ['v2.materials.index', 'Master Material'],
                 ['v2.settings.project', 'Penawaran Proyek'],
                 ['v2.regions.provinces', 'Provinsi'],
                 ['v2.regions.regencies', 'Kabupaten/Kota'],

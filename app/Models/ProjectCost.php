@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'project_id',
     'sort_order',
+    'group_name',
     'type',
     'product_id',
     'description',

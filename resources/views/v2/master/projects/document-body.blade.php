@@ -51,18 +51,39 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($project->costs as $i => $cost)
-                <tr>
-                    <td style="border:1px solid #cbd5e1;">{{ $loop->iteration }}</td>
-                    <td style="border:1px solid #cbd5e1;">{{ $cost->product?->name ?: ($cost->description ?: '—') }} ({{ $costLabels[$cost->type] ?? $cost->type }})</td>
-                    <td style="border:1px solid #cbd5e1; text-align:right;">{{ $qtyFmt($cost->quantity) }}</td>
-                    <td style="border:1px solid #cbd5e1;">{{ $cost->unit ?: '—' }}</td>
-                    <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->unit_cost) }}</td>
-                    <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->amount) }}</td>
-                </tr>
-            @empty
+            @php $hasGroups = $project->costs->whereNotNull('group_name')->filter(fn($c)=>$c->group_name !== '')->isNotEmpty(); $no = 0; @endphp
+            @if ($project->costs->isEmpty())
                 <tr><td colspan="6" style="border:1px solid #cbd5e1; text-align:center; color:#888;">Belum ada bahan / biaya.</td></tr>
-            @endforelse
+            @elseif ($hasGroups)
+                @foreach ($project->costs->groupBy(fn ($c) => $c->group_name ?: 'Lainnya') as $gname => $items)
+                    <tr><td colspan="6" style="border:1px solid #cbd5e1; background:#f8fafc; font-weight:bold;">{{ $gname }}</td></tr>
+                    @foreach ($items as $cost)
+                        <tr>
+                            <td style="border:1px solid #cbd5e1;">{{ ++$no }}</td>
+                            <td style="border:1px solid #cbd5e1;">{{ $cost->product?->name ?: ($cost->description ?: '—') }} ({{ $costLabels[$cost->type] ?? $cost->type }})</td>
+                            <td style="border:1px solid #cbd5e1; text-align:right;">{{ $qtyFmt($cost->quantity) }}</td>
+                            <td style="border:1px solid #cbd5e1;">{{ $cost->unit ?: '—' }}</td>
+                            <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->unit_cost) }}</td>
+                            <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->amount) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr>
+                        <td colspan="5" style="border:1px solid #cbd5e1; text-align:right; font-style:italic;">Subtotal {{ $gname }}</td>
+                        <td style="border:1px solid #cbd5e1; text-align:right; font-style:italic;">{{ $rp($items->sum('amount')) }}</td>
+                    </tr>
+                @endforeach
+            @else
+                @foreach ($project->costs as $cost)
+                    <tr>
+                        <td style="border:1px solid #cbd5e1;">{{ ++$no }}</td>
+                        <td style="border:1px solid #cbd5e1;">{{ $cost->product?->name ?: ($cost->description ?: '—') }} ({{ $costLabels[$cost->type] ?? $cost->type }})</td>
+                        <td style="border:1px solid #cbd5e1; text-align:right;">{{ $qtyFmt($cost->quantity) }}</td>
+                        <td style="border:1px solid #cbd5e1;">{{ $cost->unit ?: '—' }}</td>
+                        <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->unit_cost) }}</td>
+                        <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($cost->amount) }}</td>
+                    </tr>
+                @endforeach
+            @endif
         </tbody>
         <tfoot>
             <tr>
@@ -81,6 +102,12 @@
             <tr>
                 <td colspan="5" style="border:1px solid #cbd5e1; text-align:right;">PPN ({{ rtrim(rtrim(number_format((float) $project->tax_percent, 2, ',', '.'), '0'), ',') }}%)</td>
                 <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($project->taxAmount()) }}</td>
+            </tr>
+            @endif
+            @if ($project->roundingAmount() != 0)
+            <tr>
+                <td colspan="5" style="border:1px solid #cbd5e1; text-align:right;">Pembulatan</td>
+                <td style="border:1px solid #cbd5e1; text-align:right;">{{ $rp($project->roundingAmount()) }}</td>
             </tr>
             @endif
             <tr style="background:#eef2ff;">

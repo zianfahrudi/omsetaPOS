@@ -291,6 +291,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::post('payroll/bulk/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'bulkApprove'])->name('payrolls.bulk.approve');
         Route::post('payroll/bulk/bayar', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'bulkPay'])->name('payrolls.bulk.pay');
         Route::get('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'show'])->name('payrolls.show');
+        Route::get('payroll/{payroll}/slip/cetak', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'slipPrint'])->name('payrolls.slip.print');
         Route::post('payroll/{payroll}/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'approve'])->name('payrolls.approve');
         Route::post('payroll/{payroll}/paid', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'markPaid'])->name('payrolls.paid');
         Route::post('payroll/{payroll}/sisa-gaji', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'updateCarryOver'])->name('payrolls.carryover');

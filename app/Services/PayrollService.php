@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\ArisanContribution;
+use App\Models\ArisanPeriod;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\EmployeeBonus;
@@ -72,12 +74,19 @@ class PayrollService
             ->whereDate('date', '<=', $end)
             ->sum('amount');
 
-        // Catatan: iuran ARISAN tidak lagi dipotong di payroll. Iuran arisan
-        // dikelola sepenuhnya oleh modul Arisan (kelompok/periode/iuran sendiri),
-        // sehingga rekap gaji tidak terkait dengan arisan.
+        // Iuran arisan: kontribusi pending yang jatuh dalam periode ini (modul
+        // Arisan yang menjadwalkan via openPeriod). Dipotong di payroll lalu
+        // ditandai paid + di-link ke payroll saat dibayar (markPaid).
+        $arisan = (float) ArisanContribution::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'pending')
+            ->whereDate('contribution_date', '>=', $start)
+            ->whereDate('contribution_date', '<=', $end)
+            ->sum('amount');
+
         $savings = (float) $employee->savings->where('active', true)->sum('amount');
 
-        $thp = round($gross + $bonus + $carryOver - $loan - $deduction - $savings, 2);
+        $thp = round($gross + $bonus + $carryOver - $loan - $deduction - $arisan - $savings, 2);
 
         return [
             'total_hours' => $hours,
@@ -85,7 +94,7 @@ class PayrollService
             'total_bonus' => round($bonus, 2),
             'total_loan' => round($loan, 2),
             'total_deduction' => round($deduction, 2),
-            'total_arisan' => 0.0,
+            'total_arisan' => round($arisan, 2),
             'total_savings' => round($savings, 2),
             'carry_over' => round($carryOver, 2),
             'take_home_pay' => $thp,
@@ -171,6 +180,27 @@ class PayrollService
                         'note' => 'Setoran dari payroll '.$payroll->period_start->format('d/m/Y').'–'.$payroll->period_end->format('d/m/Y'),
                     ],
                 );
+            }
+
+            // Tandai iuran arisan periode ini sebagai terkumpul + link ke payroll.
+            $contributions = ArisanContribution::query()
+                ->where('employee_id', $payroll->employee_id)
+                ->where('status', 'pending')
+                ->whereDate('contribution_date', '>=', $payroll->period_start)
+                ->whereDate('contribution_date', '<=', $payroll->period_end)
+                ->get();
+
+            $touchedPeriods = [];
+            foreach ($contributions as $contribution) {
+                $contribution->update(['status' => 'paid', 'payroll_id' => $payroll->id]);
+                $touchedPeriods[$contribution->arisan_period_id] = true;
+            }
+            foreach (array_keys($touchedPeriods) as $periodId) {
+                $period = ArisanPeriod::find($periodId);
+                if ($period) {
+                    $total = (float) $period->contributions()->where('status', 'paid')->sum('amount');
+                    $period->update(['total_collected' => round($total, 2)]);
+                }
             }
         });
     }

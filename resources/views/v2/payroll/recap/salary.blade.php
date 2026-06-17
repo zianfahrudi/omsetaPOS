@@ -40,6 +40,7 @@
                         <th class="px-4 py-3 text-right font-medium">Bonus</th>
                         <th class="px-4 py-3 text-right font-medium">Bon</th>
                         <th class="px-4 py-3 text-right font-medium">Potongan</th>
+                        <th class="px-4 py-3 text-right font-medium">Arisan</th>
                         <th class="px-4 py-3 text-right font-medium">Tabungan</th>
                         <th class="px-4 py-3 text-right font-medium">Take Home Pay</th>
                         <th class="px-4 py-3 text-center font-medium">Status</th>
@@ -54,12 +55,13 @@
                             <td class="px-4 py-3 text-right text-emerald-600">{{ $rp($p->total_bonus) }}</td>
                             <td class="px-4 py-3 text-right text-rose-600">{{ $rp($p->total_loan) }}</td>
                             <td class="px-4 py-3 text-right text-rose-600">{{ $rp($p->total_deduction) }}</td>
+                            <td class="px-4 py-3 text-right text-rose-600">{{ $rp($p->total_arisan) }}</td>
                             <td class="px-4 py-3 text-right text-slate-600">{{ $rp($p->total_savings) }}</td>
                             <td class="px-4 py-3 text-right font-bold text-indigo-600">{{ $rp($p->take_home_pay) }}</td>
                             <td class="px-4 py-3 text-center"><span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{{ ucfirst($p->status) }}</span></td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">Belum ada payroll untuk periode ini. Generate dulu di menu <a href="{{ route('v2.payrolls.index') }}" class="text-indigo-600 hover:underline">Generate Payroll</a>.</td></tr>
+                        <tr><td colspan="10" class="px-4 py-10 text-center text-slate-400">Belum ada payroll untuk periode ini. Generate dulu di menu <a href="{{ route('v2.payrolls.index') }}" class="text-indigo-600 hover:underline">Generate Payroll</a>.</td></tr>
                     @endforelse
                 </tbody>
                 @if ($payrolls->isNotEmpty())
@@ -71,6 +73,7 @@
                             <td class="px-4 py-3 text-right text-emerald-700">{{ $rp($totals['total_bonus']) }}</td>
                             <td class="px-4 py-3 text-right text-rose-700">{{ $rp($totals['total_loan']) }}</td>
                             <td class="px-4 py-3 text-right text-rose-700">{{ $rp($totals['total_deduction']) }}</td>
+                            <td class="px-4 py-3 text-right text-rose-700">{{ $rp($totals['total_arisan']) }}</td>
                             <td class="px-4 py-3 text-right">{{ $rp($totals['total_savings']) }}</td>
                             <td class="px-4 py-3 text-right text-indigo-700">{{ $rp($totals['take_home_pay']) }}</td>
                             <td></td>

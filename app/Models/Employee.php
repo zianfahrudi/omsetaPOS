@@ -86,6 +86,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeArisan::class);
     }
 
+    public function arisanMemberships(): HasMany
+    {
+        return $this->hasMany(ArisanMember::class);
+    }
+
     public function savings(): HasMany
     {
         return $this->hasMany(EmployeeSaving::class);

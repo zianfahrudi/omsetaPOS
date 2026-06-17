@@ -67,6 +67,7 @@ class EmployeeController extends Controller
             'workItems' => fn ($q) => $q->latest('date'),
             'savingEntries' => fn ($q) => $q->latest('date')->latest('id'),
             'arisan',
+            'arisanMemberships' => fn ($q) => $q->with('group'),
             'savings',
             'attendances' => fn ($q) => $q->latest('work_date')->limit(30),
             'schedules' => fn ($q) => $q->with('shift')->latest('work_date')->limit(30),

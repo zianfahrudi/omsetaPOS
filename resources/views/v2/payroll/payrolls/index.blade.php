@@ -6,7 +6,7 @@
     $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.');
     $statusBadge = ['draft' => 'bg-slate-100 text-slate-600', 'approved' => 'bg-amber-50 text-amber-700', 'paid' => 'bg-emerald-50 text-emerald-700'];
     $statusLabel = ['draft' => 'Draft', 'approved' => 'Disetujui', 'paid' => 'Dibayar'];
-    $totalDeduction = $totals['total_loan'] + $totals['total_deduction'] + $totals['total_savings'];
+    $totalDeduction = $totals['total_loan'] + $totals['total_deduction'] + $totals['total_arisan'] + $totals['total_savings'];
     $input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500';
     // Field tersembunyi periode, diteruskan ke setiap aksi (generate/approve/bayar).
     $periodFields = [
@@ -98,7 +98,7 @@
         <div class="rounded-2xl border border-slate-200 bg-white p-5">
             <p class="text-xs font-medium text-slate-500">Total Potongan</p>
             <p class="mt-1 text-xl font-bold text-rose-600">{{ $rp($totalDeduction) }}</p>
-            <p class="mt-0.5 text-xs text-slate-400">kasbon + potongan + tabungan</p>
+            <p class="mt-0.5 text-xs text-slate-400">kasbon + potongan + arisan + tabungan</p>
         </div>
         <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
             <p class="text-xs font-medium text-indigo-500">Total Take Home Pay</p>
@@ -134,7 +134,7 @@
                 </thead>
                 <tbody>
                     @forelse ($payrolls as $p)
-                        @php $deduction = (float) $p->total_loan + (float) $p->total_deduction + (float) $p->total_savings; @endphp
+                        @php $deduction = (float) $p->total_loan + (float) $p->total_deduction + (float) $p->total_arisan + (float) $p->total_savings; @endphp
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="px-4 py-3">
                                 <a href="{{ route('v2.payrolls.show', $p) }}" class="font-medium text-slate-800 hover:text-indigo-600">{{ $p->employee?->name }}</a>
@@ -149,6 +149,11 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
                                     <a href="{{ route('v2.payrolls.show', $p) }}" class="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50">Slip</a>
+                                    @php $waUrl = $p->whatsappUrl($companyName ?? null); @endphp
+                                    @if ($waUrl)
+                                        <a href="{{ $waUrl }}" target="_blank" class="rounded-md px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50" title="Kirim slip via WhatsApp">WA</a>
+                                    @endif
+                                    <a href="{{ route('v2.payrolls.slip.print', $p) }}" target="_blank" class="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100" title="Cetak slip">🖨️</a>
                                     @if ($p->status === 'draft')
                                         <form method="POST" action="{{ route('v2.payrolls.approve', $p) }}">@csrf<button class="rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100">Setujui</button></form>
                                     @endif

@@ -34,7 +34,7 @@
             <thead>
                 <tr>
                     <th>No</th><th>Karyawan</th><th class="num">Jam</th><th class="num">Gaji Kotor</th>
-                    <th class="num">Bonus</th><th class="num">Bon</th><th class="num">Potongan</th><th class="num">Tabungan</th><th class="num">Take Home Pay</th>
+                    <th class="num">Bonus</th><th class="num">Bon</th><th class="num">Potongan</th><th class="num">Arisan</th><th class="num">Tabungan</th><th class="num">Take Home Pay</th>
                 </tr>
             </thead>
             <tbody>
@@ -47,11 +47,12 @@
                         <td class="num">{{ $rp($p->total_bonus) }}</td>
                         <td class="num">{{ $rp($p->total_loan) }}</td>
                         <td class="num">{{ $rp($p->total_deduction) }}</td>
+                        <td class="num">{{ $rp($p->total_arisan) }}</td>
                         <td class="num">{{ $rp($p->total_savings) }}</td>
                         <td class="num">{{ $rp($p->take_home_pay) }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" style="text-align:center;padding:24px;color:#94a3b8;">Belum ada payroll untuk periode ini.</td></tr>
+                    <tr><td colspan="10" style="text-align:center;padding:24px;color:#94a3b8;">Belum ada payroll untuk periode ini.</td></tr>
                 @endforelse
             </tbody>
             @if ($payrolls->isNotEmpty())
@@ -63,6 +64,7 @@
                         <td class="num">{{ $rp($totals['total_bonus']) }}</td>
                         <td class="num">{{ $rp($totals['total_loan']) }}</td>
                         <td class="num">{{ $rp($totals['total_deduction']) }}</td>
+                        <td class="num">{{ $rp($totals['total_arisan']) }}</td>
                         <td class="num">{{ $rp($totals['total_savings']) }}</td>
                         <td class="num">{{ $rp($totals['take_home_pay']) }}</td>
                     </tr>

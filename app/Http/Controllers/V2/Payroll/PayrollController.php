@@ -47,6 +47,7 @@ class PayrollController extends Controller
             'totals' => $totals,
             'period' => $period,
             'periodLabel' => $period['label'],
+            'companyName' => Company::query()->value('name'),
             'activeEmployees' => $activeEmployees,
             'draftCount' => $payrolls->where('status', 'draft')->count(),
             'approvedCount' => $payrolls->where('status', 'approved')->count(),
@@ -103,7 +104,21 @@ class PayrollController extends Controller
         abort_unless($payroll->company_id === $this->companyId(), 403);
         $payroll->load('employee');
 
-        return view('v2.payroll.payrolls.show', ['payroll' => $payroll]);
+        return view('v2.payroll.payrolls.show', [
+            'payroll' => $payroll,
+            'companyName' => Company::query()->value('name'),
+        ]);
+    }
+
+    public function slipPrint(Payroll $payroll): View
+    {
+        abort_unless($payroll->company_id === $this->companyId(), 403);
+        $payroll->load('employee');
+
+        return view('v2.payroll.payrolls.slip-print', [
+            'payroll' => $payroll,
+            'company' => Company::query()->first(),
+        ]);
     }
 
     public function approve(Payroll $payroll): RedirectResponse
@@ -143,6 +158,7 @@ class PayrollController extends Controller
                 + $carry
                 - (float) $payroll->total_loan
                 - (float) $payroll->total_deduction
+                - (float) $payroll->total_arisan
                 - (float) $payroll->total_savings,
                 2
             ),

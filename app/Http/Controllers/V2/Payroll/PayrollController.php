@@ -3,114 +3,99 @@
 namespace App\Http\Controllers\V2\Payroll;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
 use App\Models\Company;
 use App\Models\Employee;
-use App\Models\EmployeeBonus;
-use App\Models\EmployeeLoan;
 use App\Models\Payroll;
+use App\Services\PayrollService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class PayrollController extends Controller
 {
+    public function __construct(private readonly PayrollService $service) {}
+
     public function index(Request $request): View
     {
+        [$month, $start, $end, $label] = $this->period($request);
+        $companyId = $this->companyId();
+
         $payrolls = Payroll::query()
             ->with('employee')
-            ->where('company_id', $this->companyId())
-            ->orderByDesc('period_start')
-            ->orderBy('id')
-            ->paginate(20)
-            ->withQueryString();
+            ->where('company_id', $companyId)
+            ->whereDate('period_start', $start)
+            ->whereDate('period_end', $end)
+            ->get()
+            ->sortBy(fn (Payroll $p) => $p->employee?->name)
+            ->values();
+
+        $activeEmployees = Employee::query()->where('company_id', $companyId)->where('is_active', true)->count();
+
+        $totals = [
+            'gross_salary' => (float) $payrolls->sum('gross_salary'),
+            'total_bonus' => (float) $payrolls->sum('total_bonus'),
+            'total_loan' => (float) $payrolls->sum('total_loan'),
+            'total_arisan' => (float) $payrolls->sum('total_arisan'),
+            'total_savings' => (float) $payrolls->sum('total_savings'),
+            'take_home_pay' => (float) $payrolls->sum('take_home_pay'),
+        ];
 
         return view('v2.payroll.payrolls.index', [
             'payrolls' => $payrolls,
-            'defaultStart' => now()->startOfMonth()->toDateString(),
-            'defaultEnd' => now()->endOfMonth()->toDateString(),
+            'totals' => $totals,
+            'month' => $month,
+            'periodLabel' => $label,
+            'activeEmployees' => $activeEmployees,
+            'draftCount' => $payrolls->where('status', 'draft')->count(),
+            'approvedCount' => $payrolls->where('status', 'approved')->count(),
+            'paidCount' => $payrolls->where('status', 'paid')->count(),
         ]);
     }
 
     public function generate(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'period_start' => ['required', 'date'],
-            'period_end' => ['required', 'date', 'after_or_equal:period_start'],
-        ]);
+        $request->validate(['month' => ['nullable', 'date_format:Y-m']]);
+        [$month, $start, $end] = $this->period($request);
 
-        $companyId = $this->companyId();
-        $start = $data['period_start'];
-        $end = $data['period_end'];
+        $result = $this->service->generateForPeriod($this->companyId(), $start, $end);
 
-        $employees = Employee::query()
-            ->where('company_id', $companyId)
-            ->where('is_active', true)
-            ->with(['arisan', 'savings'])
-            ->get();
-
-        $count = 0;
-        foreach ($employees as $employee) {
-            $existing = Payroll::query()
-                ->where('company_id', $companyId)
-                ->where('employee_id', $employee->id)
-                ->where('period_start', $start)
-                ->where('period_end', $end)
-                ->first();
-
-            // Jangan timpa payroll yang sudah dibayar.
-            if ($existing && $existing->status === 'paid') {
-                continue;
-            }
-
-            $attendances = Attendance::query()
-                ->where('employee_id', $employee->id)
-                ->whereDate('work_date', '>=', $start)
-                ->whereDate('work_date', '<=', $end)
-                ->get();
-
-            $hours = round($attendances->sum(fn (Attendance $a) => $a->payableHours()), 2);
-            $gross = round($hours * (float) $employee->hourly_rate, 2);
-
-            $bonus = (float) EmployeeBonus::query()
-                ->where('employee_id', $employee->id)
-                ->whereDate('date', '>=', $start)
-                ->whereDate('date', '<=', $end)
-                ->sum('amount');
-
-            $loan = (float) EmployeeLoan::query()
-                ->where('employee_id', $employee->id)
-                ->where('status', 'pending')
-                ->whereDate('date', '<=', $end)
-                ->sum('amount');
-
-            $arisan = (float) $employee->arisan->where('active', true)->sum('amount');
-            $savings = (float) $employee->savings->where('active', true)->sum('amount');
-
-            $thp = round($gross + $bonus - $loan - $arisan - $savings, 2);
-
-            Payroll::updateOrCreate(
-                [
-                    'company_id' => $companyId,
-                    'employee_id' => $employee->id,
-                    'period_start' => $start,
-                    'period_end' => $end,
-                ],
-                [
-                    'total_hours' => $hours,
-                    'gross_salary' => $gross,
-                    'total_bonus' => $bonus,
-                    'total_loan' => $loan,
-                    'total_arisan' => $arisan,
-                    'total_savings' => $savings,
-                    'take_home_pay' => $thp,
-                    'status' => 'draft',
-                ],
-            );
-            $count++;
+        $msg = "Payroll digenerate untuk {$result['generated']} karyawan.";
+        if ($result['skipped'] > 0) {
+            $msg .= " {$result['skipped']} sudah dibayar (dilewati).";
         }
 
-        return redirect()->route('v2.payrolls.index')->with('status', "Payroll digenerate untuk {$count} karyawan periode {$start} s/d {$end}.");
+        return redirect()->route('v2.payrolls.index', ['month' => $month])->with('status', $msg);
+    }
+
+    public function bulkApprove(Request $request): RedirectResponse
+    {
+        [$month, $start, $end] = $this->period($request);
+
+        $n = Payroll::query()
+            ->where('company_id', $this->companyId())
+            ->whereDate('period_start', $start)->whereDate('period_end', $end)
+            ->where('status', 'draft')
+            ->update(['status' => 'approved']);
+
+        return redirect()->route('v2.payrolls.index', ['month' => $month])->with('status', "{$n} payroll disetujui.");
+    }
+
+    public function bulkPay(Request $request): RedirectResponse
+    {
+        [$month, $start, $end] = $this->period($request);
+
+        $payrolls = Payroll::query()
+            ->where('company_id', $this->companyId())
+            ->whereDate('period_start', $start)->whereDate('period_end', $end)
+            ->where('status', 'approved')
+            ->get();
+
+        foreach ($payrolls as $payroll) {
+            $this->service->markPaid($payroll);
+        }
+
+        return redirect()->route('v2.payrolls.index', ['month' => $month])->with('status', count($payrolls).' payroll ditandai dibayar.');
     }
 
     public function show(Payroll $payroll): View
@@ -134,15 +119,7 @@ class PayrollController extends Controller
     public function markPaid(Payroll $payroll): RedirectResponse
     {
         abort_unless($payroll->company_id === $this->companyId(), 403);
-        if ($payroll->status !== 'paid') {
-            $payroll->update(['status' => 'paid']);
-            // Tandai kasbon yang dipotong sebagai 'deducted'.
-            EmployeeLoan::query()
-                ->where('employee_id', $payroll->employee_id)
-                ->where('status', 'pending')
-                ->whereDate('date', '<=', $payroll->period_end)
-                ->update(['status' => 'deducted']);
-        }
+        $this->service->markPaid($payroll);
 
         return back()->with('status', 'Payroll ditandai sudah dibayar.');
     }
@@ -150,9 +127,26 @@ class PayrollController extends Controller
     public function destroy(Payroll $payroll): RedirectResponse
     {
         abort_unless($payroll->company_id === $this->companyId(), 403);
+        $month = $payroll->period_start?->format('Y-m');
         $payroll->delete();
 
-        return redirect()->route('v2.payrolls.index')->with('status', 'Payroll dihapus.');
+        return redirect()->route('v2.payrolls.index', ['month' => $month])->with('status', 'Payroll dihapus.');
+    }
+
+    /**
+     * @return array{0:string,1:string,2:string,3:string} [month, start, end, label]
+     */
+    private function period(Request $request): array
+    {
+        $month = $request->string('month')->value() ?: now()->format('Y-m');
+        $p = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+
+        return [
+            $month,
+            $p->copy()->startOfMonth()->toDateString(),
+            $p->copy()->endOfMonth()->toDateString(),
+            $p->translatedFormat('F Y'),
+        ];
     }
 
     private function companyId(): ?int

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rekap Gaji · {{ $periodLabel }}</title>
+    @php $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.'); @endphp
+    <style>
+        body { margin:0; background:#f1f5f9; font-family:Arial, sans-serif; color:#0f172a; }
+        .toolbar { position:sticky; top:0; display:flex; gap:8px; align-items:center; background:#fff; border-bottom:1px solid #e2e8f0; padding:12px 16px; }
+        .toolbar button, .toolbar a { font:500 13px Arial; border-radius:8px; padding:8px 14px; cursor:pointer; text-decoration:none; border:1px solid transparent; }
+        .btn-print { background:#4f46e5; color:#fff; }
+        .btn-back { background:#f1f5f9; color:#475569; }
+        .sheet { max-width:1000px; margin:20px auto; background:#fff; padding:32px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+        h1 { font-size:18px; margin:0 0 2px; }
+        .sub { color:#64748b; font-size:13px; margin:0 0 16px; }
+        table { width:100%; border-collapse:collapse; font-size:12px; }
+        th, td { border:1px solid #cbd5e1; padding:6px 8px; }
+        thead th { background:#f1f5f9; text-align:left; }
+        .num { text-align:right; }
+        tfoot td { font-weight:bold; background:#f8fafc; }
+        @media print { .toolbar { display:none; } body { background:#fff; } .sheet { box-shadow:none; margin:0; max-width:none; padding:0; } }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button class="btn-print" onclick="window.print()">🖨️ Cetak / PDF</button>
+        <a class="btn-back" href="{{ route('v2.payrolls.recap.salary', ['month' => $month, 'employee_id' => $employeeId]) }}">← Kembali</a>
+    </div>
+    <div class="sheet">
+        <h1>Rekap Gaji Karyawan</h1>
+        <p class="sub">{{ $company?->name }} — Periode {{ $periodLabel }}</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th><th>Karyawan</th><th class="num">Jam</th><th class="num">Gaji Kotor</th>
+                    <th class="num">Bonus</th><th class="num">Arisan</th><th class="num">Tabungan</th><th class="num">Take Home Pay</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($payrolls as $i => $p)
+                    <tr>
+                        <td>{{ $i + 1 }}</td>
+                        <td>{{ $p->employee?->name ?? '—' }} @if($p->employee?->code)({{ $p->employee->code }})@endif</td>
+                        <td class="num">{{ number_format($p->total_hours, 1) }}</td>
+                        <td class="num">{{ $rp($p->gross_salary) }}</td>
+                        <td class="num">{{ $rp($p->total_bonus) }}</td>
+                        <td class="num">{{ $rp($p->total_arisan) }}</td>
+                        <td class="num">{{ $rp($p->total_savings) }}</td>
+                        <td class="num">{{ $rp($p->take_home_pay) }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="8" style="text-align:center;padding:24px;color:#94a3b8;">Belum ada payroll untuk periode ini.</td></tr>
+                @endforelse
+            </tbody>
+            @if ($payrolls->isNotEmpty())
+                <tfoot>
+                    <tr>
+                        <td colspan="2">TOTAL</td>
+                        <td class="num">{{ number_format($totals['total_hours'], 1) }}</td>
+                        <td class="num">{{ $rp($totals['gross_salary']) }}</td>
+                        <td class="num">{{ $rp($totals['total_bonus']) }}</td>
+                        <td class="num">{{ $rp($totals['total_arisan']) }}</td>
+                        <td class="num">{{ $rp($totals['total_savings']) }}</td>
+                        <td class="num">{{ $rp($totals['take_home_pay']) }}</td>
+                    </tr>
+                </tfoot>
+            @endif
+        </table>
+    </div>
+</body>
+</html>

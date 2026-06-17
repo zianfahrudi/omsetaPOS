@@ -279,10 +279,18 @@ Route::prefix('app')->name('v2.')->group(function () {
         // Payroll
         Route::get('payroll/list', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'index'])->name('payrolls.index');
         Route::post('payroll/generate', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'generate'])->name('payrolls.generate');
+        Route::post('payroll/bulk/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'bulkApprove'])->name('payrolls.bulk.approve');
+        Route::post('payroll/bulk/bayar', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'bulkPay'])->name('payrolls.bulk.pay');
         Route::get('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'show'])->name('payrolls.show');
         Route::post('payroll/{payroll}/approve', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'approve'])->name('payrolls.approve');
         Route::post('payroll/{payroll}/paid', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'markPaid'])->name('payrolls.paid');
         Route::delete('payroll/{payroll}', [\App\Http\Controllers\V2\Payroll\PayrollController::class, 'destroy'])->name('payrolls.destroy');
+
+        // Rekap bulanan: gaji & bon (kasbon) dipisah
+        Route::get('payroll/rekap/gaji', [\App\Http\Controllers\V2\Payroll\PayrollRecapController::class, 'salary'])->name('payrolls.recap.salary');
+        Route::get('payroll/rekap/gaji/cetak', [\App\Http\Controllers\V2\Payroll\PayrollRecapController::class, 'salaryPrint'])->name('payrolls.recap.salary.print');
+        Route::get('payroll/rekap/bon', [\App\Http\Controllers\V2\Payroll\PayrollRecapController::class, 'loan'])->name('payrolls.recap.loan');
+        Route::get('payroll/rekap/bon/cetak', [\App\Http\Controllers\V2\Payroll\PayrollRecapController::class, 'loanPrint'])->name('payrolls.recap.loan.print');
 
         // ═══════════ Arisan Karyawan ═══════════
         Route::get('arisan', [\App\Http\Controllers\V2\ArisanController::class, 'dashboard'])->name('arisan.dashboard');

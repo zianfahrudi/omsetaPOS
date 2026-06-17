@@ -68,8 +68,10 @@ class V2AssemblyTest extends TestCase
         $resp->assertRedirect(route('v2.inventory.assemblies'));
 
         $assembly = Assembly::query()->firstOrFail();
-        $this->assertNull($assembly->product_id);
-        $this->assertSame('Etalase Kaca Custom', $assembly->product_name);
+        $this->assertNotNull($assembly->product_id);
+        $product = Product::findOrFail($assembly->product_id);
+        $this->assertSame('Etalase Kaca Custom', $product->name);
+        $this->assertSame('400000.00', (string) $product->cost_price);
         $this->assertSame('400000.00', (string) $assembly->total_cost);
     }
 }

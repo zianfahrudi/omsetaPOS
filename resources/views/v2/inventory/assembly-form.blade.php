@@ -30,7 +30,7 @@
                         @endforeach
                     </select>
                     <input type="text" name="product_name" x-show="finishedMode === 'manual'" x-cloak value="{{ old('product_name') }}" class="{{ $input }}" placeholder="Nama produk jadi (mis: Kusen Aluminium 2 Pintu)">
-                    <p x-show="finishedMode === 'manual'" x-cloak class="mt-1 text-xs text-slate-400">Manual: hanya dicatat sebagai biaya produksi, stok produk tidak bertambah.</p>
+                    <p x-show="finishedMode === 'manual'" x-cloak class="mt-1 text-xs text-slate-400">Produk baru otomatis dibuat di Master Produk, stok bertambah, harga modal = biaya material.</p>
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Jumlah Dirakit</label>

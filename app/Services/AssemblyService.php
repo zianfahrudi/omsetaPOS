@@ -110,15 +110,36 @@ class AssemblyService
             }
 
             $totalCost = round($totalCost, 2);
+            $unitCost = $quantity > 0 ? round($totalCost / $quantity, 2) : $totalCost;
 
-            // Produk jadi dari master produk → tambah stok + HPP rata-rata tertimbang.
+            // Produk jadi manual → buat produk baru di master (HPP = biaya material).
+            if (! $finished && filled($finishedProductName)) {
+                $store = \App\Models\Store::query()->where('company_id', $company->id)->orderBy('id')->first();
+                if ($store) {
+                    $finished = Product::create([
+                        'store_id' => $store->id,
+                        'name' => $finishedProductName,
+                        'sku' => 'ASM-'.str_replace('/', '-', $assembly->number),
+                        'product_type' => 'goods',
+                        'cost_price' => $unitCost,
+                        'sell_price' => 0,
+                        'stock' => 0,
+                        'minimum_stock' => 0,
+                        'unit' => 'pcs',
+                        'is_active' => true,
+                    ]);
+                    $assembly->forceFill(['product_id' => $finished->id, 'product_name' => null])->save();
+                }
+            }
+
+            // Produk jadi (dari master / baru dibuat) → tambah stok + HPP rata-rata tertimbang.
             if ($finished) {
                 $oldStock = (int) $finished->stock;
                 $oldCost = (float) $finished->cost_price;
                 $newStock = $oldStock + $quantity;
                 $newCost = $newStock > 0
                     ? round((($oldStock * $oldCost) + $totalCost) / $newStock, 2)
-                    : round($totalCost / $quantity, 2);
+                    : $unitCost;
 
                 $finished->forceFill(['stock' => $newStock, 'cost_price' => $newCost])->save();
                 $this->warehouse->adjustDefault($finished, $quantity);
@@ -140,7 +161,7 @@ class AssemblyService
             $assembly->forceFill(['total_cost' => $totalCost])->save();
 
             // Jurnal: pindahkan nilai dari Persediaan Bahan ke Persediaan Barang
-            // (produk jadi) atau ke HPP (produk jadi manual).
+            // (produk jadi) atau ke HPP (tanpa produk sama sekali).
             if ($totalCost > 0) {
                 $materialInv = $company->account('material_inventory') ?? $company->account('inventory');
                 $debitAcc = $finished

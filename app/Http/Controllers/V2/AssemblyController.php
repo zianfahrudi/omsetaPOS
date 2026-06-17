@@ -5,6 +5,7 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\Assembly;
 use App\Models\Company;
+use App\Models\Material;
 use App\Models\Product;
 use App\Services\AssemblyService;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +34,7 @@ class AssemblyController extends Controller
     {
         return view('v2.inventory.assembly-form', [
             'products' => $this->products(),
+            'materials' => $this->materials(),
         ]);
     }
 
@@ -42,28 +44,36 @@ class AssemblyController extends Controller
         abort_unless($company, 404);
 
         $data = $request->validate([
-            'product_id' => ['required', 'integer'],
+            'product_id' => ['nullable', 'integer'],
+            'product_name' => ['nullable', 'string', 'max:255'],
             'quantity' => ['required', 'integer', 'min:1'],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
             'components' => ['required', 'array', 'min:1'],
-            'components.*.product_id' => ['nullable', 'integer'],
+            'components.*.material_id' => ['nullable', 'integer'],
             'components.*.quantity' => ['required', 'numeric', 'min:0'],
         ]);
 
+        if (empty($data['product_id']) && blank($data['product_name'] ?? null)) {
+            return back()->withInput()->withErrors(['product_name' => 'Pilih produk jadi atau isi nama manual.']);
+        }
+
         $components = collect($data['components'])
-            ->filter(fn ($c) => ! empty($c['product_id']) && (float) ($c['quantity'] ?? 0) > 0)
-            ->map(fn ($c) => ['product_id' => (int) $c['product_id'], 'quantity' => (int) $c['quantity']])
+            ->filter(fn ($c) => ! empty($c['material_id']) && (float) ($c['quantity'] ?? 0) > 0)
+            ->map(fn ($c) => ['material_id' => (int) $c['material_id'], 'quantity' => (int) $c['quantity']])
             ->values()->all();
 
         if ($components === []) {
-            return back()->withInput()->withErrors(['components' => 'Pilih minimal 1 komponen.']);
+            return back()->withInput()->withErrors(['components' => 'Pilih minimal 1 komponen material.']);
         }
+
+        $productId = $data['product_id'] ?? null;
 
         try {
             $service->create(
                 company: $company,
-                finishedProductId: (int) $data['product_id'],
+                finishedProductId: $productId ? (int) $productId : null,
+                finishedProductName: $data['product_name'] ?? null,
                 quantity: (int) $data['quantity'],
                 components: $components,
                 date: $data['date'],
@@ -95,6 +105,19 @@ class AssemblyController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'stock', 'cost_price'])
             ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'stock' => (int) $p->stock, 'cost' => (float) $p->cost_price])
+            ->values();
+    }
+
+    private function materials()
+    {
+        $company = Company::query()->first();
+
+        return Material::query()
+            ->when($company, fn ($q) => $q->where('company_id', $company->id))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit', 'price'])
+            ->map(fn (Material $m) => ['id' => $m->id, 'name' => $m->name, 'unit' => (string) ($m->unit ?? ''), 'cost' => (float) $m->price, 'stock' => (float) $m->stock])
             ->values();
     }
 }

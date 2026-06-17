@@ -6,6 +6,7 @@ use App\Filament\Resources\Assemblies\Pages\CreateAssembly;
 use App\Filament\Resources\Assemblies\Pages\ListAssemblies;
 use App\Models\Assembly;
 use App\Models\Company;
+use App\Models\Material;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -31,7 +32,7 @@ class AssemblyFilamentTest extends TestCase
             'company_id' => $company->id, 'owner_id' => $admin->id,
             'name' => 'Toko', 'code' => 'T-1', 'is_active' => true,
         ]);
-        $comp = Product::create(['store_id' => $store->id, 'name' => 'Komponen', 'sku' => 'C', 'cost_price' => 4000, 'sell_price' => 0, 'stock' => 20, 'product_type' => 'goods', 'is_active' => true]);
+        $material = Material::create(['company_id' => $company->id, 'name' => 'Material', 'unit' => 'btg', 'price' => 4000, 'stock' => 100, 'is_active' => true]);
         $finished = Product::create(['store_id' => $store->id, 'name' => 'Produk Jadi', 'sku' => 'F', 'cost_price' => 0, 'sell_price' => 15000, 'stock' => 0, 'product_type' => 'goods', 'is_active' => true]);
 
         $this->actingAs($admin);
@@ -45,7 +46,7 @@ class AssemblyFilamentTest extends TestCase
                 'product_id' => $finished->id,
                 'quantity' => 5,
                 'components' => [
-                    ['product_id' => $comp->id, 'quantity' => 10],
+                    ['material_id' => $material->id, 'quantity' => 10],
                 ],
             ])
             ->call('create')
@@ -53,6 +54,7 @@ class AssemblyFilamentTest extends TestCase
 
         $this->assertSame(1, Assembly::where('company_id', $company->id)->count());
         $this->assertSame(5, $finished->refresh()->stock);
-        $this->assertSame(10, $comp->refresh()->stock);
+        // 10 x 4.000 = 40.000
+        $this->assertSame('40000.00', (string) Assembly::where('company_id', $company->id)->first()->total_cost);
     }
 }

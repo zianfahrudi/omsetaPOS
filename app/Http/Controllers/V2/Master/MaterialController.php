@@ -21,12 +21,15 @@ class MaterialController extends SimpleCrudController
     protected function indexColumns(): array
     {
         $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.');
+        $qty = fn ($v) => rtrim(rtrim(number_format((float) $v, 2, ',', '.'), '0'), ',');
 
         return [
             'Material' => fn (Model $m) => e($m->name),
             'Kategori' => fn (Model $m) => e($m->category ?: '—'),
             'Satuan' => fn (Model $m) => e($m->unit ?: '—'),
             'Harga' => fn (Model $m) => $rp($m->price),
+            'Stok' => fn (Model $m) => $qty($m->stock),
+            'Nilai' => fn (Model $m) => $rp($m->stockValue()),
         ];
     }
 

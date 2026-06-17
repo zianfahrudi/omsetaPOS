@@ -106,6 +106,13 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         Route::get('pembelian/hutang', [\App\Http\Controllers\V2\PurchaseController::class, 'payables'])->name('purchase.payables');
 
+        // Belanja Bahan (pembelian material)
+        Route::get('pembelian/bahan', [\App\Http\Controllers\V2\MaterialPurchaseController::class, 'index'])->name('purchase.materials');
+        Route::get('pembelian/bahan/baru', [\App\Http\Controllers\V2\MaterialPurchaseController::class, 'create'])->name('purchase.materials.create');
+        Route::get('pembelian/bahan/kartu-stok', [\App\Http\Controllers\V2\MaterialPurchaseController::class, 'stockCard'])->name('purchase.materials.stock-card');
+        Route::post('pembelian/bahan', [\App\Http\Controllers\V2\MaterialPurchaseController::class, 'store'])->name('purchase.materials.store');
+        Route::get('pembelian/bahan/{id}', [\App\Http\Controllers\V2\MaterialPurchaseController::class, 'show'])->name('purchase.materials.show');
+
         // Persediaan
         Route::get('persediaan/penyesuaian', [\App\Http\Controllers\V2\InventoryController::class, 'adjustments'])->name('inventory.adjustments');
         Route::get('persediaan/penyesuaian/baru', [\App\Http\Controllers\V2\InventoryController::class, 'adjustmentCreate'])->name('inventory.adjustments.create');

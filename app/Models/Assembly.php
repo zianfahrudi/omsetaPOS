@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'company_id',
     'product_id',
+    'product_name',
     'number',
     'date',
     'quantity',
@@ -36,6 +37,14 @@ class Assembly extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Nama produk jadi: dari master produk bila ada, jika tidak pakai isian manual.
+     */
+    public function finishedName(): string
+    {
+        return $this->product?->name ?: ($this->product_name ?: '—');
     }
 
     public function components(): HasMany

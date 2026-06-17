@@ -14,7 +14,7 @@
         </div>
 
         <dl class="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-            <div><dt class="text-slate-400">Produk Jadi</dt><dd class="text-slate-700">{{ $assembly->product?->name }}</dd></div>
+            <div><dt class="text-slate-400">Produk Jadi</dt><dd class="text-slate-700">{{ $assembly->finishedName() }}@unless($assembly->product_id)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">Manual</span>@endunless</dd></div>
             <div><dt class="text-slate-400">Jumlah Dirakit</dt><dd class="text-slate-700">{{ number_format($assembly->quantity, 0, ',', '.') }}</dd></div>
             <div><dt class="text-slate-400">Total Biaya</dt><dd class="font-semibold text-slate-800">{{ $rp($assembly->total_cost) }}</dd></div>
         </dl>

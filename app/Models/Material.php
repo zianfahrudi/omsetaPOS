@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'name',
     'unit',
     'price',
+    'stock',
+    'min_stock',
     'is_active',
 ])]
 class Material extends Model
@@ -20,6 +22,8 @@ class Material extends Model
     {
         return [
             'price' => 'decimal:2',
+            'stock' => 'decimal:2',
+            'min_stock' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -27,5 +31,15 @@ class Material extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function movements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MaterialMovement::class);
+    }
+
+    public function stockValue(): float
+    {
+        return round((float) $this->stock * (float) $this->price, 2);
     }
 }

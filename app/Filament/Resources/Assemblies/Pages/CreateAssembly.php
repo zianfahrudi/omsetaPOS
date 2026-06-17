@@ -25,7 +25,8 @@ class CreateAssembly extends CreateRecord
         try {
             return app(AssemblyService::class)->create(
                 company: $company,
-                finishedProductId: (int) $data['product_id'],
+                finishedProductId: ! empty($data['product_id']) ? (int) $data['product_id'] : null,
+                finishedProductName: $data['product_name'] ?? null,
                 quantity: (int) $data['quantity'],
                 components: $data['components'] ?? [],
                 date: $data['date'] ?? null,

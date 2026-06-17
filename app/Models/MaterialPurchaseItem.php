@@ -7,33 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'assembly_id',
-    'product_id',
+    'material_purchase_id',
     'material_id',
-    'product_name',
     'quantity',
     'unit_cost',
     'line_total',
 ])]
-class AssemblyComponent extends Model
+class MaterialPurchaseItem extends Model
 {
     protected function casts(): array
     {
         return [
-            'quantity' => 'integer',
+            'quantity' => 'decimal:2',
             'unit_cost' => 'decimal:2',
             'line_total' => 'decimal:2',
         ];
     }
 
-    public function assembly(): BelongsTo
+    public function purchase(): BelongsTo
     {
-        return $this->belongsTo(Assembly::class);
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(MaterialPurchase::class, 'material_purchase_id');
     }
 
     public function material(): BelongsTo

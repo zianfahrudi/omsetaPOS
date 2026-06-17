@@ -28,6 +28,8 @@
                 ['v2.purchase.orders', 'Pesanan Pembelian'],
                 ['v2.purchase.invoices', 'Faktur Pembelian'],
                 ['v2.purchase.payables', 'Daftar Hutang'],
+                ['v2.purchase.materials', 'Belanja Bahan'],
+                ['v2.purchase.materials.stock-card', 'Kartu Stok Bahan'],
             ],
         ],
         [
@@ -84,6 +86,7 @@
                 ['v2.vehicles.index', 'Kendaraan'],
                 ['v2.units.index', 'Satuan'],
                 ['v2.warehouses.index', 'Gudang'],
+                ['v2.materials.index', 'Master Material'],
             ],
         ],
         [
@@ -117,7 +120,6 @@
                 ['v2.currencies.index', 'Mata Uang'],
                 ['v2.taxes.index', 'Pajak'],
                 ['v2.assets.index', 'Harta Tetap'],
-                ['v2.materials.index', 'Master Material'],
                 ['v2.settings.project', 'Penawaran Proyek'],
                 ['v2.regions.provinces', 'Provinsi'],
                 ['v2.regions.regencies', 'Kabupaten/Kota'],

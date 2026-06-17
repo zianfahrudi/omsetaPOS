@@ -26,6 +26,11 @@ class MaterialController extends SimpleCrudController
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->pluck('name'),
+            'units' => \App\Models\Unit::query()
+                ->where('company_id', $this->companyId())
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->pluck('name'),
         ];
     }
 

@@ -20,12 +20,18 @@
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Kategori</label>
-                    <input type="text" name="category" value="{{ old('category', $record->category) }}" list="material-category-list" class="{{ $input }}" placeholder="Aluminium / Kaca / Besi">
-                    <datalist id="material-category-list">@foreach (($categories ?? []) as $cat)<option value="{{ $cat }}">@endforeach</datalist>
+                    @php $curCat = old('category', $record->category); @endphp
+                    <select name="category" class="{{ $input }}">
+                        <option value="">— Pilih kategori —</option>
+                        @foreach (($categories ?? []) as $cat)<option value="{{ $cat }}" @selected($curCat === $cat)>{{ $cat }}</option>@endforeach
+                        @if ($curCat && ! collect($categories ?? [])->contains($curCat))<option value="{{ $curCat }}" selected>{{ $curCat }}</option>@endif
+                    </select>
+                    <p class="mt-1 text-xs text-slate-400">Kelola pilihan di Data Master → Kategori Material.</p>
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Satuan</label>
-                    <input type="text" name="unit" value="{{ old('unit', $record->unit) }}" class="{{ $input }}" placeholder="Batang / Lembar / m²">
+                    <input type="text" name="unit" value="{{ old('unit', $record->unit) }}" list="material-unit-list" class="{{ $input }}" placeholder="Batang / Lembar / m² / Lonjor">
+                    <datalist id="material-unit-list">@foreach (($units ?? []) as $u)<option value="{{ $u }}">@endforeach</datalist>
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Harga</label>

@@ -80,6 +80,20 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        foreach (['Tukang', 'Helper', 'Mandor', 'Admin', 'Kasir', 'Sopir'] as $positionName) {
+            \App\Models\Position::query()->updateOrCreate(
+                ['company_id' => $company->id, 'name' => $positionName],
+                ['is_active' => true],
+            );
+        }
+
+        foreach (['Aluminium', 'Kaca', 'Kusen', 'Aksesoris', 'Besi'] as $matCat) {
+            \App\Models\MaterialCategory::query()->updateOrCreate(
+                ['company_id' => $company->id, 'name' => $matCat],
+                ['is_active' => true],
+            );
+        }
+
         \App\Models\Warehouse::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'GDG-01'],
             ['name' => 'Gudang Utama', 'is_default' => true, 'is_active' => true],

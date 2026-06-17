@@ -6,7 +6,12 @@
     $totalPaid = $project->totalPaidTerms();
     $sisa = $project->remainingBill();
     $regionLine = collect([$project->district?->name, $project->regency?->name, $project->province?->name])->filter()->implode(', ');
-    $invoiceNo = 'INV/'.($project->code ?: $project->id).'/'.now()->format('Ymd');
+    $prefix = $company?->invoice_prefix ?: 'INV';
+    $invoiceNo = $prefix.'/'.($project->code ?: $project->id).'/'.now()->format('Ymd');
+    $dueDays = (int) ($company?->invoice_due_days ?? 0);
+    $dueDate = $dueDays > 0 ? now()->copy()->addDays($dueDays) : null;
+    $signName = $company?->invoice_signature_name;
+    $bankLine = collect([$company?->invoice_bank_name, $company?->invoice_bank_account])->filter()->implode(' · ');
 @endphp
 
 <div style="font-family: Arial, Helvetica, sans-serif; color:#111; font-size:13px;">
@@ -21,6 +26,7 @@
                 <div style="font-size:16px; font-weight:bold;">FAKTUR / INVOICE</div>
                 <div>No. Faktur: {{ $invoiceNo }}</div>
                 <div>Tanggal: {{ now()->format('d/m/Y') }}</div>
+                @if ($dueDate)<div>Jatuh Tempo: {{ $dueDate->format('d/m/Y') }}</div>@endif
             </td>
         </tr>
     </table>
@@ -89,14 +95,23 @@
     </table>
 
     <div style="margin-top:18px; font-size:12px; color:#555;">
-        <div style="font-weight:bold; color:#111;">Pembayaran ditujukan ke:</div>
-        <div>{{ $company?->name ?: 'Perusahaan' }}{{ $company?->phone ? ' · '.$company->phone : '' }}</div>
+        @if ($bankLine || $company?->invoice_bank_holder)
+            <div style="font-weight:bold; color:#111;">Pembayaran ditujukan ke:</div>
+            @if ($company?->invoice_bank_name || $company?->invoice_bank_account)
+                <div>{{ collect([$company?->invoice_bank_name, $company?->invoice_bank_account])->filter()->implode(' — ') }}</div>
+            @endif
+            @if ($company?->invoice_bank_holder)<div>a.n. {{ $company->invoice_bank_holder }}</div>@endif
+        @else
+            <div style="font-weight:bold; color:#111;">Pembayaran ditujukan ke:</div>
+            <div>{{ $company?->name ?: 'Perusahaan' }}{{ $company?->phone ? ' · '.$company->phone : '' }}</div>
+        @endif
+        @if ($company?->invoice_note)<div style="margin-top:8px;">{{ $company->invoice_note }}</div>@endif
     </div>
 
     <table style="width:100%; margin-top:36px; font-size:13px;">
         <tr>
             <td style="text-align:center;">Penerima,<br><br><br><br>(_____________________)</td>
-            <td style="text-align:center;">Hormat kami,<br><br><br><br>(_____________________)</td>
+            <td style="text-align:center;">Hormat kami,<br><br><br><br>{{ $signName ? '('.$signName.')' : '(_____________________)' }}</td>
         </tr>
     </table>
 </div>

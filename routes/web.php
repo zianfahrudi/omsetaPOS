@@ -256,6 +256,10 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'edit'])->name('settings.project');
         Route::put('pengaturan/proyek', [\App\Http\Controllers\V2\Master\ProjectSettingController::class, 'update'])->name('settings.project.update');
 
+        // Pengaturan faktur (prefix, jatuh tempo, rekening, catatan)
+        Route::get('pengaturan/faktur', [\App\Http\Controllers\V2\Master\InvoiceSettingController::class, 'edit'])->name('settings.invoice');
+        Route::put('pengaturan/faktur', [\App\Http\Controllers\V2\Master\InvoiceSettingController::class, 'update'])->name('settings.invoice.update');
+
         // ═══════════ Absensi & Payroll ═══════════
         Route::get('payroll', [\App\Http\Controllers\V2\Payroll\PayrollDashboardController::class, 'index'])->name('payroll.dashboard');
 

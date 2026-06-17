@@ -12,6 +12,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'currency',
     'default_overhead_percent',
     'default_profit_percent',
+    'invoice_prefix',
+    'invoice_due_days',
+    'invoice_bank_name',
+    'invoice_bank_account',
+    'invoice_bank_holder',
+    'invoice_signature_name',
+    'invoice_note',
     'phone',
     'email',
     'address',
@@ -25,6 +32,7 @@ class Company extends Model
         return [
             'default_overhead_percent' => 'decimal:2',
             'default_profit_percent' => 'decimal:2',
+            'invoice_due_days' => 'integer',
             'book_opened_at' => 'date',
             'is_active' => 'boolean',
         ];

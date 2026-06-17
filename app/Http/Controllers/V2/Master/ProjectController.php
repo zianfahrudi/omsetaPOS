@@ -165,6 +165,11 @@ class ProjectController extends SimpleCrudController
         return view('v2.master.projects.print', $this->documentData($id));
     }
 
+    public function invoice(int $id): View
+    {
+        return view('v2.master.projects.invoice', $this->documentData($id));
+    }
+
     public function exportExcel(int $id): \Symfony\Component\HttpFoundation\Response
     {
         return $this->downloadDocument($id, 'xls', 'application/vnd.ms-excel');
@@ -181,7 +186,7 @@ class ProjectController extends SimpleCrudController
     private function documentData(int $id): array
     {
         $project = $this->find($id);
-        $project->load(['customer', 'province', 'regency', 'district', 'costs.product']);
+        $project->load(['customer', 'province', 'regency', 'district', 'costs.product', 'paymentTerms']);
 
         return [
             'project' => $project,

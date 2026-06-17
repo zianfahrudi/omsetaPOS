@@ -35,7 +35,7 @@ class AssemblyTest extends TestCase
         $finished = Product::create(['store_id' => $store->id, 'name' => 'Produk Jadi', 'sku' => 'F', 'cost_price' => 0, 'sell_price' => 20000, 'stock' => 0, 'product_type' => 'goods', 'is_active' => true]);
 
         // Build 2 finished from 2 A (6.000) + 4 B (8.000) = 14.000.
-        app(AssemblyService::class)->create(
+        $assembly = app(AssemblyService::class)->create(
             company: $company,
             finishedProductId: $finished->id,
             finishedProductName: null,
@@ -45,6 +45,13 @@ class AssemblyTest extends TestCase
                 ['material_id' => $matB->id, 'quantity' => 4],
             ],
         );
+
+        // Sedang diproses: stok produk jadi belum bertambah.
+        $this->assertSame('in_progress', $assembly->status);
+        $this->assertSame(0, (int) $finished->fresh()->stock);
+
+        // Selesaikan → produk jadi masuk stok.
+        app(AssemblyService::class)->complete($assembly->fresh());
 
         $finished->refresh();
         $this->assertSame(2, $finished->stock);
@@ -67,12 +74,18 @@ class AssemblyTest extends TestCase
             components: [['material_id' => $matA->id, 'quantity' => 3]],
         );
 
-        // Produk baru otomatis dibuat di master, HPP = biaya material.
+        // Masih proses: produk belum dibuat.
+        $this->assertSame('in_progress', $assembly->status);
+        $this->assertNull($assembly->product_id);
+        $this->assertSame('15000.00', (string) $assembly->total_cost);
+
+        // Selesaikan → produk baru otomatis dibuat di master, HPP = biaya material.
+        $assembly = app(AssemblyService::class)->complete($assembly->fresh());
+
         $this->assertNotNull($assembly->product_id);
         $product = \App\Models\Product::findOrFail($assembly->product_id);
         $this->assertSame('Kusen Aluminium Manual', $product->name);
         $this->assertSame('15000.00', (string) $product->cost_price);
         $this->assertSame(1, (int) $product->stock);
-        $this->assertSame('15000.00', (string) $assembly->total_cost);
     }
 }

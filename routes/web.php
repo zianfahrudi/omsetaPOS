@@ -125,6 +125,8 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('persediaan/perakitan/baru', [\App\Http\Controllers\V2\AssemblyController::class, 'create'])->name('inventory.assemblies.create');
         Route::post('persediaan/perakitan', [\App\Http\Controllers\V2\AssemblyController::class, 'store'])->name('inventory.assemblies.store');
         Route::get('persediaan/perakitan/{assembly}', [\App\Http\Controllers\V2\AssemblyController::class, 'show'])->name('inventory.assemblies.show');
+        Route::post('persediaan/perakitan/{assembly}/selesai', [\App\Http\Controllers\V2\AssemblyController::class, 'complete'])->name('inventory.assemblies.complete');
+        Route::post('persediaan/perakitan/{assembly}/batal', [\App\Http\Controllers\V2\AssemblyController::class, 'cancel'])->name('inventory.assemblies.cancel');
         // Konsinyasi
         Route::get('persediaan/konsinyasi', [\App\Http\Controllers\V2\ConsignmentController::class, 'index'])->name('inventory.consignments');
         Route::get('persediaan/konsinyasi/baru', [\App\Http\Controllers\V2\ConsignmentController::class, 'create'])->name('inventory.consignments.create');
@@ -232,6 +234,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         // Proyek: detail + rincian biaya
         Route::get('proyek/{id}', [\App\Http\Controllers\V2\Master\ProjectController::class, 'show'])->name('projects.show');
         Route::get('proyek/{id}/cetak', [\App\Http\Controllers\V2\Master\ProjectController::class, 'print'])->name('projects.print');
+        Route::get('proyek/{id}/faktur', [\App\Http\Controllers\V2\Master\ProjectController::class, 'invoice'])->name('projects.invoice');
         Route::get('proyek/{id}/export/excel', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportExcel'])->name('projects.export.excel');
         Route::get('proyek/{id}/export/word', [\App\Http\Controllers\V2\Master\ProjectController::class, 'exportWord'])->name('projects.export.word');
         Route::post('proyek/{id}/biaya', [\App\Http\Controllers\V2\Master\ProjectController::class, 'storeCost'])->name('projects.costs.store');

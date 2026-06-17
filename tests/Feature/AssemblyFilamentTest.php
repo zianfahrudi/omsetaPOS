@@ -53,8 +53,15 @@ class AssemblyFilamentTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertSame(1, Assembly::where('company_id', $company->id)->count());
-        $this->assertSame(5, $finished->refresh()->stock);
+        $assembly = Assembly::where('company_id', $company->id)->first();
+        // Filament create → status proses, stok produk belum berubah.
+        $this->assertSame('in_progress', $assembly->status);
+        $this->assertSame(0, $finished->refresh()->stock);
         // 10 x 4.000 = 40.000
-        $this->assertSame('40000.00', (string) Assembly::where('company_id', $company->id)->first()->total_cost);
+        $this->assertSame('40000.00', (string) $assembly->total_cost);
+
+        // Selesaikan → produk jadi masuk stok.
+        app(\App\Services\AssemblyService::class)->complete($assembly->fresh());
+        $this->assertSame(5, $finished->refresh()->stock);
     }
 }

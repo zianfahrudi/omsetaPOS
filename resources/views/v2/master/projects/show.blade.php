@@ -14,7 +14,8 @@
     <div class="mb-4 flex items-center justify-between gap-3">
         <a href="{{ route('v2.projects.index') }}" class="text-sm font-medium text-indigo-600 hover:underline">← Kembali ke Proyek</a>
         <div class="flex items-center gap-2">
-            <a href="{{ route('v2.projects.print', $project->id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cetak / Export</a>
+            <a href="{{ route('v2.projects.print', $project->id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cetak Penawaran</a>
+            <a href="{{ route('v2.projects.invoice', $project->id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cetak Faktur</a>
             <a href="{{ route('v2.projects.edit', $project->id) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Edit Proyek</a>
         </div>
     </div>
@@ -295,63 +296,20 @@
         </div>
     </form>
 
-    {{-- Status proyek: setujui penawaran --}}
+    {{-- Setujui penawaran (hanya saat masih draft/planned) --}}
+    @if ($subtotal > 0 && $project->status === 'planned')
     <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-sm font-semibold text-slate-900">Status Proyek</h2>
-                <p class="mt-1 text-xs text-slate-500">Status saat ini: <span class="font-medium text-slate-700">{{ $statusLabels[$project->status] ?? $project->status }}</span></p>
+                <h2 class="text-sm font-semibold text-slate-900">Setujui Penawaran</h2>
+                <p class="mt-1 text-xs text-slate-500">Tandai penawaran ini sebagai disetujui pelanggan.</p>
             </div>
-            @if ($subtotal > 0 && $project->status === 'planned')
-                <form method="POST" action="{{ route('v2.projects.approve', $project->id) }}">
-                    @csrf
-                    <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">✓ Setujui Penawaran</button>
-                </form>
-            @endif
+            <form method="POST" action="{{ route('v2.projects.approve', $project->id) }}">
+                @csrf
+                <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">✓ Setujui Penawaran</button>
+            </form>
         </div>
     </div>
-
-    {{-- DP: hanya saat penawaran disetujui atau berjalan --}}
-    @if ($subtotal > 0 && in_array($project->status, ['approved', 'active']))
-    <form method="POST" action="{{ route('v2.projects.dp.update', $project->id) }}" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6"
-          x-data="{
-              total: {{ (float) $project->totalPenawaran() }},
-              dp: {{ (float) $project->down_payment }},
-              get sisa(){ return Math.max(this.total - (Number(this.dp)||0), 0); },
-              rp(v){ return 'Rp ' + (Number(v)||0).toLocaleString('id-ID'); }
-          }">
-        @csrf
-        <h2 class="text-sm font-semibold text-slate-900">Uang Muka (DP)</h2>
-        <p class="mt-1 text-xs text-slate-500">Diisi setelah penawaran disepakati pelanggan. Nilai kontrak dikunci ke total penawaran saat DP disimpan.</p>
-
-        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div class="space-y-3">
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-slate-500">Total Penawaran</span>
-                    <strong class="text-slate-800">{{ $rp($project->totalPenawaran()) }}</strong>
-                </div>
-                <div>
-                    <label class="{{ $lbl }}">Jumlah DP</label>
-                    <input type="number" step="0.01" min="0" name="down_payment" x-model.number="dp" class="{{ $input }} text-right">
-                </div>
-                <button class="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700">Simpan DP</button>
-            </div>
-            <div class="rounded-xl bg-slate-50 p-4 text-sm">
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-slate-500">Nilai Kontrak (= Total Penawaran)</span>
-                    <span class="font-medium text-slate-800">{{ $rp($project->totalPenawaran()) }}</span>
-                </div>
-                <div class="flex items-center justify-between py-1">
-                    <span class="text-slate-500">DP Diterima</span>
-                    <span class="font-medium text-emerald-600" x-text="rp(dp)"></span>
-                </div>
-                <div class="mt-2 flex items-center justify-between border-t border-slate-200 pt-3">
-                    <span class="font-semibold text-slate-900">Sisa Tagihan</span>
-                    <span class="text-lg font-bold text-rose-600" x-text="rp(sisa)"></span>
-                </div>
-            </div>
-        </div>
-    </form>
     @endif
 
     {{-- Realisasi Biaya: Anggaran (RAB) vs Aktual --}}

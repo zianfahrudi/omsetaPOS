@@ -14,16 +14,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'number',
     'date',
     'quantity',
+    'status',
+    'completed_at',
     'total_cost',
     'notes',
     'created_by',
 ])]
 class Assembly extends Model
 {
+    public const STATUSES = ['in_progress', 'completed', 'cancelled'];
+
     protected function casts(): array
     {
         return [
             'date' => 'date',
+            'completed_at' => 'date',
             'quantity' => 'integer',
             'total_cost' => 'decimal:2',
         ];

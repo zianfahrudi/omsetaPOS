@@ -44,10 +44,20 @@ class V2AssemblyTest extends TestCase
             ],
         ])->assertRedirect(route('v2.inventory.assemblies'));
 
-        $this->assertEquals($finishedBefore + 2, (int) $finished->fresh()->stock);
+        $assembly = Assembly::query()->firstOrFail();
         $this->assertEquals(1, Assembly::query()->count());
+        $this->assertSame('in_progress', $assembly->status);
+        // Belum selesai: stok produk jadi belum berubah.
+        $this->assertEquals($finishedBefore, (int) $finished->fresh()->stock);
         // 3 x 150.000 = 450.000
-        $this->assertSame('450000.00', (string) Assembly::query()->first()->total_cost);
+        $this->assertSame('450000.00', (string) $assembly->total_cost);
+
+        // Selesaikan perakitan → produk jadi masuk stok.
+        $this->actingAs($user)->post(route('v2.inventory.assemblies.complete', $assembly->id))
+            ->assertRedirect(route('v2.inventory.assemblies.show', $assembly->id));
+
+        $this->assertEquals($finishedBefore + 2, (int) $finished->fresh()->stock);
+        $this->assertSame('completed', $assembly->fresh()->status);
     }
 
     public function test_assembly_with_manual_finished(): void
@@ -68,10 +78,19 @@ class V2AssemblyTest extends TestCase
         $resp->assertRedirect(route('v2.inventory.assemblies'));
 
         $assembly = Assembly::query()->firstOrFail();
+        // Masih proses: produk belum dibuat.
+        $this->assertSame('in_progress', $assembly->status);
+        $this->assertNull($assembly->product_id);
+        $this->assertSame('400000.00', (string) $assembly->total_cost);
+
+        // Selesaikan → produk baru dibuat di master.
+        $this->actingAs($user)->post(route('v2.inventory.assemblies.complete', $assembly->id))
+            ->assertRedirect(route('v2.inventory.assemblies.show', $assembly->id));
+
+        $assembly->refresh();
         $this->assertNotNull($assembly->product_id);
         $product = Product::findOrFail($assembly->product_id);
         $this->assertSame('Etalase Kaca Custom', $product->name);
         $this->assertSame('400000.00', (string) $product->cost_price);
-        $this->assertSame('400000.00', (string) $assembly->total_cost);
     }
 }

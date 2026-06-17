@@ -26,6 +26,7 @@ class ChartOfAccounts
                 ['1-1350', 'Piutang Giro', 'asset', 'giro_receivable'],
                 ['1-1400', 'Persediaan Barang', 'asset', 'inventory'],
                 ['1-1410', 'Persediaan Bahan', 'asset', 'material_inventory'],
+                ['1-1420', 'Barang Dalam Proses', 'asset', 'wip'],
                 ['1-1450', 'Persediaan Konsinyasi', 'asset', 'consignment_inventory'],
                 ['1-1500', 'PPN Masukan', 'asset', 'tax_input'],
             ]],
@@ -70,7 +71,7 @@ class ChartOfAccounts
         'cash', 'bank', 'accounts_receivable', 'inventory', 'tax_input',
         'accounts_payable', 'tax_output', 'equity', 'retained_earnings',
         'income_summary', 'sales', 'sales_return', 'sales_discount', 'cogs',
-        'giro_receivable', 'consignment_inventory', 'project_revenue', 'material_inventory',
+        'giro_receivable', 'consignment_inventory', 'project_revenue', 'material_inventory', 'wip',
     ];
 
     public function install(Company $company): void

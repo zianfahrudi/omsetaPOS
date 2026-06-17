@@ -94,6 +94,28 @@ class AssemblyController extends Controller
         return view('v2.inventory.assembly-show', compact('assembly'));
     }
 
+    public function complete(Assembly $assembly, AssemblyService $service): RedirectResponse
+    {
+        try {
+            $service->complete($assembly, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.inventory.assemblies.show', $assembly->id)->with('status', 'Perakitan selesai. Produk jadi masuk ke stok.');
+    }
+
+    public function cancel(Assembly $assembly, AssemblyService $service): RedirectResponse
+    {
+        try {
+            $service->cancel($assembly, Auth::id());
+        } catch (Throwable $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.inventory.assemblies.show', $assembly->id)->with('status', 'Perakitan dibatalkan. Stok bahan dikembalikan.');
+    }
+
     private function products()
     {
         $storeIds = Auth::user()->accessibleStores()->pluck('id');

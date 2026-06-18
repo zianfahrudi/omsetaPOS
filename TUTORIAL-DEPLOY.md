@@ -136,6 +136,10 @@ docker compose exec app php artisan db:seed --force
 # wilayah (butuh internet, opsional):
 docker compose exec app php artisan db:seed --class=WilayahSeeder --force
 ```
+> Produksi: pastikan `SEED_PASSWORD` di `.env` sudah diisi kuat (bukan `password`).
+> Seeder akan menolak seed di produksi bila masih default. Di produksi hanya akun
+> **superuser** yang dibuat (admin/kasir demo hanya non-produksi) — buat user lain
+> via menu **Pengguna**.
 Tes dari dalam VPS:
 ```bash
 curl -I http://127.0.0.1:18080      # harus 200/302

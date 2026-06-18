@@ -9,15 +9,28 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::query()->where('email', $request->string('email'))->first();
+        $email = (string) $request->string('email');
+        $throttleKey = Str::lower($email).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            throw ValidationException::withMessages([
+                'email' => ["Terlalu banyak percobaan. Coba lagi dalam {$seconds} detik."],
+            ])->status(429);
+        }
+
+        $user = User::query()->where('email', $email)->first();
 
         if (! $user || ! Hash::check((string) $request->input('password'), $user->password)) {
+            RateLimiter::hit($throttleKey, 60);
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);
@@ -28,6 +41,8 @@ class AuthController extends Controller
                 'email' => ['Akun tidak aktif.'],
             ]);
         }
+
+        RateLimiter::clear($throttleKey);
 
         $deviceName = $request->string('device_name')->value() ?: 'mobile';
         $token = $user->createToken($deviceName)->plainTextToken;

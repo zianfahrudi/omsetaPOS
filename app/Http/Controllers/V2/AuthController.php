@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -26,7 +28,19 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // Rate limit: 5 percobaan gagal per email+IP per menit.
+        $throttleKey = Str::lower($data['email']).'|'.$request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan. Coba lagi dalam {$seconds} detik.",
+            ])->onlyInput('email');
+        }
+
         if (! Auth::attempt($data, $request->boolean('remember'))) {
+            RateLimiter::hit($throttleKey, 60);
+
             return back()->withErrors(['email' => 'Email atau password salah.'])->onlyInput('email');
         }
 
@@ -36,6 +50,7 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Akun tidak aktif.']);
         }
 
+        RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
 
         return redirect()->intended(route('v2.dashboard'));

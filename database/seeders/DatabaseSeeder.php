@@ -22,35 +22,48 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Password seed dari ENV. Di produksi WAJIB diset & bukan 'password'.
+        $password = (string) env('SEED_PASSWORD', 'password');
+        if (app()->environment('production') && ($password === '' || $password === 'password')) {
+            throw new \RuntimeException(
+                'Tolak seed: set SEED_PASSWORD yang kuat di .env sebelum db:seed di produksi.'
+            );
+        }
+
         $superuser = User::query()->updateOrCreate(
-            ['email' => 'superuser@omsetapos.test'],
+            ['email' => env('SEED_SUPERUSER_EMAIL', 'superuser@omsetapos.test')],
             [
                 'name' => 'Superuser Omseta',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($password),
                 'role' => 'superuser',
                 'is_active' => true,
             ],
         );
 
-        $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@omsetapos.test'],
-            [
-                'name' => 'Admin Toko',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'is_active' => true,
-            ],
-        );
+        // Akun demo admin & kasir hanya untuk non-produksi.
+        $admin = $superuser;
+        $cashier = $superuser;
+        if (! app()->environment('production')) {
+            $admin = User::query()->updateOrCreate(
+                ['email' => 'admin@omsetapos.test'],
+                [
+                    'name' => 'Admin Toko',
+                    'password' => Hash::make($password),
+                    'role' => 'admin',
+                    'is_active' => true,
+                ],
+            );
 
-        $cashier = User::query()->updateOrCreate(
-            ['email' => 'cashier@omsetapos.test'],
-            [
-                'name' => 'Kasir Demo',
-                'password' => Hash::make('password'),
-                'role' => 'cashier',
-                'is_active' => true,
-            ],
-        );
+            $cashier = User::query()->updateOrCreate(
+                ['email' => 'cashier@omsetapos.test'],
+                [
+                    'name' => 'Kasir Demo',
+                    'password' => Hash::make($password),
+                    'role' => 'cashier',
+                    'is_active' => true,
+                ],
+            );
+        }
 
         $company = Company::query()->updateOrCreate(
             ['code' => 'OMSETA'],

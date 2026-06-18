@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'restrict.modules' => \App\Http\Middleware\RestrictModuleAccess::class,
+        ]);
+
         // Di belakang reverse proxy (nginx host / Docker), percayai header
         // X-Forwarded-* agar HTTPS & host terdeteksi benar untuk URL/redirect.
         $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR

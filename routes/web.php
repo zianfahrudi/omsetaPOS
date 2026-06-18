@@ -31,7 +31,7 @@ Route::prefix('app')->name('v2.')->group(function () {
     Route::get('login', [\App\Http\Controllers\V2\AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [\App\Http\Controllers\V2\AuthController::class, 'login'])->name('login.attempt');
 
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'restrict.modules'])->group(function () {
         Route::post('logout', [\App\Http\Controllers\V2\AuthController::class, 'logout'])->name('logout');
 
         Route::get('/', [\App\Http\Controllers\V2\DashboardController::class, 'index'])->name('dashboard');

@@ -174,6 +174,7 @@ Route::prefix('app')->name('v2.')->group(function () {
 
         // Outlet (Store)
         Route::get('outlet', [\App\Http\Controllers\V2\StoreController::class, 'index'])->name('stores.index');
+        Route::post('outlet/pilih', [\App\Http\Controllers\V2\StoreController::class, 'switch'])->name('stores.switch');
         Route::get('outlet/baru', [\App\Http\Controllers\V2\StoreController::class, 'create'])->name('stores.create');
         Route::post('outlet', [\App\Http\Controllers\V2\StoreController::class, 'store'])->name('stores.store');
         Route::get('outlet/{store}/edit', [\App\Http\Controllers\V2\StoreController::class, 'edit'])->name('stores.edit');

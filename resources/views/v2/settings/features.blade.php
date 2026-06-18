@@ -9,10 +9,25 @@
 
     <form method="POST" action="{{ route('v2.settings.features.update') }}" class="max-w-2xl">
         @csrf @method('PUT')
+        <input type="hidden" name="store_id" value="{{ $storeId }}">
 
         <div class="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 class="text-sm font-semibold text-slate-900">Aktifkan / Nonaktifkan Modul</h2>
-            <p class="mt-1 text-xs text-slate-500">Modul yang dinonaktifkan disembunyikan dari menu untuk pengguna non-superuser. Superuser tetap melihat semua modul.</p>
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-900">Aktifkan / Nonaktifkan Modul</h2>
+                    <p class="mt-1 text-xs text-slate-500">Pengaturan berlaku <strong>per outlet</strong>. Modul nonaktif disembunyikan dari menu saat outlet tersebut aktif.</p>
+                </div>
+                {{-- Pilih outlet yang dikonfigurasi (reload halaman) --}}
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-500">Outlet</label>
+                    <select onchange="window.location.href='{{ route('v2.settings.features') }}?store_id='+this.value"
+                            class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        @foreach ($stores as $s)
+                            <option value="{{ $s->id }}" @selected($s->id === $storeId)>{{ $s->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
 
             <div class="mt-5 divide-y divide-slate-100">
                 @foreach ($modules as $key => $label)

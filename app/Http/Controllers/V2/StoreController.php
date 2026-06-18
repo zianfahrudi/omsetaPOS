@@ -87,6 +87,22 @@ class StoreController extends Controller
     }
 
     /**
+     * Ganti outlet aktif (disimpan di session). Memengaruhi modul yang tampil.
+     */
+    public function switch(Request $request): RedirectResponse
+    {
+        $id = (int) $request->input('store_id');
+
+        if (! \App\Support\ActiveStore::set($id)) {
+            return back()->withErrors(['store' => 'Outlet tidak dapat diakses.']);
+        }
+
+        \App\Models\FeatureToggle::flush();
+
+        return back()->with('status', 'Outlet aktif diganti.');
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function validateData(Request $request): array

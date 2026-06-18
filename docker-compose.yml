@@ -1,0 +1,69 @@
+services:
+  app:
+    build: .
+    image: omsetapos:latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Hanya bind ke localhost; reverse proxy nginx host yang ekspos ke publik.
+      # 8080 dipakai app lain (Dart Frog) → pakai 18080.
+      - "127.0.0.1:18080:80"
+    volumes:
+      - storage:/var/www/html/storage
+    networks: [omseta]
+
+  queue:
+    image: omsetapos:latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - storage:/var/www/html/storage
+    networks: [omseta]
+
+  scheduler:
+    image: omsetapos:latest
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
+    command: php artisan schedule:work
+    volumes:
+      - storage:/var/www/html/storage
+    networks: [omseta]
+
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-omsetapos}
+      MYSQL_USER: ${DB_USERNAME:-omseta}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [omseta]
+
+volumes:
+  storage:
+  dbdata:
+
+networks:
+  omseta:
+    driver: bridge

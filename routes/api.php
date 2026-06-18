@@ -35,5 +35,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::post('transactions/{sale}/mark-paid', [TransactionController::class, 'markPaid'])->name('transactions.mark-paid');
 
         Route::post('refunds', [RefundController::class, 'store'])->name('refunds.store');
+
+        Route::get('cashier-sessions/current', [\App\Http\Controllers\Api\V1\CashierSessionController::class, 'current'])->name('cashier-sessions.current');
+        Route::post('cashier-sessions/open', [\App\Http\Controllers\Api\V1\CashierSessionController::class, 'open'])->name('cashier-sessions.open');
+        Route::post('cashier-sessions/{session}/close', [\App\Http\Controllers\Api\V1\CashierSessionController::class, 'close'])->name('cashier-sessions.close');
     });
 });

@@ -46,6 +46,7 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('laporan/neraca', [\App\Http\Controllers\V2\ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
         Route::get('laporan/laba-rugi', [\App\Http\Controllers\V2\ReportController::class, 'incomeStatement'])->name('reports.income-statement');
         Route::get('laporan/arus-kas', [\App\Http\Controllers\V2\ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+        Route::get('laporan/rekap-kas', [\App\Http\Controllers\V2\ReportController::class, 'cashWeekly'])->name('reports.cash-weekly');
         Route::get('laporan/penjualan', [\App\Http\Controllers\V2\ReportController::class, 'sales'])->name('reports.sales');
         Route::get('laporan/pembelian', [\App\Http\Controllers\V2\ReportController::class, 'purchases'])->name('reports.purchases');
         Route::get('laporan/persediaan', [\App\Http\Controllers\V2\ReportController::class, 'inventory'])->name('reports.inventory');
@@ -154,6 +155,13 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('kas/rekonsiliasi/baru', [\App\Http\Controllers\V2\BankReconciliationController::class, 'create'])->name('cash.reconciliations.create');
         Route::post('kas/rekonsiliasi', [\App\Http\Controllers\V2\BankReconciliationController::class, 'store'])->name('cash.reconciliations.store');
         Route::get('kas/rekonsiliasi/{reconciliation}', [\App\Http\Controllers\V2\BankReconciliationController::class, 'show'])->name('cash.reconciliations.show');
+
+        // Bagi Hasil Laba (profit sharing) + jurnal
+        Route::get('akuntansi/bagi-hasil', [\App\Http\Controllers\V2\ProfitSharingController::class, 'index'])->name('profit-sharing.index');
+        Route::get('akuntansi/bagi-hasil/baru', [\App\Http\Controllers\V2\ProfitSharingController::class, 'create'])->name('profit-sharing.create');
+        Route::post('akuntansi/bagi-hasil', [\App\Http\Controllers\V2\ProfitSharingController::class, 'store'])->name('profit-sharing.store');
+        Route::get('akuntansi/bagi-hasil/{id}', [\App\Http\Controllers\V2\ProfitSharingController::class, 'show'])->name('profit-sharing.show');
+        Route::delete('akuntansi/bagi-hasil/{id}', [\App\Http\Controllers\V2\ProfitSharingController::class, 'destroy'])->name('profit-sharing.destroy');
 
         // Point of Sale
         Route::get('pos/transaksi', [\App\Http\Controllers\V2\PosController::class, 'transactions'])->name('pos.transactions');

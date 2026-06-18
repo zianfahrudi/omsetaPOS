@@ -39,6 +39,7 @@ class ChartOfAccounts
             ['2-1000', 'Liabilitas Jangka Pendek', 'liability', null, [
                 ['2-1100', 'Hutang Usaha', 'liability', 'accounts_payable'],
                 ['2-1200', 'PPN Keluaran', 'liability', 'tax_output'],
+                ['2-1400', 'Hutang Bagi Hasil', 'liability', 'profit_sharing_payable'],
                 ['2-1300', 'Hutang Lain-lain', 'liability', null],
             ]],
         ]],
@@ -72,6 +73,7 @@ class ChartOfAccounts
         'accounts_payable', 'tax_output', 'equity', 'retained_earnings',
         'income_summary', 'sales', 'sales_return', 'sales_discount', 'cogs',
         'giro_receivable', 'consignment_inventory', 'project_revenue', 'material_inventory', 'wip',
+        'profit_sharing_payable',
     ];
 
     public function install(Company $company): void

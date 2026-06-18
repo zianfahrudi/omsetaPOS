@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashTransaction;
 use App\Models\Company;
 use App\Models\Warehouse;
 use App\Services\Accounting\LedgerService;
@@ -44,6 +45,54 @@ class ReportController extends Controller
         $report = $company ? $reports->cashFlow($company, $from, $to) : null;
 
         return view('v2.reports.cash-flow', compact('report') + ['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
+
+    /**
+     * Rekap kas per minggu (laporan transaksi harian dikelompokkan mingguan).
+     */
+    public function cashWeekly(Request $request): View
+    {
+        $company = Company::query()->first();
+        $from = $request->date('from') ?? now()->startOfMonth();
+        $to = $request->date('to') ?? now()->endOfMonth();
+
+        $weeks = [];
+        if ($company) {
+            $txns = CashTransaction::query()
+                ->where('company_id', $company->id)
+                ->whereIn('type', ['in', 'out'])
+                ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+                ->orderBy('date')->orderBy('id')
+                ->get();
+
+            foreach ($txns as $t) {
+                $w = intdiv(((int) $t->date->day) - 1, 7) + 1; // Minggu 1..5 dalam bulan
+                $weeks[$w] ??= ['no' => $w, 'rows' => [], 'out' => 0.0, 'in' => 0.0];
+                $out = $t->type === 'out' ? (float) $t->amount : 0.0;
+                $in = $t->type === 'in' ? (float) $t->amount : 0.0;
+                $weeks[$w]['rows'][] = [
+                    'date' => $t->date,
+                    'description' => $t->description ?: ($t->number ?: '—'),
+                    'out' => $out,
+                    'in' => $in,
+                ];
+                $weeks[$w]['out'] = round($weeks[$w]['out'] + $out, 2);
+                $weeks[$w]['in'] = round($weeks[$w]['in'] + $in, 2);
+            }
+            ksort($weeks);
+        }
+
+        $grandOut = round(array_sum(array_column($weeks, 'out')), 2);
+        $grandIn = round(array_sum(array_column($weeks, 'in')), 2);
+
+        return view('v2.reports.cash-weekly', [
+            'weeks' => array_values($weeks),
+            'grandOut' => $grandOut,
+            'grandIn' => $grandIn,
+            'grandNet' => round($grandIn - $grandOut, 2),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
     }
 
     public function sales(Request $request, ReportService $reports): View

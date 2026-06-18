@@ -3,6 +3,7 @@
     $groups = [
         [
             'label' => 'Point of Sale',
+            'key' => 'pos',
             'icon' => 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z',
             'items' => [
                 ['v2.pos.transactions', 'Riwayat Transaksi'],
@@ -11,6 +12,7 @@
         ],
         [
             'label' => 'Penjualan',
+            'key' => 'sales',
             'icon' => 'M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z',
             'items' => [
                 ['v2.sales.quotations', 'Penawaran Harga'],
@@ -22,6 +24,7 @@
         ],
         [
             'label' => 'Pembelian',
+            'key' => 'purchase',
             'icon' => 'M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z',
             'items' => [
                 ['v2.purchase.requests', 'Permintaan Pembelian'],
@@ -33,6 +36,7 @@
         ],
         [
             'label' => 'Persediaan',
+            'key' => 'inventory',
             'icon' => 'M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z',
             'items' => [
                 ['v2.inventory.adjustments', 'Penyesuaian Stok'],
@@ -45,6 +49,7 @@
         ],
         [
             'label' => 'Kas & Bank',
+            'key' => 'cash',
             'icon' => 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z',
             'items' => [
                 ['v2.cash.transactions', 'Transaksi Kas'],
@@ -54,6 +59,7 @@
         ],
         [
             'label' => 'Akuntansi',
+            'key' => 'accounting',
             'icon' => 'M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25',
             'items' => [
                 ['v2.accounting.accounts', 'Daftar Akun'],
@@ -65,6 +71,7 @@
         ],
         [
             'label' => 'Laporan',
+            'key' => 'reports',
             'icon' => 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z',
             'items' => [
                 ['v2.reports.balance-sheet', 'Neraca'],
@@ -81,6 +88,7 @@
         ],
         [
             'label' => 'Data Master',
+            'key' => 'master',
             'icon' => 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
             'items' => [
                 ['v2.stores.index', 'Outlet'],
@@ -100,6 +108,7 @@
         ],
         [
             'label' => 'Absensi & Payroll',
+            'key' => 'payroll',
             'icon' => 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
             'items' => [
                 ['v2.payroll.dashboard', 'Dashboard Payroll'],
@@ -115,6 +124,7 @@
         ],
         [
             'label' => 'Arisan',
+            'key' => 'arisan',
             'icon' => 'M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z',
             'items' => [
                 ['v2.arisan.dashboard', 'Dashboard Arisan'],
@@ -127,11 +137,23 @@
             'items' => [
                 ['v2.settings.project', 'Penawaran Proyek'],
                 ['v2.settings.invoice', 'Faktur'],
+                ['v2.users.index', 'Pengguna'],
+                ['v2.settings.features', 'Modul & Fitur'],
                 ['v2.regions.provinces', 'Provinsi'],
                 ['v2.regions.regencies', 'Kabupaten/Kota'],
             ],
         ],
     ];
+
+    $user = auth()->user();
+    $isSuper = $user?->isSuperuser() ?? false;
+    // Modul nonaktif disembunyikan dari SEMUA pengguna. Grup "Pengaturan & Wilayah"
+    // tidak punya 'key' sehingga selalu tampil → superuser tetap bisa membuka
+    // halaman Modul & Fitur untuk mengaktifkan kembali.
+    $superOnlyRoutes = ['v2.users.index', 'v2.settings.features'];
+    $groups = array_values(array_filter($groups, function ($g) {
+        return ! isset($g['key']) || \App\Models\FeatureToggle::enabled($g['key']);
+    }));
 
     $has = fn (string $r) => \Illuminate\Support\Facades\Route::has($r);
     $href = fn (string $r, string $label) => $has($r) ? route($r) : route('v2.soon', ['m' => $label]);
@@ -169,6 +191,7 @@
             </button>
             <div x-show="open" x-collapse class="mt-0.5 space-y-0.5 pl-7">
                 @foreach ($group['items'] as [$route, $label])
+                    @continue(in_array($route, $superOnlyRoutes, true) && ! $isSuper)
                     @php($itemActive = $has($route) && request()->routeIs($route.'*'))
                     <a href="{{ $href($route, $label) }}"
                        @class([

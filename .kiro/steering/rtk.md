@@ -36,3 +36,16 @@ bila subcommand-nya didukung. Untuk output pendek (mis. `pwd`, `echo`) tidak per
 - Cek penghematan kapan saja: `rtk gain`.
 - Tetap utamakan tool internal Kiro (read_file, grep_search, file_search) untuk
   baca/cari di dalam projek — itu sudah hemat. `rtk` untuk hal yang memang lewat shell.
+
+## Tinker (penting!)
+
+`php artisan tinker <file>` jalanin file lalu **masuk REPL interaktif** & nunggu STDIN.
+Tanpa TTY → nggantung sampai timeout. Selalu beri EOF:
+
+```
+php artisan tinker storage/script.php < /dev/null
+```
+
+Atau hindari tinker untuk verifikasi: pakai `php artisan test --filter=...`
+atau bikin artisan command sekali pakai.
+

@@ -268,6 +268,18 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::get('pengaturan/faktur', [\App\Http\Controllers\V2\Master\InvoiceSettingController::class, 'edit'])->name('settings.invoice');
         Route::put('pengaturan/faktur', [\App\Http\Controllers\V2\Master\InvoiceSettingController::class, 'update'])->name('settings.invoice.update');
 
+        // Pengaturan modul & fitur (on/off) — superuser
+        Route::get('pengaturan/modul', [\App\Http\Controllers\V2\Master\FeatureSettingController::class, 'edit'])->name('settings.features');
+        Route::put('pengaturan/modul', [\App\Http\Controllers\V2\Master\FeatureSettingController::class, 'update'])->name('settings.features.update');
+
+        // Manajemen pengguna (admin & kasir) — superuser
+        Route::get('pengguna', [\App\Http\Controllers\V2\UserController::class, 'index'])->name('users.index');
+        Route::get('pengguna/baru', [\App\Http\Controllers\V2\UserController::class, 'create'])->name('users.create');
+        Route::post('pengguna', [\App\Http\Controllers\V2\UserController::class, 'store'])->name('users.store');
+        Route::get('pengguna/{user}/edit', [\App\Http\Controllers\V2\UserController::class, 'edit'])->name('users.edit');
+        Route::put('pengguna/{user}', [\App\Http\Controllers\V2\UserController::class, 'update'])->name('users.update');
+        Route::delete('pengguna/{user}', [\App\Http\Controllers\V2\UserController::class, 'destroy'])->name('users.destroy');
+
         // ═══════════ Absensi & Payroll ═══════════
         Route::get('payroll', [\App\Http\Controllers\V2\Payroll\PayrollDashboardController::class, 'index'])->name('payroll.dashboard');
 

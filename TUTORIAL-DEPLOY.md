@@ -96,14 +96,60 @@ sudo ss -ltnp | grep ':18080' || echo "BEBAS"
 ```
 Kalau muncul `BEBAS` = aman. (8080 dipakai Dart Frog, makanya kita pakai 18080.)
 
-### B3. Ambil kode
+### B3. Kredensial GitHub (cek dulu, sekali saja)
+
+omsetaPOS = **repo terpisah** dari app lama → harus di-clone ke folder sendiri.
+Tapi kredensial GitHub kemungkinan sudah ada (dipakai app lama). Cek di folder app lama:
 ```bash
-sudo mkdir -p /opt/omsetapos && sudo chown $USER:$USER /opt/omsetapos
-git clone https://github.com/zianfahrudi/omsetaPOS.git /opt/omsetapos
-cd /opt/omsetapos
+cd /path/app-lama && git remote -v && cd -
+```
+- Muncul `git@github.com:...` → pakai **SSH** (auth sudah siap, lanjut B4 pakai URL SSH).
+- Muncul `https://github.com/...` → pakai **HTTPS** (auth lewat credential helper / token).
+
+Kalau VPS **belum** punya akses ke repo `omsetaPOS` (repo private), siapkan salah satu:
+
+**Opsi SSH deploy key (disarankan):**
+```bash
+ssh-keygen -t ed25519 -C "vps-omseta" -f ~/.ssh/omseta_deploy -N ""
+cat ~/.ssh/omseta_deploy.pub
+# tempel isinya ke GitHub: repo omsetaPOS → Settings → Deploy keys → Add (read-only)
+# daftarkan key ke ssh:
+echo 'Host github-omseta
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/omseta_deploy' >> ~/.ssh/config
 ```
 
-### B4. Siapkan `.env` produksi
+**Opsi HTTPS token:** buat Personal Access Token (fine-grained, akses read repo omsetaPOS),
+nanti dipakai di URL clone: `https://<TOKEN>@github.com/zianfahrudi/omsetaPOS.git`.
+
+### B4. Clone kode (PERTAMA KALI — bukan git pull)
+> `git pull` hanya jalan **setelah** repo ada. Pertama kali wajib `git clone`,
+> karena itu yang menyimpan alamat repo (`origin`) di VPS.
+
+```bash
+sudo mkdir -p /opt/omsetapos && sudo chown $USER:$USER /opt/omsetapos
+```
+Pilih sesuai metode auth-mu:
+```bash
+# SSH (deploy key dengan Host alias di atas):
+git clone github-omseta:zianfahrudi/omsetaPOS.git /opt/omsetapos
+
+# SSH (key akun sudah terpasang global):
+git clone git@github.com:zianfahrudi/omsetaPOS.git /opt/omsetapos
+
+# HTTPS (token):
+git clone https://<TOKEN>@github.com/zianfahrudi/omsetaPOS.git /opt/omsetapos
+
+# HTTPS (repo public / helper sudah simpan kredensial):
+git clone https://github.com/zianfahrudi/omsetaPOS.git /opt/omsetapos
+```
+```bash
+cd /opt/omsetapos
+git remote -v      # verifikasi origin tersimpan → pull berikutnya otomatis tahu
+```
+
+### B5. Siapkan `.env` produksi
 ```bash
 cp .env.docker.example .env
 nano .env
@@ -124,7 +170,7 @@ docker run --rm -v "$PWD":/app -w /app php:8.3-cli \
 ```
 Tempel ke `APP_KEY=` di `.env`.
 
-### B5. Build & jalankan
+### B6. Build & jalankan
 ```bash
 docker compose up -d --build
 docker compose ps
@@ -145,7 +191,7 @@ Tes dari dalam VPS:
 curl -I http://127.0.0.1:18080      # harus 200/302
 ```
 
-### B6. Reverse proxy nginx host → domain
+### B7. Reverse proxy nginx host → domain
 ```bash
 sudo cp docker/nginx-host-omseta.conf.example /etc/nginx/conf.d/omseta.ziandev.site.conf
 sudo nginx -t

@@ -45,13 +45,13 @@ class FeatureSettingController extends Controller
 
         $data = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
-            'modules' => ['nullable', 'array'],
+            'keys' => ['nullable', 'array'],
         ]);
 
         $storeId = (int) $data['store_id'];
-        $on = (array) ($data['modules'] ?? []);
+        $on = (array) ($data['keys'] ?? []);
 
-        foreach (array_keys(FeatureToggle::MODULES) as $key) {
+        foreach (FeatureToggle::allKeys() as $key) {
             FeatureToggle::query()->updateOrCreate(
                 ['store_id' => $storeId, 'key' => $key],
                 ['enabled' => in_array($key, $on, true)],

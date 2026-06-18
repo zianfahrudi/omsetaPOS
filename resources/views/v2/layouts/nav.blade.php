@@ -192,6 +192,7 @@
             <div x-show="open" x-collapse class="mt-0.5 space-y-0.5 pl-7">
                 @foreach ($group['items'] as [$route, $label])
                     @continue(in_array($route, $superOnlyRoutes, true) && ! $isSuper)
+                    @continue(! \App\Models\FeatureToggle::enabled($route))
                     @php($itemActive = $has($route) && request()->routeIs($route.'*'))
                     <a href="{{ $href($route, $label) }}"
                        @class([

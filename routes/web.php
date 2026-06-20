@@ -308,6 +308,14 @@ Route::prefix('app')->name('v2.')->group(function () {
         Route::post('karyawan/{employee}/tabungan/transaksi', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'storeSavingEntry'])->name('employees.saving.entry.store');
         Route::delete('karyawan/{employee}/tabungan/transaksi/{entry}', [\App\Http\Controllers\V2\Payroll\EmployeeComponentController::class, 'destroySavingEntry'])->name('employees.saving.entry.destroy');
 
+        // Titik Lokasi Presensi (geofence untuk presensi mobile)
+        Route::get('lokasi-presensi', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'index'])->name('attendance-locations.index');
+        Route::get('lokasi-presensi/baru', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'create'])->name('attendance-locations.create');
+        Route::post('lokasi-presensi', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'store'])->name('attendance-locations.store');
+        Route::get('lokasi-presensi/{id}/edit', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'edit'])->name('attendance-locations.edit');
+        Route::put('lokasi-presensi/{id}', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'update'])->name('attendance-locations.update');
+        Route::delete('lokasi-presensi/{id}', [\App\Http\Controllers\V2\Payroll\AttendanceLocationController::class, 'destroy'])->name('attendance-locations.destroy');
+
         // Shift
         Route::get('shift', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'index'])->name('shifts.index');
         Route::get('shift/baru', [\App\Http\Controllers\V2\Payroll\ShiftController::class, 'create'])->name('shifts.create');

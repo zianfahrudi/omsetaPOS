@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') · omsetaPOS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('head')
 </head>
 <body class="v2-app h-full text-slate-800 antialiased">
 <div x-data="{ sidebar: false }" class="min-h-full">
@@ -89,5 +90,6 @@
     </div>
 </div>
 <style>[x-cloak]{display:none!important}</style>
+@stack('scripts')
 </body>
 </html>

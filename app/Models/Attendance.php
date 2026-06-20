@@ -17,6 +17,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'paid_hours',
     'hourly_rate',
     'status',
+    'source',
+    'check_in_location_id',
+    'check_in_latitude',
+    'check_in_longitude',
+    'check_in_accuracy',
+    'check_in_distance',
+    'check_in_is_mock',
+    'check_out_location_id',
+    'check_out_latitude',
+    'check_out_longitude',
+    'check_out_accuracy',
+    'check_out_distance',
+    'check_out_is_mock',
+    'device_id',
 ])]
 class Attendance extends Model
 {
@@ -32,6 +46,16 @@ class Attendance extends Model
             'total_hours' => 'decimal:2',
             'paid_hours' => 'decimal:2',
             'hourly_rate' => 'decimal:2',
+            'check_in_latitude' => 'decimal:7',
+            'check_in_longitude' => 'decimal:7',
+            'check_in_accuracy' => 'decimal:2',
+            'check_in_distance' => 'decimal:2',
+            'check_in_is_mock' => 'boolean',
+            'check_out_latitude' => 'decimal:7',
+            'check_out_longitude' => 'decimal:7',
+            'check_out_accuracy' => 'decimal:2',
+            'check_out_distance' => 'decimal:2',
+            'check_out_is_mock' => 'boolean',
         ];
     }
 
@@ -43,6 +67,16 @@ class Attendance extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function checkInLocation(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceLocation::class, 'check_in_location_id');
+    }
+
+    public function checkOutLocation(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceLocation::class, 'check_out_location_id');
     }
 
     /**

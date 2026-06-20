@@ -115,6 +115,7 @@
                 ['v2.employees.index', 'Karyawan'],
                 ['v2.shifts.index', 'Master Shift'],
                 ['v2.schedules.index', 'Jadwal Shift'],
+                ['v2.attendance-locations.index', 'Titik Lokasi Presensi'],
                 ['v2.attendances.index', 'Absensi'],
                 ['v2.attendances.weekly', 'Absensi Mingguan'],
                 ['v2.payrolls.index', 'Generate Payroll'],

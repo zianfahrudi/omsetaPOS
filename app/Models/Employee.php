@@ -3,28 +3,37 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable([
     'company_id',
     'code',
     'name',
     'phone',
+    'password',
     'position',
+    'attendance_location_id',
+    'device_id',
     'hourly_rate',
     'earning_type',
     'join_date',
     'is_active',
 ])]
-class Employee extends Model
+#[Hidden(['password', 'remember_token'])]
+class Employee extends Authenticatable
 {
+    use HasApiTokens;
+
     public const EARNING_TYPES = ['hourly', 'piecework'];
 
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'hourly_rate' => 'decimal:2',
             'join_date' => 'date',
             'is_active' => 'boolean',
@@ -34,6 +43,11 @@ class Employee extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function attendanceLocation(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceLocation::class);
     }
 
     public function schedules(): HasMany

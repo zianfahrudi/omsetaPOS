@@ -14,6 +14,19 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->name('auth.login');
 
+    // ── Presensi mandiri karyawan (mobile) ──
+    Route::post('employee/auth/login', [\App\Http\Controllers\Api\V1\Employee\AuthController::class, 'login'])->name('employee.auth.login');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('employee/auth/me', [\App\Http\Controllers\Api\V1\Employee\AuthController::class, 'me'])->name('employee.auth.me');
+        Route::post('employee/auth/logout', [\App\Http\Controllers\Api\V1\Employee\AuthController::class, 'logout'])->name('employee.auth.logout');
+        Route::get('employee/attendance/today', [\App\Http\Controllers\Api\V1\Employee\AttendanceController::class, 'today'])->name('employee.attendance.today');
+        Route::post('employee/attendance/check-in', [\App\Http\Controllers\Api\V1\Employee\AttendanceController::class, 'checkIn'])->name('employee.attendance.check-in');
+        Route::post('employee/attendance/check-out', [\App\Http\Controllers\Api\V1\Employee\AttendanceController::class, 'checkOut'])->name('employee.attendance.check-out');
+        Route::get('employee/attendance/history', [\App\Http\Controllers\Api\V1\Employee\AttendanceController::class, 'history'])->name('employee.attendance.history');
+        Route::get('employee/schedule', [\App\Http\Controllers\Api\V1\Employee\AttendanceController::class, 'schedule'])->name('employee.schedule');
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');

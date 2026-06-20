@@ -48,6 +48,27 @@
                     </label>
                 </div>
             </div>
+
+            <div class="mt-6 border-t border-slate-100 pt-5">
+                <h3 class="mb-1 text-sm font-semibold text-slate-700">Akses Presensi Mobile</h3>
+                <p class="mb-4 text-xs text-slate-400">Karyawan login di aplikasi mobile pakai nomor telepon &amp; password ini, lalu presensi mandiri di titik lokasi yang ditentukan.</p>
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                        <label class="{{ $lbl }}">Titik Lokasi Presensi</label>
+                        @php $curLoc = old('attendance_location_id', $employee->attendance_location_id); @endphp
+                        <select name="attendance_location_id" class="{{ $input }}">
+                            <option value="">— Titik aktif perusahaan (default) —</option>
+                            @foreach (($locations ?? []) as $loc)<option value="{{ $loc->id }}" @selected((int) $curLoc === $loc->id)>{{ $loc->name }} ({{ $loc->radius_meters }} m)</option>@endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-slate-400">Kelola di Absensi → Titik Lokasi Presensi.</p>
+                    </div>
+                    <div>
+                        <label class="{{ $lbl }}">Password Mobile</label>
+                        <input type="password" name="password" value="" class="{{ $input }}" autocomplete="new-password" placeholder="{{ $employee->exists ? 'Kosongkan jika tidak diubah' : 'Min. 6 karakter' }}">
+                        <p class="mt-1 text-xs text-slate-400">Min. 6 karakter. Kosongkan untuk menonaktifkan login mobile.</p>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="mt-4 flex items-center gap-3">
             <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">Simpan</button>

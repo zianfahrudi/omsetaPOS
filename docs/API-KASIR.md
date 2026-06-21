@@ -178,9 +178,12 @@ Field:
 | Field | Wajib | Keterangan |
 |---|---|---|
 | `store_id` | ya | outlet |
-| `payment_method` | ya | `cash` / `qris` |
+| `payment_method` | ya | `cash` / `qris` / `transfer` / `split` (lihat catatan gabungan) |
 | `payment_proof` | jika qris | file gambar (≤5MB) |
-| `paid_amount` | ya | uang dibayar (untuk hitung kembalian/utang) |
+| `paid_amount` | ya | total uang dibayar (untuk hitung kembalian/utang). Saat `payments[]` dipakai, isi total tender. |
+| `payments` | tidak | rincian pembayaran gabungan (lihat di bawah) |
+| `payments[].method` | jika payments | `cash` / `qris` / `transfer` |
+| `payments[].amount` | jika payments | nominal per metode |
 | `items` | ya | array min 1 |
 | `items[].product_id` | ya | |
 | `items[].quantity` | ya | min 1 |
@@ -207,6 +210,39 @@ Error `422`: stok kurang / kode diskon invalid / aturan lain (baca `message`).
 > Kembalian = `change_amount`. Bila `is_debt=true` & kurang bayar, `debt_amount` > 0
 > dan `payment_status` = `belum_lunas`.
 
+#### Pembayaran gabungan (split: cash + transfer/QRIS)
+Kirim `payments[]` berisi nominal per metode. Set `payment_method` ke `split`
+(atau metode tunggal bila hanya 1 baris). `paid_amount` = total tender.
+Kembalian (bila lebih bayar) dikurangi dari porsi **tunai** dulu.
+
+```json
+{
+  "store_id": 1,
+  "payment_method": "split",
+  "paid_amount": 110000,
+  "payments": [
+    { "method": "cash", "amount": 60000 },
+    { "method": "transfer", "amount": 50000 }
+  ],
+  "items": [ { "product_id": 12, "quantity": 2 } ]
+}
+```
+- Untuk pembayaran non-tunai (transfer/qris) bisa lampirkan `payment_proof`
+  (`multipart/form-data`); bukti otomatis menempel ke baris non-tunai pertama.
+- Response menyertakan rincian di field `payments[]` (lihat §8).
+
+#### Hutang bayar sebagian (DP) di awal
+Set `is_debt=true` lalu kirim `paid_amount` < grand total (boleh juga via `payments[]`).
+Sisa otomatis jadi `debt_amount`. Wajib ada pelanggan (`customer_id`/`customer_name`).
+```json
+{
+  "store_id": 1, "payment_method": "cash", "is_debt": true,
+  "customer_id": 3, "paid_amount": 30000,
+  "items": [ { "product_id": 12, "quantity": 3 } ]
+}
+```
+> Grand total 90.000, bayar 30.000 → `debt_amount` 60.000, `payment_status` `belum_lunas`.
+
 ---
 
 ## 8. Transaksi (riwayat)
@@ -228,6 +264,10 @@ Transaksi milik kasir login pada outlet (maks 30, terbaru dulu).
       "paid_amount": 110000, "change_amount": 0,
       "is_debt": false, "debt_amount": 0,
       "paid_at": "18 Jun 2026 10:21",
+      "payments": [
+        { "method": "cash", "amount": 60000, "is_settlement": false, "paid_at": "18 Jun 2026 10:21" },
+        { "method": "transfer", "amount": 50000, "is_settlement": false, "paid_at": "18 Jun 2026 10:21" }
+      ],
       "items": [
         { "id": 1, "product_id": 12, "name": "Oli Mesin 1L", "product_type": "goods",
           "quantity": 1, "refunded_quantity": 0, "refundable_quantity": 1,
@@ -237,9 +277,23 @@ Transaksi milik kasir login pada outlet (maks 30, terbaru dulu).
   ]
 }
 ```
+> `payments[]`: rincian metode bayar. `is_settlement=false` = pembayaran saat transaksi;
+> `is_settlement=true` = cicilan/pelunasan hutang setelah transaksi (via mark-paid).
 
 ### POST `/transactions/{sale}/mark-paid`
-Tandai transaksi utang jadi lunas. Response `200`: `SaleResource`.
+Bayar hutang: bisa **lunas penuh** atau **cicilan sebagian**.
+
+| Field | Wajib | Keterangan |
+|---|---|---|
+| `amount` | tidak | nominal dibayar. Kosong = lunasi seluruh sisa. Maks = sisa hutang. |
+| `method` | tidak | `cash` (default) / `qris` / `transfer` |
+
+Contoh cicilan sebagian:
+```json
+{ "amount": 25000, "method": "transfer" }
+```
+Response `200`: `SaleResource`. Bila masih ada sisa → `payment_status` tetap `belum_lunas`
+dan `debt_amount` berkurang; bila lunas → `payment_status` `lunas`, `debt_amount` 0.
 Error `422` bila sudah lunas; `403` bila bukan transaksi kasir tsb.
 
 ---
@@ -323,7 +377,7 @@ Error `403` bila bukan sesi milik kasir tsb; `422` bila sesi sudah ditutup.
 | POST | `/pricing` | Hitung total |
 | POST | `/checkout` | Buat transaksi |
 | GET | `/transactions` | Riwayat transaksi |
-| POST | `/transactions/{id}/mark-paid` | Lunasi utang |
+| POST | `/transactions/{id}/mark-paid` | Lunasi / cicil utang |
 | POST | `/refunds` | Refund / tukar |
 | GET | `/cashier-sessions/current` | Sesi kasir aktif |
 | POST | `/cashier-sessions/open` | Buka sesi |
@@ -351,4 +405,6 @@ curl -X POST https://omseta.ziandev.site/api/v1/checkout \
 - Semua nominal dalam Rupiah (number, tanpa pemisah ribuan).
 - `store_id` wajib dikirim di endpoint per-outlet; user hanya bisa akses outlet miliknya
   (`403` bila bukan haknya). Superuser bisa semua outlet aktif.
+- Pembayaran gabungan: kirim `payments[]` + `payment_method=split`. Kembalian dipotong dari porsi tunai dulu.
+- Hutang fleksibel: bayar sebagian saat checkout (`is_debt=true`, `paid_amount` < total) lalu cicil via `mark-paid` (`amount`+`method`).
 ```

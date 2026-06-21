@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounting;
 
+use App\Models\Account;
 use App\Models\Company;
 use App\Models\Journal;
 use App\Models\Sale;
@@ -45,11 +46,28 @@ class SalePoster
         $debt = (float) $sale->debt_amount;
         $settledNow = round($grandTotal - $debt, 2);
 
-        $paymentSubtype = $sale->payment_method === 'qris' ? 'bank' : 'cash';
-
         $lines = [];
 
-        if ($settledNow > 0) {
+        // Penerimaan: split per metode bila ada rincian pembayaran, jika tidak pakai metode tunggal.
+        $paymentRows = $sale->relationLoaded('payments')
+            ? $sale->payments->where('is_settlement', false)
+            : $sale->payments()->where('is_settlement', false)->get();
+
+        if ($paymentRows->isNotEmpty()) {
+            foreach ($paymentRows as $payment) {
+                $amount = round((float) $payment->amount, 2);
+                if ($amount <= 0) {
+                    continue;
+                }
+                $lines[] = [
+                    'account_id' => $this->account($company, $payment->accountSubtype())->id,
+                    'debit' => $amount,
+                    'store_id' => $sale->store_id,
+                    'memo' => 'Penerimaan '.$payment->method,
+                ];
+            }
+        } elseif ($settledNow > 0) {
+            $paymentSubtype = in_array($sale->payment_method, ['qris', 'transfer'], true) ? 'bank' : 'cash';
             $lines[] = [
                 'account_id' => $this->account($company, $paymentSubtype)->id,
                 'debit' => $settledNow,
@@ -143,7 +161,7 @@ class SalePoster
             ->exists();
     }
 
-    private function account(Company $company, string $subtype): \App\Models\Account
+    private function account(Company $company, string $subtype): Account
     {
         $account = $company->account($subtype);
 

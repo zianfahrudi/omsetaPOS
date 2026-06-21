@@ -8,14 +8,13 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Store;
 use App\Services\CheckoutService;
+use App\Services\PosService;
 use App\Services\RefundService;
-use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -96,7 +95,7 @@ class CashierController extends Controller
         $term = trim((string) ($data['q'] ?? ''));
 
         $sales = Sale::query()
-            ->with(['items', 'store', 'customer', 'cashier'])
+            ->with(['items', 'store', 'customer', 'cashier', 'payments'])
             ->where('store_id', $storeId)
             ->where('cashier_id', Auth::id())
             ->when($term !== '', function ($query) use ($term) {
@@ -119,7 +118,7 @@ class CashierController extends Controller
         return response()->json(['transactions' => $sales]);
     }
 
-    public function markTransactionPaid(Sale $sale): JsonResponse
+    public function markTransactionPaid(Request $request, Sale $sale, PosService $posService): JsonResponse
     {
         abort_unless($this->canAccessStore((int) $sale->store_id), 403);
         abort_unless((int) $sale->cashier_id === (int) Auth::id(), 403);
@@ -128,32 +127,20 @@ class CashierController extends Controller
             return response()->json(['message' => 'Transaksi sudah lunas.'], 422);
         }
 
-        $paidDebt = (float) $sale->debt_amount;
+        $data = $request->validate([
+            'amount' => ['nullable', 'numeric', 'min:1'],
+            'method' => ['nullable', 'in:'.implode(',', Sale::PAYMENT_METHODS)],
+        ]);
 
-        DB::transaction(function () use ($sale, $paidDebt) {
-            $sale = Sale::query()->whereKey($sale->id)->lockForUpdate()->firstOrFail();
-
-            if (! $sale->is_debt || (float) $sale->debt_amount <= 0) {
-                throw new InvalidArgumentException('Transaksi sudah lunas.');
-            }
-
-            $sale->increment('paid_amount', $paidDebt);
-            $sale->forceFill([
-                'debt_amount' => 0,
-                'change_amount' => 0,
-            ])->save();
-
-            if ($sale->customer_id) {
-                $customer = Customer::query()->lockForUpdate()->find($sale->customer_id);
-                $customer?->forceFill([
-                    'outstanding_debt' => max(0, (float) $customer->outstanding_debt - $paidDebt),
-                ])->save();
-            }
-
-            ActivityLogger::log('sale.debt_paid', "Transaksi {$sale->number} ditandai lunas", $sale->store_id, $sale, [
-                'paid_debt' => $paidDebt,
-            ]);
-        });
+        try {
+            $sale = $posService->markTransactionPaid(
+                $sale,
+                isset($data['amount']) ? (float) $data['amount'] : null,
+                $data['method'] ?? 'cash',
+            );
+        } catch (InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return response()->json([
             'sale' => $this->salePayload($sale->fresh(['items', 'store', 'customer', 'cashier'])),
@@ -573,11 +560,14 @@ class CashierController extends Controller
             'customer_phone' => ['nullable', 'string', 'max:40'],
             'vehicle_plate_number' => ['nullable', 'string', 'max:30'],
             'vehicle_mileage' => ['nullable', 'integer', 'min:0'],
-            'payment_method' => ['required', 'in:cash,qris'],
+            'payment_method' => ['required', 'in:cash,qris,transfer,split'],
             'payment_proof' => ['nullable', 'required_if:payment_method,qris', 'image', 'max:5120'],
             'is_debt' => ['nullable', 'boolean'],
             'discount_code' => ['nullable', 'string', 'max:60'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
+            'payments' => ['nullable', 'array'],
+            'payments.*.method' => ['required_with:payments', 'in:cash,qris,transfer'],
+            'payments.*.amount' => ['required_with:payments', 'numeric', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
@@ -590,6 +580,21 @@ class CashierController extends Controller
         $paymentProofPath = null;
         if ($request->hasFile('payment_proof')) {
             $paymentProofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
+        }
+
+        // Susun breakdown pembayaran gabungan bila dikirim; lampirkan bukti ke baris non-tunai.
+        $payments = null;
+        if (! empty($data['payments'])) {
+            $payments = [];
+            $proofAttached = false;
+            foreach ($data['payments'] as $row) {
+                $entry = ['method' => $row['method'], 'amount' => (float) $row['amount']];
+                if ($paymentProofPath && ! $proofAttached && $row['method'] !== 'cash') {
+                    $entry['proof'] = $paymentProofPath;
+                    $proofAttached = true;
+                }
+                $payments[] = $entry;
+            }
         }
 
         try {
@@ -608,6 +613,7 @@ class CashierController extends Controller
                 isDebt: (bool) ($data['is_debt'] ?? false),
                 vehiclePlateNumber: $data['vehicle_plate_number'] ?? null,
                 vehicleMileage: isset($data['vehicle_mileage']) ? (int) $data['vehicle_mileage'] : null,
+                payments: $payments,
             );
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
@@ -633,6 +639,11 @@ class CashierController extends Controller
                 'change_amount' => (float) $sale->change_amount,
                 'payment_method' => $sale->payment_method,
                 'payment_proof' => $sale->payment_proof,
+                'payments' => $sale->payments->map(fn ($p) => [
+                    'method' => $p->method,
+                    'amount' => (float) $p->amount,
+                    'is_settlement' => (bool) $p->is_settlement,
+                ])->values(),
                 'customer_name' => $sale->customer_name,
                 'customer_phone' => $sale->customer_phone,
                 'vehicle_plate_number' => $sale->vehicle_plate_number,
@@ -715,6 +726,12 @@ class CashierController extends Controller
             'is_debt' => (bool) $sale->is_debt,
             'debt_amount' => $debtAmount,
             'paid_at' => $sale->paid_at?->format('d M Y H:i') ?? $sale->created_at->format('d M Y H:i'),
+            'payments' => $sale->relationLoaded('payments') ? $sale->payments->map(fn ($p) => [
+                'method' => $p->method,
+                'amount' => (float) $p->amount,
+                'is_settlement' => (bool) $p->is_settlement,
+                'paid_at' => $p->paid_at?->format('d M Y H:i'),
+            ])->values() : [],
             'items' => $sale->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,

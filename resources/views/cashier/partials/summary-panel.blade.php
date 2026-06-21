@@ -122,6 +122,36 @@
                                 </svg>
                                 QRIS
                             </div>
+                            <div class="payment-card" data-method="transfer">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 7h13l-3-3" />
+                                    <path d="M21 17H8l3 3" />
+                                </svg>
+                                Transfer
+                            </div>
+                        </div>
+                        <label class="debt-toggle" id="split-toggle-wrap" style="grid-column: 1 / -1;">
+                            <input id="split-toggle" type="checkbox">
+                            <span>Bayar gabungan (cash + transfer/QRIS)</span>
+                        </label>
+                        <div id="split-panel" style="display: none; grid-column: 1 / -1; flex-direction: column; gap: 8px;">
+                            <label class="field">
+                                <span>Tunai</span>
+                                <input class="input split-input" id="split-cash" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+                            </label>
+                            <label class="field">
+                                <span>Transfer</span>
+                                <input class="input split-input" id="split-transfer" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+                            </label>
+                            <label class="field">
+                                <span>QRIS</span>
+                                <input class="input split-input" id="split-qris" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+                            </label>
+                            <div class="summary-line" style="margin-top: 2px;">
+                                <span>Total Dibayar</span>
+                                <strong id="split-total">Rp 0</strong>
+                            </div>
                         </div>
                         <label class="field" id="paid-field" style="grid-column: 1 / -1;">
                             <span id="paid-label">Nominal Diterima</span>

@@ -53,6 +53,12 @@
             isDebt: document.getElementById('is-debt'),
             proofField: document.getElementById('proof-field'),
             paymentProof: document.getElementById('payment-proof'),
+            splitToggle: document.getElementById('split-toggle'),
+            splitPanel: document.getElementById('split-panel'),
+            splitCash: document.getElementById('split-cash'),
+            splitTransfer: document.getElementById('split-transfer'),
+            splitQris: document.getElementById('split-qris'),
+            splitTotal: document.getElementById('split-total'),
             toast: document.getElementById('toast'),
         };
 
@@ -91,6 +97,27 @@
         };
 
         const currencyValue = (input) => Number(currencyDigits(input.value) || 0);
+
+        // Pembayaran gabungan (split): kumpulkan baris non-nol dari input cash/transfer/qris.
+        const splitPayments = () => ([
+            ['cash', els.splitCash],
+            ['transfer', els.splitTransfer],
+            ['qris', els.splitQris],
+        ])
+            .filter(([, input]) => input)
+            .map(([method, input]) => ({ method, amount: currencyValue(input) }))
+            .filter((p) => p.amount > 0);
+
+        const splitTotalValue = () => splitPayments().reduce((sum, p) => sum + p.amount, 0);
+
+        const isSplitOn = () => Boolean(els.splitToggle?.checked);
+
+        const clearSplit = () => {
+            if (els.splitToggle) els.splitToggle.checked = false;
+            [els.splitCash, els.splitTransfer, els.splitQris].forEach((input) => {
+                if (input) input.value = '';
+            });
+        };
 
         const bindCurrencyInput = (input, onChange) => {
             input.addEventListener('input', () => {
@@ -485,9 +512,16 @@
 
         const renderPaymentSummary = (items = Array.from(state.cart.values())) => {
             const totals = calculateTotals();
-            const paid = els.isDebt.checked
-                ? currencyValue(els.paidAmount)
-                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount));
+            const splitOn = isSplitOn();
+
+            if (els.splitPanel) els.splitPanel.style.display = splitOn ? 'flex' : 'none';
+            if (splitOn && els.splitTotal) els.splitTotal.textContent = rupiah(splitTotalValue());
+
+            const paid = splitOn
+                ? splitTotalValue()
+                : (els.isDebt.checked
+                    ? currencyValue(els.paidAmount)
+                    : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount)));
             const debt = els.isDebt.checked ? Math.max(0, totals.grandTotal - paid) : 0;
             els.subtotal.textContent = rupiah(totals.subtotal);
             els.discountTotal.textContent = `- ${rupiah(totals.discountTotal)}`;
@@ -502,8 +536,9 @@
             els.debtRowDisplay.style.display = els.isDebt.checked ? 'flex' : 'none';
             els.checkout.disabled = items.length === 0;
             els.paidLabel.textContent = els.isDebt.checked ? 'Nominal Sudah Dibayar' : 'Nominal Diterima';
-            els.paidField.style.display = els.paymentMethod.value === 'cash' || els.isDebt.checked ? 'flex' : 'none';
-            els.proofField.style.display = els.paymentMethod.value === 'qris' ? 'flex' : 'none';
+            els.paidField.style.display = (! splitOn && (els.paymentMethod.value === 'cash' || els.isDebt.checked)) ? 'flex' : 'none';
+            const splitNonCash = splitOn && (currencyValue(els.splitTransfer) + currencyValue(els.splitQris)) > 0;
+            els.proofField.style.display = (els.paymentMethod.value === 'qris' || splitNonCash) ? 'flex' : 'none';
         };
 
         const checkout = async () => {
@@ -527,21 +562,44 @@
             if (els.customerPhone.value) payload.append('customer_phone', els.customerPhone.value);
             if (els.vehiclePlateNumber.value) payload.append('vehicle_plate_number', els.vehiclePlateNumber.value);
             if (els.vehicleMileage.value) payload.append('vehicle_mileage', els.vehicleMileage.value);
-            payload.append('payment_method', els.paymentMethod.value);
-            payload.append('is_debt', debtChecked ? '1' : '0');
-            payload.append('paid_amount', debtChecked
-                ? currencyValue(els.paidAmount)
-                : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount)));
-            if (state.discount?.code) payload.append('discount_code', state.discount.code);
+            const splitOn = isSplitOn();
+            const splitRows = splitOn ? splitPayments() : [];
 
-            if (els.paymentMethod.value === 'qris' && els.paymentProof.files.length > 0) {
-                payload.append('payment_proof', els.paymentProof.files[0]);
+            if (splitOn && splitRows.length === 0) {
+                showToast('Isi minimal satu nominal pembayaran', 'error');
+                return;
             }
 
-            if (els.paymentMethod.value === 'qris' && els.paymentProof.files.length === 0) {
+            if (splitOn) {
+                const paidNow = splitTotalValue();
+                if (!debtChecked && paidNow < totals.grandTotal) {
+                    showToast('Total pembayaran kurang dari tagihan', 'error');
+                    return;
+                }
+                payload.append('payment_method', splitRows.length > 1 ? 'split' : splitRows[0].method);
+                splitRows.forEach((p, i) => {
+                    payload.append(`payments[${i}][method]`, p.method);
+                    payload.append(`payments[${i}][amount]`, p.amount);
+                });
+                payload.append('paid_amount', paidNow);
+            } else {
+                payload.append('payment_method', els.paymentMethod.value);
+                payload.append('paid_amount', debtChecked
+                    ? currencyValue(els.paidAmount)
+                    : (els.paymentMethod.value === 'qris' ? totals.grandTotal : currencyValue(els.paidAmount)));
+            }
+
+            payload.append('is_debt', debtChecked ? '1' : '0');
+            if (state.discount?.code) payload.append('discount_code', state.discount.code);
+
+            // Bukti transfer: wajib untuk QRIS tunggal; opsional untuk mode split.
+            if (!splitOn && els.paymentMethod.value === 'qris' && els.paymentProof.files.length === 0) {
                 showToast('Upload bukti transfer untuk pembayaran QRIS', 'error');
                 renderOrder();
                 return;
+            }
+            if (els.paymentProof.files.length > 0) {
+                payload.append('payment_proof', els.paymentProof.files[0]);
             }
 
             Array.from(state.cart.values()).forEach((item, index) => {
@@ -580,6 +638,7 @@
                 els.paidAmount.value = '';
                 els.paymentProof.value = '';
                 els.isDebt.checked = false;
+                clearSplit();
                 clearDiscount(false);
                 await loadProducts();
                 renderOrder();
@@ -695,6 +754,12 @@
 
         bindCurrencyInput(els.paidAmount, renderOrder);
         els.isDebt.addEventListener('change', renderOrder);
+
+        // Pembayaran gabungan (split).
+        els.splitToggle?.addEventListener('change', renderOrder);
+        [els.splitCash, els.splitTransfer, els.splitQris].forEach((input) => {
+            if (input) bindCurrencyInput(input, renderOrder);
+        });
         els.scan?.addEventListener('keydown', async (event) => {
             if (event.key !== 'Enter') return;
 
@@ -744,6 +809,7 @@
                 els.paidAmount.value = '';
                 els.paymentProof.value = '';
                 els.isDebt.checked = false;
+                clearSplit();
                 clearDiscount(false);
                 renderOrder();
             }

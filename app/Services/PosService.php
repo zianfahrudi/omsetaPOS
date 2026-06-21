@@ -133,45 +133,68 @@ class PosService
             ->get();
     }
 
-    public function markTransactionPaid(Sale $sale): Sale
+    public function markTransactionPaid(Sale $sale, ?float $amount = null, string $method = 'cash'): Sale
     {
         if (! $sale->is_debt || (float) $sale->debt_amount <= 0) {
             throw new InvalidArgumentException('Transaksi sudah lunas.');
         }
 
-        $paidDebt = (float) $sale->debt_amount;
+        if (! in_array($method, Sale::PAYMENT_METHODS, true)) {
+            throw new InvalidArgumentException('Metode pembayaran tidak valid.');
+        }
 
-        DB::transaction(function () use ($sale, $paidDebt) {
+        DB::transaction(function () use ($sale, $amount, $method) {
             $locked = Sale::query()->whereKey($sale->id)->lockForUpdate()->firstOrFail();
 
-            if (! $locked->is_debt || (float) $locked->debt_amount <= 0) {
+            $outstanding = (float) $locked->debt_amount;
+            if (! $locked->is_debt || $outstanding <= 0) {
                 throw new InvalidArgumentException('Transaksi sudah lunas.');
             }
 
-            $locked->increment('paid_amount', $paidDebt);
-            $locked->forceFill(['debt_amount' => 0, 'change_amount' => 0])->save();
+            // Default: lunasi seluruh sisa. Bila $amount diberikan, bayar sebagian (maks sisa).
+            $pay = $amount === null ? $outstanding : round(min(max(0, $amount), $outstanding), 2);
+            if ($pay <= 0) {
+                throw new InvalidArgumentException('Nominal pembayaran harus lebih dari Rp 0.');
+            }
+
+            $locked->increment('paid_amount', $pay);
+            $locked->forceFill([
+                'debt_amount' => round($outstanding - $pay, 2),
+                'change_amount' => 0,
+            ])->save();
+
+            $locked->payments()->create([
+                'method' => $method,
+                'amount' => $pay,
+                'is_settlement' => true,
+                'paid_at' => now(),
+            ]);
 
             if ($locked->customer_id) {
                 $customer = Customer::query()->lockForUpdate()->find($locked->customer_id);
                 $customer?->forceFill([
-                    'outstanding_debt' => max(0, (float) $customer->outstanding_debt - $paidDebt),
+                    'outstanding_debt' => max(0, (float) $customer->outstanding_debt - $pay),
                 ])->save();
             }
 
-            ActivityLogger::log('sale.debt_paid', "Transaksi {$locked->number} ditandai lunas", $locked->store_id, $locked, [
-                'paid_debt' => $paidDebt,
+            $remaining = (float) $locked->fresh()->debt_amount;
+            $label = $remaining > 0 ? 'dibayar sebagian' : 'ditandai lunas';
+            ActivityLogger::log('sale.debt_paid', "Transaksi {$locked->number} {$label}", $locked->store_id, $locked, [
+                'paid_debt' => $pay,
+                'method' => $method,
+                'remaining_debt' => $remaining,
             ]);
 
-            $this->postDebtPayment($locked, $paidDebt);
+            $this->postDebtPayment($locked, $pay, $method);
         });
 
-        return $sale->fresh(['items', 'store', 'customer', 'cashier']);
+        return $sale->fresh(['items', 'store', 'customer', 'cashier', 'payments']);
     }
 
     /**
-     * Post a cash receipt journal for a debt settlement: Dr Kas, Cr Piutang.
+     * Post a cash/bank receipt journal for a debt settlement: Dr Kas/Bank, Cr Piutang.
      */
-    private function postDebtPayment(Sale $sale, float $amount): void
+    private function postDebtPayment(Sale $sale, float $amount, string $method = 'cash'): void
     {
         $company = $sale->loadMissing('store')->store?->company;
 
@@ -179,10 +202,11 @@ class PosService
             return;
         }
 
-        $cash = $company->account('cash');
+        $subtype = $method === 'cash' ? 'cash' : 'bank';
+        $debitAccount = $company->account($subtype);
         $receivable = $company->account('accounts_receivable');
 
-        if (! $cash || ! $receivable) {
+        if (! $debitAccount || ! $receivable) {
             return;
         }
 
@@ -190,7 +214,7 @@ class PosService
             company: $company,
             date: now()->toDateString(),
             lines: [
-                ['account_id' => $cash->id, 'debit' => $amount, 'store_id' => $sale->store_id, 'memo' => 'Pelunasan piutang'],
+                ['account_id' => $debitAccount->id, 'debit' => $amount, 'store_id' => $sale->store_id, 'memo' => 'Pelunasan piutang ('.$method.')'],
                 ['account_id' => $receivable->id, 'credit' => $amount, 'contact_id' => $sale->customer_id, 'store_id' => $sale->store_id, 'memo' => 'Pelunasan piutang'],
             ],
             type: 'cash_receipt',

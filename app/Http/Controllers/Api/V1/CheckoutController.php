@@ -20,6 +20,20 @@ class CheckoutController extends Controller
             $paymentProofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
         }
 
+        $payments = null;
+        if (! empty($data['payments'])) {
+            $payments = [];
+            $proofAttached = false;
+            foreach ($data['payments'] as $row) {
+                $entry = ['method' => $row['method'], 'amount' => (float) $row['amount']];
+                if ($paymentProofPath && ! $proofAttached && $row['method'] !== 'cash') {
+                    $entry['proof'] = $paymentProofPath;
+                    $proofAttached = true;
+                }
+                $payments[] = $entry;
+            }
+        }
+
         try {
             $sale = $checkout->checkout(
                 storeId: (int) $data['store_id'],
@@ -35,12 +49,13 @@ class CheckoutController extends Controller
                 isDebt: (bool) ($data['is_debt'] ?? false),
                 vehiclePlateNumber: $data['vehicle_plate_number'] ?? null,
                 vehicleMileage: isset($data['vehicle_mileage']) ? (int) $data['vehicle_mileage'] : null,
+                payments: $payments,
             );
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return (new SaleResource($sale->load(['items', 'store', 'cashier', 'customer'])))
+        return (new SaleResource($sale->load(['items', 'store', 'cashier', 'customer', 'payments'])))
             ->response()
             ->setStatusCode(201);
     }

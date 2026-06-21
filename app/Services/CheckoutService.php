@@ -36,16 +36,25 @@ class CheckoutService
         bool $isDebt = false,
         ?string $vehiclePlateNumber = null,
         ?int $vehicleMileage = null,
+        ?array $payments = null,
     ): Sale {
         if ($items === []) {
             throw new InvalidArgumentException('Keranjang masih kosong.');
         }
 
-        if (! in_array($paymentMethod, ['cash', 'qris'], true)) {
-            throw new InvalidArgumentException('Metode pembayaran tidak valid.');
+        // Validasi metode pembayaran.
+        $hasBreakdown = is_array($payments) && $payments !== [];
+        $methodsToCheck = $hasBreakdown ? [] : [$paymentMethod];
+        foreach ($payments ?? [] as $p) {
+            $methodsToCheck[] = $p['method'] ?? null;
+        }
+        foreach (array_filter($methodsToCheck) as $m) {
+            if (! in_array($m, Sale::PAYMENT_METHODS, true)) {
+                throw new InvalidArgumentException('Metode pembayaran tidak valid.');
+            }
         }
 
-        return DB::transaction(function () use ($storeId, $cashierId, $items, $paymentMethod, $paidAmount, $customerName, $customerPhone, $paymentProof, $customerId, $discountCode, $isDebt, $vehiclePlateNumber, $vehicleMileage) {
+        return DB::transaction(function () use ($storeId, $cashierId, $items, $paymentMethod, $paidAmount, $customerName, $customerPhone, $paymentProof, $customerId, $discountCode, $isDebt, $vehiclePlateNumber, $vehicleMileage, $payments) {
             $cart = collect($items)
                 ->groupBy('product_id')
                 ->map(function ($rows) {
@@ -89,12 +98,32 @@ class CheckoutService
 
             $totals = $this->calculateTotals($storeId, $subtotal, $discountCode, true);
             $grandTotal = $totals['grand_total'];
-            $actualPaidAmount = $isDebt ? min($paidAmount, $grandTotal) : ($paymentMethod === 'qris' ? $grandTotal : $paidAmount);
-            $debtAmount = $isDebt ? max(0, $grandTotal - $actualPaidAmount) : 0.0;
 
-            if (! $isDebt && $actualPaidAmount < $grandTotal) {
-                throw new InvalidArgumentException('Nominal bayar kurang dari total.');
+            // Tender (uang masuk) per metode. Breakdown gabungan bila $payments diberikan.
+            $tenders = $this->buildTenders($payments, $paymentMethod, $paidAmount, $paymentProof, $grandTotal, $isDebt);
+            $tenderedTotal = round(array_sum(array_map(fn ($t) => (float) $t['amount'], $tenders)), 2);
+
+            if ($isDebt) {
+                $appliedNow = min($tenderedTotal, $grandTotal);
+                $debtAmount = round(max(0, $grandTotal - $appliedNow), 2);
+                $changeAmount = 0.0;
+                $paidStored = round($appliedNow, 2);
+            } else {
+                if ($tenderedTotal < $grandTotal) {
+                    throw new InvalidArgumentException('Nominal bayar kurang dari total.');
+                }
+                $appliedNow = $grandTotal;
+                $debtAmount = 0.0;
+                $changeAmount = round($tenderedTotal - $grandTotal, 2);
+                $paidStored = round($tenderedTotal, 2);
             }
+
+            // Baris pembayaran ter-apply (net, setelah kembalian) — totalnya = $appliedNow.
+            $paymentRows = $this->applyTenders($tenders, round($tenderedTotal - $appliedNow, 2));
+
+            // Label metode pada sale: 'split' bila >1 metode berbeda.
+            $usedMethods = array_values(array_unique(array_map(fn ($t) => $t['method'], $tenders)));
+            $saleMethod = count($usedMethods) > 1 ? 'split' : ($usedMethods[0] ?? $paymentMethod);
 
             $customer = $this->resolveCustomer($storeId, $customerId, $customerName, $customerPhone);
             $vehicle = $this->resolveVehicle($storeId, $customer, $vehiclePlateNumber, $vehicleMileage);
@@ -118,7 +147,7 @@ class CheckoutService
                 'vehicle_plate_number' => $vehicle?->plate_number ?? $this->normalizePlateNumber($vehiclePlateNumber),
                 'vehicle_mileage' => $vehicle?->mileage ?? $vehicleMileage,
                 'status' => 'completed',
-                'payment_method' => $paymentMethod,
+                'payment_method' => $saleMethod,
                 'payment_proof' => $paymentProof,
                 'is_debt' => $isDebt,
                 'subtotal' => $subtotal,
@@ -132,11 +161,22 @@ class CheckoutService
                 'service_fee_percentage' => $totals['service_fee_percentage'],
                 'service_fee_total' => $totals['service_fee_total'],
                 'grand_total' => $grandTotal,
-                'paid_amount' => $actualPaidAmount,
-                'change_amount' => $isDebt ? 0 : max(0, $actualPaidAmount - $grandTotal),
+                'paid_amount' => $paidStored,
+                'change_amount' => $changeAmount,
                 'debt_amount' => $debtAmount,
                 'paid_at' => now(),
             ]);
+
+            // Simpan rincian pembayaran ter-apply (mendukung metode gabungan).
+            foreach ($paymentRows as $row) {
+                $sale->payments()->create([
+                    'method' => $row['method'],
+                    'amount' => $row['amount'],
+                    'proof' => $row['proof'] ?? null,
+                    'is_settlement' => false,
+                    'paid_at' => now(),
+                ]);
+            }
 
             if ($totals['discount']) {
                 $totals['discount']->increment('used_count');
@@ -181,7 +221,7 @@ class CheckoutService
                     $product->decrement('stock', $quantity);
                     $product->refresh();
 
-                    app(\App\Services\WarehouseStockService::class)->adjustDefault($product, -$quantity);
+                    app(WarehouseStockService::class)->adjustDefault($product, -$quantity);
 
                     StockMovement::create([
                         'store_id' => $storeId,
@@ -199,7 +239,7 @@ class CheckoutService
             }
 
             ActivityLogger::log('sale.completed', "Order {$sale->number} selesai", $storeId, $sale, [
-                'payment_method' => $paymentMethod,
+                'payment_method' => $saleMethod,
                 'grand_total' => $grandTotal,
                 'discount_code' => $totals['discount']?->code,
                 'is_debt' => $isDebt,
@@ -208,8 +248,91 @@ class CheckoutService
 
             $this->salePoster->post($sale);
 
-            return $sale->load(['items', 'cashier', 'store']);
+            return $sale->load(['items', 'cashier', 'store', 'payments']);
         });
+    }
+
+    /**
+     * Bentuk daftar tender (uang masuk) per metode.
+     * Bila $payments diberikan → pakai breakdown gabungan; jika tidak → metode tunggal legacy.
+     *
+     * @param  array<int, array{method:string, amount?:float|int|string|null, proof?:string|null}>|null  $payments
+     * @return array<int, array{method:string, amount:float, proof:string|null}>
+     */
+    private function buildTenders(?array $payments, string $paymentMethod, float $paidAmount, ?string $paymentProof, float $grandTotal, bool $isDebt): array
+    {
+        if (is_array($payments) && $payments !== []) {
+            $rows = [];
+            foreach ($payments as $p) {
+                $method = $p['method'] ?? null;
+                $amount = round(max(0, (float) ($p['amount'] ?? 0)), 2);
+                if ($method === null || $amount <= 0) {
+                    continue;
+                }
+                $rows[] = [
+                    'method' => $method,
+                    'amount' => $amount,
+                    'proof' => $p['proof'] ?? null,
+                ];
+            }
+
+            if ($rows !== []) {
+                return $rows;
+            }
+        }
+
+        // Legacy metode tunggal. Non-hutang non-tunai dianggap pas sebesar grand total.
+        $amount = $isDebt
+            ? round(max(0, $paidAmount), 2)
+            : ($paymentMethod === 'cash' ? round(max(0, $paidAmount), 2) : $grandTotal);
+
+        if ($amount <= 0) {
+            return [];
+        }
+
+        return [[
+            'method' => $paymentMethod,
+            'amount' => $amount,
+            'proof' => $paymentProof,
+        ]];
+    }
+
+    /**
+     * Kurangi kelebihan (kembalian/overpay) dari tender — utamakan dari tunai — lalu
+     * kembalikan baris pembayaran net (yang benar-benar diterapkan ke tagihan).
+     *
+     * @param  array<int, array{method:string, amount:float, proof:string|null}>  $tenders
+     * @return array<int, array{method:string, amount:float, proof:string|null}>
+     */
+    private function applyTenders(array $tenders, float $excess): array
+    {
+        $excess = max(0, round($excess, 2));
+
+        // Pass 1: kurangi dari tunai dulu.
+        foreach ($tenders as &$t) {
+            if ($excess <= 0) {
+                break;
+            }
+            if ($t['method'] === 'cash') {
+                $reduce = min($t['amount'], $excess);
+                $t['amount'] = round($t['amount'] - $reduce, 2);
+                $excess = round($excess - $reduce, 2);
+            }
+        }
+        unset($t);
+
+        // Pass 2: bila masih ada sisa, kurangi dari metode lain.
+        foreach ($tenders as &$t) {
+            if ($excess <= 0) {
+                break;
+            }
+            $reduce = min($t['amount'], $excess);
+            $t['amount'] = round($t['amount'] - $reduce, 2);
+            $excess = round($excess - $reduce, 2);
+        }
+        unset($t);
+
+        return array_values(array_filter($tenders, fn ($t) => $t['amount'] > 0));
     }
 
     /**

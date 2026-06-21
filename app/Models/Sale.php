@@ -42,6 +42,8 @@ class Sale extends Model
 {
     use HasFactory;
 
+    public const PAYMENT_METHODS = ['cash', 'qris', 'transfer'];
+
     protected function casts(): array
     {
         return [
@@ -90,6 +92,11 @@ class Sale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class);
     }
 
     public function productTaxTotal(): float

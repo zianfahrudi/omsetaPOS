@@ -42,6 +42,12 @@ class SaleResource extends JsonResource
             'is_debt' => (bool) $this->is_debt,
             'debt_amount' => $debtAmount,
             'paid_at' => $this->paid_at?->format('d M Y H:i') ?? $this->created_at->format('d M Y H:i'),
+            'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn ($p) => [
+                'method' => $p->method,
+                'amount' => (float) $p->amount,
+                'is_settlement' => (bool) $p->is_settlement,
+                'paid_at' => $p->paid_at?->format('d M Y H:i'),
+            ])->values()),
             'items' => SaleItemResource::collection($this->whenLoaded('items')),
         ];
     }

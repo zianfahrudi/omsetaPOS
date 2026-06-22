@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerVehicle;
+use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Store;
@@ -81,6 +82,30 @@ class CashierController extends Controller
         return response()->json(['products' => $products]);
     }
 
+    public function employees(Request $request): JsonResponse
+    {
+        $storeId = (int) $request->query('store_id');
+
+        abort_unless($this->canAccessStore($storeId), 403);
+
+        $companyId = Store::query()->whereKey($storeId)->value('company_id');
+
+        $term = trim((string) $request->query('q', ''));
+
+        $employees = Employee::query()
+            ->where('company_id', $companyId)
+            ->where('is_active', true)
+            ->when($term !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('name', 'like', "%{$term}%")
+                ->orWhere('code', 'like', "%{$term}%")))
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name', 'code'])
+            ->map(fn ($e) => ['id' => $e->id, 'name' => $e->name, 'code' => $e->code]);
+
+        return response()->json(['employees' => $employees]);
+    }
+
     public function transactions(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -95,7 +120,7 @@ class CashierController extends Controller
         $term = trim((string) ($data['q'] ?? ''));
 
         $sales = Sale::query()
-            ->with(['items', 'store', 'customer', 'cashier', 'payments'])
+            ->with(['items.employee', 'store', 'customer', 'cashier', 'payments'])
             ->where('store_id', $storeId)
             ->where('cashier_id', Auth::id())
             ->when($term !== '', function ($query) use ($term) {
@@ -143,7 +168,7 @@ class CashierController extends Controller
         }
 
         return response()->json([
-            'sale' => $this->salePayload($sale->fresh(['items', 'store', 'customer', 'cashier'])),
+            'sale' => $this->salePayload($sale->fresh(['items.employee', 'store', 'customer', 'cashier'])),
         ]);
     }
 
@@ -571,6 +596,7 @@ class CashierController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'items.*.service_fee_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
         ]);
@@ -653,6 +679,8 @@ class CashierController extends Controller
                     'name' => $item->product_name,
                     'product_type' => $item->product_type,
                     'quantity' => $item->quantity,
+                    'employee_id' => $item->employee_id,
+                    'employee_name' => $item->employee?->name,
                     'unit_price' => (float) $item->unit_price,
                     'fee_amount' => (float) $item->fee_amount,
                     'service_fee_amount' => (float) $item->service_fee_amount,
@@ -738,6 +766,8 @@ class CashierController extends Controller
                 'name' => $item->product_name,
                 'product_type' => $item->product_type,
                 'quantity' => $item->quantity,
+                'employee_id' => $item->employee_id,
+                'employee_name' => $item->employee?->name,
                 'refunded_quantity' => $item->refunded_quantity,
                 'refundable_quantity' => max(0, $item->quantity - $item->refunded_quantity),
                 'unit_price' => (float) $item->unit_price,

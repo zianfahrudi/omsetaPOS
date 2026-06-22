@@ -54,7 +54,7 @@ class PurchaseService
 
         $date = $date ? Carbon::parse($date) : now();
 
-        return DB::transaction(function () use ($company, $supplier, $items, $date, $warehouseId, $storeId, $supplierInvoiceNo, $dueDate, $notes, $createdBy) {
+        return DB::transaction(function () use ($company, $supplier, $items, $date, $warehouseId, $storeId, $supplierInvoiceNo, $dueDate, $createdBy) {
             $purchase = Purchase::create([
                 'company_id' => $company->id,
                 'contact_id' => $supplier->id,
@@ -146,7 +146,7 @@ class PurchaseService
             'cost_price' => $newCost,
         ])->save();
 
-        app(\App\Services\WarehouseStockService::class)->adjustDefault($product, $quantity);
+        app(WarehouseStockService::class)->adjustDefault($product, $quantity);
 
         StockMovement::create([
             'store_id' => $purchase->store_id ?? $product->store_id,

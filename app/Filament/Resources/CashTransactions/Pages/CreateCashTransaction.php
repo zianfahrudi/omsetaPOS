@@ -34,6 +34,6 @@ class CreateCashTransaction extends CreateRecord
             $this->halt();
         }
 
-        return new CashTransaction();
+        return new CashTransaction;
     }
 }

@@ -83,7 +83,7 @@ class AssemblyTest extends TestCase
         $assembly = app(AssemblyService::class)->complete($assembly->fresh());
 
         $this->assertNotNull($assembly->product_id);
-        $product = \App\Models\Product::findOrFail($assembly->product_id);
+        $product = Product::findOrFail($assembly->product_id);
         $this->assertSame('Kusen Aluminium Manual', $product->name);
         $this->assertSame('15000.00', (string) $product->cost_price);
         $this->assertSame(1, (int) $product->stock);

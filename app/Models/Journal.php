@@ -64,4 +64,14 @@ class Journal extends Model
     {
         return bccomp((string) $this->total_debit, (string) $this->total_credit, 2) === 0;
     }
+
+    /**
+     * Jurnal manual (jurnal umum yang dibuat user), bukan hasil posting otomatis
+     * dari dokumen lain (penjualan, pembelian, dll). Hanya jurnal manual yang
+     * boleh diedit/dihapus langsung.
+     */
+    public function isManual(): bool
+    {
+        return $this->source_id === null && $this->type === 'general';
+    }
 }

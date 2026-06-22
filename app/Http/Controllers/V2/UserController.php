@@ -81,9 +81,15 @@ class UserController extends Controller
     {
         $this->authorizeSuper();
 
+        // Akun superuser: sertakan opsi Superuser agar tidak ter-demote saat disimpan.
+        $roleLabels = self::ROLE_LABELS;
+        if ($user->isSuperuser()) {
+            $roleLabels = ['superuser' => 'Superuser'] + $roleLabels;
+        }
+
         return view('v2.users.form', [
             'user' => $user,
-            'roleLabels' => self::ROLE_LABELS,
+            'roleLabels' => $roleLabels,
             'stores' => Store::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'selectedStores' => $user->stores()->pluck('stores.id')->all(),
         ]);
@@ -93,13 +99,16 @@ class UserController extends Controller
     {
         $this->authorizeSuper();
 
-        $data = $this->validateData($request, $user->id);
+        $data = $this->validateData($request, $user);
+
+        // Lindungi akun superuser dari demote tak sengaja via form ini.
+        $role = $user->isSuperuser() ? 'superuser' : $data['role'];
 
         $user->fill([
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
-            'role' => $data['role'],
+            'role' => $role,
             'is_active' => $request->boolean('is_active'),
         ]);
 
@@ -133,14 +142,20 @@ class UserController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateData(Request $request, ?int $ignoreId): array
+    private function validateData(Request $request, ?User $user): array
     {
+        // Izinkan nilai 'superuser' hanya saat mengedit akun superuser yang ada.
+        $allowedRoles = array_keys(self::ROLE_LABELS);
+        if ($user?->isSuperuser()) {
+            $allowedRoles[] = 'superuser';
+        }
+
         return $request->validate([
             'name' => ['required', 'string', 'max:150'],
-            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($ignoreId)],
+            'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user?->id)],
             'phone' => ['nullable', 'string', 'max:30'],
-            'role' => ['required', Rule::in(array_keys(self::ROLE_LABELS))],
-            'password' => [$ignoreId ? 'nullable' : 'required', 'nullable', 'string', 'min:6', 'confirmed'],
+            'role' => ['required', Rule::in($allowedRoles)],
+            'password' => [$user ? 'nullable' : 'required', 'nullable', 'string', 'min:6', 'confirmed'],
             'is_active' => ['nullable', 'boolean'],
             'stores' => ['nullable', 'array'],
             'stores.*' => ['integer', 'exists:stores,id'],

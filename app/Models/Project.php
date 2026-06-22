@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'company_id',
@@ -70,17 +71,17 @@ class Project extends Model
         return $this->belongsTo(District::class);
     }
 
-    public function costs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function costs(): HasMany
     {
         return $this->hasMany(ProjectCost::class)->orderBy('sort_order')->orderBy('id');
     }
 
-    public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function expenses(): HasMany
     {
         return $this->hasMany(ProjectExpense::class)->orderByDesc('date')->orderByDesc('id');
     }
 
-    public function paymentTerms(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function paymentTerms(): HasMany
     {
         return $this->hasMany(ProjectPaymentTerm::class)->orderBy('sort_order')->orderBy('id');
     }

@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccounts;
+use App\Services\AssemblyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -61,7 +62,7 @@ class AssemblyFilamentTest extends TestCase
         $this->assertSame('40000.00', (string) $assembly->total_cost);
 
         // Selesaikan → produk jadi masuk stok.
-        app(\App\Services\AssemblyService::class)->complete($assembly->fresh());
+        app(AssemblyService::class)->complete($assembly->fresh());
         $this->assertSame(5, $finished->refresh()->stock);
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Journal;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\Store;
 use App\Services\Accounting\PostingService;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Carbon;
@@ -167,7 +168,7 @@ class AssemblyService
 
             // Produk jadi manual → buat produk baru di master (HPP = biaya material).
             if (! $finished && filled($assembly->product_name)) {
-                $store = \App\Models\Store::query()->where('company_id', $company->id)->orderBy('id')->first();
+                $store = Store::query()->where('company_id', $company->id)->orderBy('id')->first();
                 if ($store) {
                     $finished = Product::create([
                         'store_id' => $store->id,

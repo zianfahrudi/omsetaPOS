@@ -55,7 +55,7 @@ class CheckoutController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return (new SaleResource($sale->load(['items', 'store', 'cashier', 'customer', 'payments'])))
+        return (new SaleResource($sale->load(['items.employee', 'store', 'cashier', 'customer', 'payments'])))
             ->response()
             ->setStatusCode(201);
     }

@@ -38,6 +38,6 @@ class CreateAssembly extends CreateRecord
             $this->halt();
         }
 
-        return new Assembly();
+        return new Assembly;
     }
 }

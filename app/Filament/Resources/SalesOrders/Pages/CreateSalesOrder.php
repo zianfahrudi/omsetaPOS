@@ -37,6 +37,6 @@ class CreateSalesOrder extends CreateRecord
             $this->halt();
         }
 
-        return new SalesOrder();
+        return new SalesOrder;
     }
 }

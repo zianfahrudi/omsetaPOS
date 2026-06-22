@@ -4,8 +4,8 @@ namespace App\Filament\Resources\Contacts\Schemas;
 
 use App\Models\Company;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 

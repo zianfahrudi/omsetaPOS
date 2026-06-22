@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Journal;
 use App\Models\ProjectPaymentTerm;
 use App\Services\Accounting\PostingService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -72,7 +73,7 @@ class ProjectTermPaymentService
         });
     }
 
-    private function journalQuery(ProjectPaymentTerm $term): \Illuminate\Database\Eloquent\Builder
+    private function journalQuery(ProjectPaymentTerm $term): Builder
     {
         return Journal::query()
             ->where('source_type', $term->getMorphClass())

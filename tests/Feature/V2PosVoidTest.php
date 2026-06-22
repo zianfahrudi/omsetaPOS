@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Journal;
 use App\Models\Product;
-use App\Models\Sale;
 use App\Models\User;
 use App\Services\CheckoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;

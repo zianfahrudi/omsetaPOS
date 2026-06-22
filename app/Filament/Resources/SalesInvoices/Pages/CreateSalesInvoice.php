@@ -39,6 +39,6 @@ class CreateSalesInvoice extends CreateRecord
             $this->halt();
         }
 
-        return new SalesInvoice();
+        return new SalesInvoice;
     }
 }

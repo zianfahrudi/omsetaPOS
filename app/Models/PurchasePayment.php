@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'company_id',
     'purchase_id',
     'contact_id',
+    'account_id',
     'number',
     'date',
     'method',

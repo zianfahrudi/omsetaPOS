@@ -37,6 +37,6 @@ class CreateStockTransfer extends CreateRecord
             $this->halt();
         }
 
-        return new StockTransfer();
+        return new StockTransfer;
     }
 }

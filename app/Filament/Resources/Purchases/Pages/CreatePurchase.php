@@ -44,6 +44,6 @@ class CreatePurchase extends CreateRecord
             $this->halt();
         }
 
-        return new Purchase();
+        return new Purchase;
     }
 }

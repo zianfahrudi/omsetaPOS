@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArisanGroup;
+use App\Models\ArisanMember;
 use App\Models\ArisanPeriod;
 use App\Models\Company;
 use App\Models\Employee;
@@ -27,7 +28,7 @@ class ArisanController extends Controller
 
         $groups = ArisanGroup::query()->where('company_id', $companyId)->get();
         $activeGroups = $groups->where('status', 'active')->count();
-        $totalMembers = \App\Models\ArisanMember::query()
+        $totalMembers = ArisanMember::query()
             ->whereIn('arisan_group_id', $groups->pluck('id'))
             ->count();
         $totalCollected = ArisanPeriod::query()

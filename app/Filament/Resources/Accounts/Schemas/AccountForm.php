@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\Accounts\Schemas;
 
 use App\Models\Account;
+use App\Models\Company;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
@@ -18,7 +19,7 @@ class AccountForm
                 Select::make('company_id')
                     ->label('Perusahaan')
                     ->relationship('company', 'name')
-                    ->default(fn () => \App\Models\Company::query()->value('id'))
+                    ->default(fn () => Company::query()->value('id'))
                     ->required(),
                 Select::make('type')
                     ->label('Tipe Akun')

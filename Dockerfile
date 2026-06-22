@@ -15,7 +15,9 @@ FROM composer:2 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
 # Tunda script artisan sampai source lengkap (autoload-dump butuh artisan).
-RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --optimize-autoloader
+# Abaikan platform-req ekstensi PHP: image composer:2 minim ekstensi, tapi
+# image runtime (php:8.3-fpm) sudah memasang intl/gd/zip/bcmath/dll.
+RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --optimize-autoloader --ignore-platform-reqs
 
 # ── Stage 3: runtime (php-fpm + nginx + supervisor) ───────────────────
 FROM php:8.3-fpm-alpine AS runtime

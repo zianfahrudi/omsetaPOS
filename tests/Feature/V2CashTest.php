@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\CashTransaction;
 use App\Models\Company;
+use App\Models\Journal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -40,7 +41,7 @@ class V2CashTest extends TestCase
         $this->assertEquals(150000, (float) $tx->amount);
 
         // Jurnal seimbang tercatat untuk transaksi ini.
-        $journal = \App\Models\Journal::query()->where('reference', $tx->number)->first();
+        $journal = Journal::query()->where('reference', $tx->number)->first();
         $this->assertNotNull($journal, 'Jurnal harus dibuat untuk transaksi kas.');
         $this->assertEquals((float) $journal->total_debit, (float) $journal->total_credit);
     }

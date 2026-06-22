@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\Journal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -105,6 +106,78 @@ class PostingService
     }
 
     /**
+     * Edit jurnal manual di tempat: perbarui header, ganti seluruh baris, dan
+     * pastikan tetap seimbang. Nomor jurnal dipertahankan. Hanya untuk jurnal
+     * manual (lihat Journal::isManual()).
+     *
+     * @param  array<int, array<string, mixed>>  $lines
+     */
+    public function update(
+        Journal $journal,
+        Carbon|string $date,
+        array $lines,
+        ?string $description = null,
+        ?string $reference = null,
+    ): Journal {
+        if (! $journal->isManual()) {
+            throw new InvalidArgumentException('Hanya jurnal umum manual yang dapat diedit. Jurnal otomatis dari dokumen lain harus diubah melalui dokumen sumbernya.');
+        }
+
+        $normalized = $this->normalizeLines($lines);
+
+        if (count($normalized) < 2) {
+            throw new InvalidArgumentException('Jurnal minimal terdiri dari 2 baris.');
+        }
+
+        return DB::transaction(function () use ($journal, $date, $normalized, $description, $reference) {
+            $this->resolveAccounts($journal->company, $normalized);
+
+            $totalDebit = 0.0;
+            $totalCredit = 0.0;
+            foreach ($normalized as $line) {
+                $totalDebit += $line['debit'];
+                $totalCredit += $line['credit'];
+            }
+
+            if (round($totalDebit, 2) <= 0.0) {
+                throw new InvalidArgumentException('Nilai jurnal harus lebih dari nol.');
+            }
+
+            if (bccomp(number_format($totalDebit, 2, '.', ''), number_format($totalCredit, 2, '.', ''), 2) !== 0) {
+                throw new InvalidArgumentException(sprintf(
+                    'Jurnal tidak seimbang: debit %s != kredit %s.',
+                    number_format($totalDebit, 2),
+                    number_format($totalCredit, 2),
+                ));
+            }
+
+            $journal->update([
+                'date' => $date,
+                'reference' => $reference,
+                'description' => $description,
+                'total_debit' => round($totalDebit, 2),
+                'total_credit' => round($totalCredit, 2),
+            ]);
+
+            $journal->lines()->delete();
+            foreach ($normalized as $line) {
+                $journal->lines()->create([
+                    'account_id' => $line['account_id'],
+                    'debit' => $line['debit'],
+                    'credit' => $line['credit'],
+                    'memo' => $line['memo'],
+                    'contact_id' => $line['contact_id'],
+                    'store_id' => $line['store_id'],
+                    'department_id' => $line['department_id'],
+                    'project_id' => $line['project_id'],
+                ]);
+            }
+
+            return $journal->load('lines');
+        });
+    }
+
+    /**
      * Reverse a posted journal by creating a mirror journal (debit <-> credit).
      */
     public function reverse(Journal $journal, Carbon|string|null $date = null, ?string $description = null): Journal
@@ -177,7 +250,7 @@ class PostingService
 
     /**
      * @param  array<int, array{account_id:int}>  $lines
-     * @return \Illuminate\Support\Collection<int, Account>
+     * @return Collection<int, Account>
      */
     private function resolveAccounts(Company $company, array $lines)
     {

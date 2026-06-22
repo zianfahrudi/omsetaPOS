@@ -80,7 +80,7 @@ class SalesReturnService
                     $before = (int) $product->stock;
                     $product->increment('stock', $quantity);
 
-                    app(\App\Services\WarehouseStockService::class)->adjustDefault($product, $quantity);
+                    app(WarehouseStockService::class)->adjustDefault($product, $quantity);
 
                     StockMovement::create([
                         'store_id' => $invoice->store_id ?? $product->store_id,

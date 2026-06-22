@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\CashierSessions\Schemas;
 
-use App\Models\Store;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;

@@ -37,6 +37,6 @@ class CreateSalesQuotation extends CreateRecord
             $this->halt();
         }
 
-        return new SalesQuotation();
+        return new SalesQuotation;
     }
 }

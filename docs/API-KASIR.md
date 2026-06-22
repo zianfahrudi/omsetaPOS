@@ -98,6 +98,23 @@ sesuai konfigurasi). `product_type` bisa `goods` atau `service`.
 
 ---
 
+## 3b. Petugas / Mekanik
+
+### GET `/employees?store_id=1&q=budi`
+Daftar petugas (mekanik/salesman) **aktif** pada perusahaan outlet (maks 50, urut nama).
+Dipakai untuk dropdown pemilih petugas per item di kasir. `q` opsional (nama/kode).
+```json
+{
+  "data": [
+    { "id": 7, "name": "Budi Mekanik", "code": "MK-001", "position": "Mekanik" }
+  ]
+}
+```
+> `id` dari sini dikirim sebagai `items[].employee_id` saat checkout (lihat §7).
+> Hanya karyawan aktif di perusahaan outlet tsb yang muncul.
+
+---
+
 ## 4. Pelanggan
 
 ### GET `/customers?store_id=1&q=budi`
@@ -187,6 +204,7 @@ Field:
 | `items` | ya | array min 1 |
 | `items[].product_id` | ya | |
 | `items[].quantity` | ya | min 1 |
+| `items[].employee_id` | tidak | petugas (mekanik/salesman) yang mengerjakan item ini — lihat catatan petugas |
 | `items[].service_fee_amount` | tidak | override fee per item |
 | `items[].tax_amount` | tidak | override pajak per item |
 | `customer_id` | tidak | pelanggan terdaftar |
@@ -243,6 +261,30 @@ Sisa otomatis jadi `debt_amount`. Wajib ada pelanggan (`customer_id`/`customer_n
 ```
 > Grand total 90.000, bayar 30.000 → `debt_amount` 60.000, `payment_status` `belum_lunas`.
 
+#### Petugas / mekanik per item (monitoring performa)
+Setiap baris `items[]` boleh menyertakan `employee_id` = petugas (mekanik/salesman) yang
+mengerjakan/menjual item itu. Penautan **per item**, jadi satu nota bisa mencatat mekanik
+berbeda untuk tiap jasa. Opsional — item tanpa petugas tetap valid.
+
+```json
+{
+  "store_id": 1, "payment_method": "cash", "paid_amount": 250000,
+  "items": [
+    { "product_id": 30, "quantity": 1, "employee_id": 7 },
+    { "product_id": 31, "quantity": 1, "employee_id": 9 },
+    { "product_id": 12, "quantity": 2 }
+  ]
+}
+```
+- `employee_id` harus karyawan **aktif** pada perusahaan outlet tsb. Bila tidak valid
+  (nonaktif / beda perusahaan / tidak ada) → `422` `{ "message": "Petugas tidak valid untuk toko ini." }`.
+- Produk sama dengan petugas berbeda akan menjadi baris item terpisah pada nota.
+- Response menyertakan `employee_id` & `employee_name` di tiap item (lihat §8).
+- Rekap performa petugas (jumlah jasa, nilai, transaksi) dilihat admin di laporan web
+  "Performa Mekanik" (bukan endpoint API).
+
+> Daftar petugas untuk dropdown diambil dari `GET /employees` (lihat §3b).
+
 ---
 
 ## 8. Transaksi (riwayat)
@@ -270,6 +312,7 @@ Transaksi milik kasir login pada outlet (maks 30, terbaru dulu).
       ],
       "items": [
         { "id": 1, "product_id": 12, "name": "Oli Mesin 1L", "product_type": "goods",
+          "employee_id": null, "employee_name": null,
           "quantity": 1, "refunded_quantity": 0, "refundable_quantity": 1,
           "unit_price": 55000, "fee_amount": 0, "service_fee_amount": 0, "tax_amount": 0, "line_total": 55000 }
       ]
@@ -369,6 +412,7 @@ Error `403` bila bukan sesi milik kasir tsb; `422` bila sesi sudah ditutup.
 | POST | `/auth/logout` | Logout |
 | GET | `/stores` | Daftar outlet |
 | GET | `/products` | Cari produk |
+| GET | `/employees` | Daftar petugas/mekanik |
 | GET | `/customers` | Cari pelanggan |
 | GET | `/customers/check` | Cek duplikat pelanggan |
 | POST | `/customers` | Buat pelanggan |
@@ -407,4 +451,5 @@ curl -X POST https://omseta.ziandev.site/api/v1/checkout \
   (`403` bila bukan haknya). Superuser bisa semua outlet aktif.
 - Pembayaran gabungan: kirim `payments[]` + `payment_method=split`. Kembalian dipotong dari porsi tunai dulu.
 - Hutang fleksibel: bayar sebagian saat checkout (`is_debt=true`, `paid_amount` < total) lalu cicil via `mark-paid` (`amount`+`method`).
+- Petugas/mekanik: kirim `items[].employee_id` saat checkout untuk mencatat pengerjaan per item (opsional, harus karyawan aktif di perusahaan outlet). Ambil daftarnya via `GET /employees`. Field `employee_id`/`employee_name` ikut di tiap item pada response transaksi.
 ```

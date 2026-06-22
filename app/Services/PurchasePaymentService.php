@@ -28,6 +28,7 @@ class PurchasePaymentService
         Carbon|string|null $date = null,
         ?string $notes = null,
         ?int $createdBy = null,
+        ?int $accountId = null,
     ): PurchasePayment {
         $amount = round($amount, 2);
 
@@ -41,7 +42,7 @@ class PurchasePaymentService
 
         $date = $date ? Carbon::parse($date) : now();
 
-        return DB::transaction(function () use ($purchase, $amount, $method, $date, $notes, $createdBy) {
+        return DB::transaction(function () use ($purchase, $amount, $method, $date, $notes, $createdBy, $accountId) {
             $purchase = Purchase::query()->whereKey($purchase->id)->lockForUpdate()->firstOrFail();
             $company = $purchase->company;
 
@@ -49,10 +50,16 @@ class PurchasePaymentService
                 throw new InvalidArgumentException('Nominal melebihi sisa hutang.');
             }
 
+            $creditAccount = $company->resolvePaymentAccount($accountId, $method === 'bank' ? 'bank' : 'cash');
+            if (! $creditAccount) {
+                throw new InvalidArgumentException('Akun Kas/Bank belum dikonfigurasi.');
+            }
+
             $payment = PurchasePayment::create([
                 'company_id' => $company->id,
                 'purchase_id' => $purchase->id,
                 'contact_id' => $purchase->contact_id,
+                'account_id' => $creditAccount->id,
                 'number' => $this->number($company, $date),
                 'date' => $date,
                 'method' => $method,
@@ -81,7 +88,7 @@ class PurchasePaymentService
                         'memo' => 'Pembayaran hutang',
                     ],
                     [
-                        'account_id' => $this->account($company, $method === 'bank' ? 'bank' : 'cash'),
+                        'account_id' => $creditAccount->id,
                         'credit' => $amount,
                         'memo' => 'Pembayaran hutang '.$purchase->number,
                     ],

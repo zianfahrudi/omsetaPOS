@@ -5,9 +5,14 @@ namespace App\Services\Accounting;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\JournalLine;
+use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchaseItem;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SalesInvoice;
+use App\Models\SalesInvoiceItem;
+use App\Models\WarehouseStock;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -37,6 +42,8 @@ class ReportService
         return [
             'revenue' => $revenue,
             'expense' => $expense,
+            'revenue_groups' => $this->sectionGrouped($accounts->where('type', 'revenue'), fn (Account $a) => $this->ledger->periodActivity($a, $from, $to)),
+            'expense_groups' => $this->sectionGrouped($accounts->where('type', 'expense'), fn (Account $a) => $this->ledger->periodActivity($a, $from, $to)),
             'total_revenue' => $totalRevenue,
             'total_expense' => $totalExpense,
             'net_income' => round($totalRevenue - $totalExpense, 2),
@@ -73,10 +80,27 @@ class ReportService
         $totalLiabilities = round($liabilities->sum('amount'), 2);
         $totalEquity = round($equity->sum('amount'), 2);
 
+        // Versi berkelompok (per akun induk) untuk tampilan berjenjang.
+        $assetGroups = $this->sectionGrouped($accounts->where('type', 'asset'), fn (Account $a) => $this->ledger->balance($a, $asOf));
+        $liabilityGroups = $this->sectionGrouped($accounts->where('type', 'liability'), fn (Account $a) => $this->ledger->balance($a, $asOf));
+        $equityGroups = $this->sectionGrouped($accounts->where('type', 'equity'), fn (Account $a) => $this->ledger->balance($a, $asOf));
+
+        if (abs($netIncome) >= 0.01) {
+            $equityGroups = $equityGroups->push([
+                'group_code' => 'zzzz',
+                'group_name' => 'Laba Berjalan',
+                'rows' => collect([['code' => '', 'name' => 'Laba (Rugi) Berjalan', 'amount' => $netIncome]]),
+                'subtotal' => $netIncome,
+            ])->values();
+        }
+
         return [
             'assets' => $assets,
             'liabilities' => $liabilities,
             'equity' => $equity,
+            'asset_groups' => $assetGroups,
+            'liability_groups' => $liabilityGroups,
+            'equity_groups' => $equityGroups,
             'total_assets' => $totalAssets,
             'total_liabilities' => $totalLiabilities,
             'total_equity' => $totalEquity,
@@ -304,7 +328,7 @@ class ReportService
      */
     public function inventoryReport(Company $company, ?int $categoryId = null, bool $lowStockOnly = false): array
     {
-        $rows = \App\Models\Product::query()
+        $rows = Product::query()
             ->with('category')
             ->whereHas('store', fn ($q) => $q->where('company_id', $company->id))
             ->where('product_type', '!=', 'service')
@@ -312,7 +336,7 @@ class ReportService
             ->when($lowStockOnly, fn ($q) => $q->whereColumn('stock', '<=', 'minimum_stock'))
             ->orderBy('name')
             ->get()
-            ->map(fn (\App\Models\Product $p) => [
+            ->map(fn (Product $p) => [
                 'name' => $p->name,
                 'sku' => $p->sku,
                 'category' => $p->category?->name,
@@ -340,25 +364,27 @@ class ReportService
     {
         $storeIds = $company->stores()->pluck('id');
 
-        $invoiceItems = \App\Models\SalesInvoiceItem::query()
-            ->with('invoice.customer')
+        $invoiceItems = SalesInvoiceItem::query()
+            ->with(['invoice.customer', 'product.category'])
             ->whereHas('invoice', fn ($q) => $q->where('company_id', $company->id)->whereBetween('date', [$from, $to]))
             ->get()
             ->map(fn ($i) => [
                 'product' => $i->product_name,
+                'category' => $i->product?->category?->name ?? 'Tanpa Kategori',
                 'customer' => $i->invoice?->customer?->name ?? 'Pelanggan',
                 'quantity' => (int) $i->quantity,
                 'total' => (float) $i->line_total,
             ]);
 
-        $posItems = \App\Models\SaleItem::query()
-            ->with('sale')
+        $posItems = SaleItem::query()
+            ->with(['sale', 'product.category'])
             ->whereHas('sale', fn ($q) => $q->whereIn('store_id', $storeIds)->whereBetween('created_at', [
                 Carbon::parse($from)->startOfDay(), Carbon::parse($to)->endOfDay(),
             ]))
             ->get()
             ->map(fn ($i) => [
                 'product' => $i->product_name,
+                'category' => $i->product?->category?->name ?? 'Tanpa Kategori',
                 'customer' => $i->sale?->customer_name ?? 'Pelanggan Umum',
                 'quantity' => (int) $i->quantity,
                 'total' => (float) $i->line_total,
@@ -368,6 +394,7 @@ class ReportService
 
         return [
             'by_product' => $this->groupAnalysis($all, 'product'),
+            'by_category' => $this->groupAnalysis($all, 'category'),
             'by_customer' => $this->groupAnalysis($all, 'customer'),
             'total' => round($all->sum('total'), 2),
             'from' => Carbon::parse($from)->toDateString(),
@@ -382,7 +409,7 @@ class ReportService
      */
     public function purchaseAnalysis(Company $company, Carbon|string $from, Carbon|string $to): array
     {
-        $items = \App\Models\PurchaseItem::query()
+        $items = PurchaseItem::query()
             ->with('purchase.supplier')
             ->whereHas('purchase', fn ($q) => $q->where('company_id', $company->id)->whereBetween('date', [$from, $to]))
             ->get()
@@ -466,13 +493,13 @@ class ReportService
      */
     public function warehouseStockReport(Company $company, ?int $warehouseId = null): array
     {
-        $rows = \App\Models\WarehouseStock::query()
+        $rows = WarehouseStock::query()
             ->with(['product', 'warehouse'])
             ->whereHas('warehouse', fn ($q) => $q->where('company_id', $company->id))
             ->when($warehouseId, fn ($q) => $q->where('warehouse_id', $warehouseId))
             ->where('quantity', '!=', 0)
             ->get()
-            ->map(fn (\App\Models\WarehouseStock $s) => [
+            ->map(fn (WarehouseStock $s) => [
                 'warehouse' => $s->warehouse?->name,
                 'product' => $s->product?->name,
                 'sku' => $s->product?->sku,
@@ -494,7 +521,8 @@ class ReportService
      * @param  Collection<int, Account>  $accounts
      * @return Collection<int, array{code:string, name:string, amount:float}>
      */
-    private function section(Collection $accounts, callable $amountFn): Collection    {
+    private function section(Collection $accounts, callable $amountFn): Collection
+    {
         return $accounts
             ->map(fn (Account $a) => [
                 'code' => $a->code,
@@ -507,12 +535,49 @@ class ReportService
     }
 
     /**
+     * Kelompokkan akun berdasarkan akun induk langsung (mis. sub-akun BCA/BNI di
+     * bawah induk "Bank") dengan subtotal per kelompok. Untuk laporan berjenjang.
+     *
+     * @param  Collection<int, Account>  $accounts
+     * @return Collection<int, array{group_code:string, group_name:string, rows:Collection, subtotal:float}>
+     */
+    private function sectionGrouped(Collection $accounts, callable $amountFn): Collection
+    {
+        return $accounts
+            ->map(fn (Account $a) => [
+                'account' => $a,
+                'code' => $a->code,
+                'name' => $a->name,
+                'amount' => round((float) $amountFn($a), 2),
+            ])
+            ->filter(fn (array $row) => $row['amount'] != 0.0)
+            ->groupBy(fn (array $row) => $row['account']->parent_id ?? 0)
+            ->map(function (Collection $rows) {
+                $parent = $rows->first()['account']->parent;
+                $out = $rows
+                    ->map(fn (array $r) => ['code' => $r['code'], 'name' => $r['name'], 'amount' => $r['amount']])
+                    ->sortBy('code')
+                    ->values();
+
+                return [
+                    'group_code' => (string) ($parent?->code ?? ''),
+                    'group_name' => (string) ($parent?->name ?? 'Lainnya'),
+                    'rows' => $out,
+                    'subtotal' => round($out->sum('amount'), 2),
+                ];
+            })
+            ->sortBy('group_code')
+            ->values();
+    }
+
+    /**
      * @param  array<int, string>  $types
      * @return Collection<int, Account>
      */
     private function postableAccounts(Company $company, array $types): Collection
     {
         return Account::query()
+            ->with('parent:id,code,name')
             ->where('company_id', $company->id)
             ->where('is_postable', true)
             ->whereIn('type', $types)

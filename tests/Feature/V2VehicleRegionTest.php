@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
 use App\Models\CustomerVehicle;
 use App\Models\Province;
 use App\Models\Regency;
@@ -28,7 +29,7 @@ class V2VehicleRegionTest extends TestCase
         $this->seed();
         $user = User::query()->firstOrFail();
         $store = $user->accessibleStores()->firstOrFail();
-        $customer = \App\Models\Customer::query()->create(['store_id' => $store->id, 'name' => 'Pemilik Tes']);
+        $customer = Customer::query()->create(['store_id' => $store->id, 'name' => 'Pemilik Tes']);
 
         $this->actingAs($user)->post(route('v2.vehicles.store'), [
             'store_id' => $store->id, 'customer_id' => $customer->id, 'plate_number' => 'dd 1234 xy', 'name' => 'Avanza',
@@ -54,7 +55,7 @@ class V2VehicleRegionTest extends TestCase
             'store_id' => $store->id, 'name' => 'Andi', 'province_id' => $province->id, 'regency_id' => $regency->id,
         ])->assertRedirect(route('v2.customers.index'));
 
-        $customer = \App\Models\Customer::query()->where('name', 'Andi')->firstOrFail();
+        $customer = Customer::query()->where('name', 'Andi')->firstOrFail();
         $this->assertEquals($regency->id, $customer->regency_id);
         $this->assertEquals('Kota Tes', $customer->regency->name);
     }

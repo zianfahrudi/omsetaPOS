@@ -70,7 +70,7 @@ class StockAdjustmentService
             if ($difference !== 0) {
                 $product->forceFill(['stock' => $quantityAfter])->save();
 
-                app(\App\Services\WarehouseStockService::class)->adjustDefault($product, $difference);
+                app(WarehouseStockService::class)->adjustDefault($product, $difference);
 
                 StockMovement::create([
                     'store_id' => $product->store_id,

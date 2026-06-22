@@ -7,17 +7,17 @@ use App\Models\Contact;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\Project;
-use App\Models\ProjectCost;
 use App\Models\ProjectExpense;
-use App\Models\ProjectPaymentTerm;
 use App\Models\Province;
 use App\Models\Regency;
 use App\Models\Unit;
+use App\Services\ProjectTermPaymentService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProjectController extends SimpleCrudController
 {
@@ -170,12 +170,12 @@ class ProjectController extends SimpleCrudController
         return view('v2.master.projects.invoice', $this->documentData($id));
     }
 
-    public function exportExcel(int $id): \Symfony\Component\HttpFoundation\Response
+    public function exportExcel(int $id): Response
     {
         return $this->downloadDocument($id, 'xls', 'application/vnd.ms-excel');
     }
 
-    public function exportWord(int $id): \Symfony\Component\HttpFoundation\Response
+    public function exportWord(int $id): Response
     {
         return $this->downloadDocument($id, 'doc', 'application/msword');
     }
@@ -196,7 +196,7 @@ class ProjectController extends SimpleCrudController
         ];
     }
 
-    private function downloadDocument(int $id, string $ext, string $mime): \Symfony\Component\HttpFoundation\Response
+    private function downloadDocument(int $id, string $ext, string $mime): Response
     {
         $data = $this->documentData($id);
         $body = view('v2.master.projects.document-body', $data)->render();
@@ -433,7 +433,7 @@ class ProjectController extends SimpleCrudController
 
         $method = in_array($request->input('method'), ['cash', 'bank'], true) ? $request->input('method') : 'cash';
         $paid = ! $row->is_paid;
-        $service = app(\App\Services\ProjectTermPaymentService::class);
+        $service = app(ProjectTermPaymentService::class);
 
         $row->update([
             'is_paid' => $paid,

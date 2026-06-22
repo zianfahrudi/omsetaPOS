@@ -15,6 +15,7 @@
             <p class="mt-1 text-2xl font-bold text-emerald-600">{{ $rp($report['total']) }}</p>
         </div>
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <x-v2.analysis-table title="Per Kategori" :rows="$report['by_category']" label-head="Kategori" />
             <x-v2.analysis-table title="Per Produk" :rows="$report['by_product']" label-head="Produk" />
             <x-v2.analysis-table title="Per Pelanggan" :rows="$report['by_customer']" label-head="Pelanggan" />
         </div>

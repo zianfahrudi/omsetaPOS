@@ -2,12 +2,21 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\Company;
+use App\Models\Contact;
+use App\Models\Currency;
 use App\Models\Discount;
+use App\Models\MaterialCategory;
+use App\Models\Position;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\StoreCharge;
+use App\Models\Tax;
+use App\Models\Unit;
 use App\Models\User;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use App\Services\Accounting\ChartOfAccounts;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -80,39 +89,39 @@ class DatabaseSeeder extends Seeder
         app(ChartOfAccounts::class)->install($company);
 
         foreach (['Pcs' => 'pcs', 'Kilogram' => 'kg', 'Liter' => 'ltr', 'Box' => 'box', 'Lusin' => 'lsn', 'Meter' => 'm', 'Unit' => 'unit'] as $unitName => $unitCode) {
-            \App\Models\Unit::query()->updateOrCreate(
+            Unit::query()->updateOrCreate(
                 ['company_id' => $company->id, 'code' => $unitCode],
                 ['name' => $unitName, 'is_active' => true],
             );
         }
 
         foreach (['Umum', 'Sparepart', 'Oli & Pelumas', 'Ban', 'Jasa', 'Aki', 'Filter'] as $categoryName) {
-            \App\Models\Category::query()->updateOrCreate(
+            Category::query()->updateOrCreate(
                 ['company_id' => $company->id, 'name' => $categoryName],
                 ['is_active' => true],
             );
         }
 
         foreach (['Tukang', 'Helper', 'Mandor', 'Admin', 'Kasir', 'Sopir'] as $positionName) {
-            \App\Models\Position::query()->updateOrCreate(
+            Position::query()->updateOrCreate(
                 ['company_id' => $company->id, 'name' => $positionName],
                 ['is_active' => true],
             );
         }
 
         foreach (['Aluminium', 'Kaca', 'Kusen', 'Aksesoris', 'Besi'] as $matCat) {
-            \App\Models\MaterialCategory::query()->updateOrCreate(
+            MaterialCategory::query()->updateOrCreate(
                 ['company_id' => $company->id, 'name' => $matCat],
                 ['is_active' => true],
             );
         }
 
-        \App\Models\Warehouse::query()->updateOrCreate(
+        Warehouse::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'GDG-01'],
             ['name' => 'Gudang Utama', 'is_default' => true, 'is_active' => true],
         );
 
-        \App\Models\Tax::query()->updateOrCreate(
+        Tax::query()->updateOrCreate(
             ['company_id' => $company->id, 'name' => 'PPN 11%'],
             [
                 'account_id' => $company->account('tax_output')?->id,
@@ -122,12 +131,12 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        \App\Models\Currency::query()->updateOrCreate(
+        Currency::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'IDR'],
             ['name' => 'Rupiah', 'symbol' => 'Rp', 'exchange_rate' => 1, 'is_default' => true, 'is_active' => true],
         );
 
-        \App\Models\Contact::query()->updateOrCreate(
+        Contact::query()->updateOrCreate(
             ['company_id' => $company->id, 'code' => 'SUP-01'],
             [
                 'name' => 'Supplier Sparepart Jaya',
@@ -223,7 +232,7 @@ class DatabaseSeeder extends Seeder
                 ->where('stock', '>', 0)
                 ->get()
                 ->each(function (Product $product) use ($warehouse) {
-                    \App\Models\WarehouseStock::query()->updateOrCreate(
+                    WarehouseStock::query()->updateOrCreate(
                         ['warehouse_id' => $warehouse->id, 'product_id' => $product->id],
                         ['quantity' => (int) $product->stock],
                     );

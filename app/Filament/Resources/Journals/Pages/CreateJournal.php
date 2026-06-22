@@ -42,6 +42,6 @@ class CreateJournal extends CreateRecord
             $this->halt();
         }
 
-        return new Journal(); // unreachable, satisfies return type
+        return new Journal; // unreachable, satisfies return type
     }
 }

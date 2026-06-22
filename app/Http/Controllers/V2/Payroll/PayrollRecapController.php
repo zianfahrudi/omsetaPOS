@@ -9,6 +9,7 @@ use App\Models\EmployeeLoan;
 use App\Models\Payroll;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -137,9 +138,9 @@ class PayrollRecapController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Employee>
+     * @return Collection<int, Employee>
      */
-    private function employeeOptions(): \Illuminate\Support\Collection
+    private function employeeOptions(): Collection
     {
         return Employee::query()
             ->where('company_id', $this->companyId())

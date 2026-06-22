@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Product;
-use App\Models\Purchase;
-use App\Models\SalesInvoice;
 use App\Models\User;
 use App\Services\PurchaseService;
 use App\Services\SalesInvoiceService;

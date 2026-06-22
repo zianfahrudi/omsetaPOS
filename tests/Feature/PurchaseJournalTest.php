@@ -9,8 +9,8 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccounts;
 use App\Services\Accounting\LedgerService;
-use App\Services\PurchaseService;
 use App\Services\PurchasePaymentService;
+use App\Services\PurchaseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

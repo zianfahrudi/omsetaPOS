@@ -4,7 +4,9 @@ namespace App\Http\Controllers\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\FeatureToggle;
 use App\Models\Store;
+use App\Support\ActiveStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -93,11 +95,11 @@ class StoreController extends Controller
     {
         $id = (int) $request->input('store_id');
 
-        if (! \App\Support\ActiveStore::set($id)) {
+        if (! ActiveStore::set($id)) {
             return back()->withErrors(['store' => 'Outlet tidak dapat diakses.']);
         }
 
-        \App\Models\FeatureToggle::flush();
+        FeatureToggle::flush();
 
         return back()->with('status', 'Outlet aktif diganti.');
     }

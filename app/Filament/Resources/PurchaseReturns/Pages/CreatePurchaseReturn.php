@@ -35,6 +35,6 @@ class CreatePurchaseReturn extends CreateRecord
             $this->halt();
         }
 
-        return new PurchaseReturn();
+        return new PurchaseReturn;
     }
 }

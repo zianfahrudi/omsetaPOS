@@ -54,7 +54,7 @@ class RevenueStats extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('danger'),
             Stat::make('Transaksi Hari Ini', $todayTransactions)
-                ->description($monthTransactions . ' total bulan ini')
+                ->description($monthTransactions.' total bulan ini')
                 ->descriptionIcon('heroicon-m-shopping-bag')
                 ->color('info'),
             Stat::make('Refund Bulan Ini', Refund::query()->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])->count())

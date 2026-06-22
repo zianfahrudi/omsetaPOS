@@ -36,6 +36,6 @@ class CreateBankReconciliation extends CreateRecord
             $this->halt();
         }
 
-        return new BankReconciliation();
+        return new BankReconciliation;
     }
 }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['company_id', 'parent_id', 'name', 'code', 'is_active'])]
+#[Fillable(['company_id', 'parent_id', 'revenue_account_id', 'name', 'code', 'is_active'])]
 class Category extends Model
 {
     protected function casts(): array
@@ -20,6 +20,11 @@ class Category extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function revenueAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'revenue_account_id');
     }
 
     public function parent(): BelongsTo

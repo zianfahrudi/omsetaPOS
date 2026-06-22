@@ -7,6 +7,7 @@
     'grandTotal' => 0,
     'paid' => 0,
     'outstanding' => 0,
+    'accounts' => null,
 ])
 
 @php
@@ -31,11 +32,19 @@
                 <input type="number" step="0.01" min="1" max="{{ $outstanding }}" name="amount" value="{{ old('amount', $outstanding) }}" class="{{ $input }}" required>
             </div>
             <div>
-                <label class="{{ $lbl }}">Metode</label>
-                <select name="method" class="{{ $input }}" required>
-                    <option value="cash" @selected(old('method') === 'cash')>Tunai (Kas)</option>
-                    <option value="bank" @selected(old('method') === 'bank')>Transfer (Bank)</option>
-                </select>
+                <label class="{{ $lbl }}">{{ ($accounts && count($accounts)) ? 'Akun Kas/Bank' : 'Metode' }}</label>
+                @if ($accounts && count($accounts))
+                    <select name="account_id" class="{{ $input }}" required>
+                        @foreach ($accounts as $acc)
+                            <option value="{{ $acc->id }}" @selected(old('account_id') == $acc->id)>{{ $acc->code }} · {{ $acc->name }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    <select name="method" class="{{ $input }}" required>
+                        <option value="cash" @selected(old('method') === 'cash')>Tunai (Kas)</option>
+                        <option value="bank" @selected(old('method') === 'bank')>Transfer (Bank)</option>
+                    </select>
+                @endif
             </div>
             <div>
                 <label class="{{ $lbl }}">Tanggal</label>

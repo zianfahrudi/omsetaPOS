@@ -10,6 +10,7 @@ use App\Models\MaterialPurchase;
 use App\Services\MaterialPurchaseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Throwable;
@@ -107,7 +108,7 @@ class MaterialPurchaseController extends Controller
     {
         $company = Company::query()->first();
         $month = $request->string('month')->value() ?: now()->format('Y-m');
-        $p = \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $p = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
         $start = $p->copy()->startOfMonth()->toDateString();
         $end = $p->copy()->endOfMonth()->toDateString();
 

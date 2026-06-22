@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -26,7 +28,8 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class Employee extends Authenticatable
 {
-    use HasApiTokens;
+    /** @use HasFactory<EmployeeFactory> */
+    use HasApiTokens, HasFactory;
 
     public const EARNING_TYPES = ['hourly', 'piecework'];
 
@@ -88,6 +91,11 @@ class Employee extends Authenticatable
     public function workItems(): HasMany
     {
         return $this->hasMany(EmployeeWorkItem::class);
+    }
+
+    public function handledSaleItems(): HasMany
+    {
+        return $this->hasMany(SaleItem::class);
     }
 
     public function isPiecework(): bool

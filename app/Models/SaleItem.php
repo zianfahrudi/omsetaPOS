@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'product_name',
     'product_code',
     'product_type',
+    'employee_id',
     'quantity',
     'refunded_quantity',
     'unit_price',
@@ -46,5 +47,10 @@ class SaleItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 }

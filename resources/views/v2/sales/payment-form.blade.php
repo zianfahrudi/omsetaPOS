@@ -12,5 +12,6 @@
         :grand-total="$invoice->grand_total"
         :paid="$invoice->paid_amount"
         :outstanding="$invoice->outstanding_amount"
+        :accounts="$cashAccounts"
     />
 @endsection

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Company;
 use App\Models\FixedAsset;
 use App\Services\Accounting\PostingService;
 use App\Support\ActivityLogger;

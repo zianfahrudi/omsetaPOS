@@ -1,6 +1,7 @@
         const root = document.querySelector('[data-cashier]');
         const state = {
             products: [],
+            employees: [],
             cart: new Map(),
             lastQuery: '',
             vehicleResults: [],
@@ -147,6 +148,15 @@
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
 
+        // Kunci cart per kombinasi (product_id, employee_id). employee_id null/empty → `${productId}-`.
+        // Catatan: item.id tetap product id; cartKey terpisah untuk Map & tombol.
+        const cartKey = (productId, employeeId) => `${productId}-${employeeId ?? ''}`;
+        const itemCartKey = (item) => cartKey(item.id, item.employee_id);
+        // Total qty produk yang sama yang tersebar di beberapa baris petugas, selain baris `excludeKey`.
+        const otherProductQty = (productId, excludeKey) => Array.from(state.cart.values())
+            .filter((i) => Number(i.id) === Number(productId) && itemCartKey(i) !== excludeKey)
+            .reduce((sum, i) => sum + Number(i.quantity || 0), 0);
+
         const loadProducts = async () => {
             const params = new URLSearchParams({
                 store_id: els.store.value,
@@ -198,6 +208,36 @@
             ];
 
             return product;
+        };
+
+        // Muat daftar petugas (Employee aktif) untuk picker per baris cart. Aman bila kosong.
+        const loadEmployees = async () => {
+            if (!root.dataset.employeesUrl || !els.store.value) {
+                state.employees = [];
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    store_id: els.store.value,
+                    q: '',
+                });
+
+                const response = await fetch(`${root.dataset.employeesUrl}?${params}`, {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store',
+                });
+
+                if (!response.ok) {
+                    state.employees = [];
+                    return;
+                }
+
+                const data = await response.json();
+                state.employees = Array.isArray(data.employees) ? data.employees : [];
+            } catch (error) {
+                state.employees = [];
+            }
         };
 
         const renderCatalog = () => {
@@ -264,10 +304,11 @@
             const value = kind === 'tax' ? item.tax_value : item.service_fee_value;
             const max = chargeType(type) === 'percentage' ? ' max="100"' : '';
             const suffix = chargeLabel(type);
+            const key = itemCartKey(item);
 
             return `
                 <div class="charge-input-wrap">
-                    <input class="input charge-input has-suffix" type="number" min="0"${max} value="${Number(value || 0)}" data-charge-${kind}="${item.id}">
+                    <input class="input charge-input has-suffix" type="number" min="0"${max} value="${Number(value || 0)}" data-charge-${kind}="${key}">
                     <span class="charge-suffix">${suffix}</span>
                 </div>
             `;
@@ -315,10 +356,13 @@
             }
 
             const productCharges = productChargePayload(product);
-            const item = state.cart.get(product.id) || {
+            const key = cartKey(product.id, null);
+            const item = state.cart.get(key) || {
                 ...product,
                 ...productCharges,
                 quantity: 0,
+                employee_id: null,
+                employee_name: null,
                 charge_open: false,
                 charge_dirty: false,
                 tax_dirty: false,
@@ -326,13 +370,15 @@
             };
             applyProductCharges(item, productCharges);
 
-            if (product.product_type !== 'service' && item.quantity + 1 > product.stock) {
+            // Stok dihitung lintas seluruh baris dengan product_id sama (bisa tersebar di beberapa petugas).
+            if (product.product_type !== 'service'
+                && otherProductQty(product.id, key) + item.quantity + 1 > product.stock) {
                 showToast(`Stok ${product.name} tidak cukup`, 'error');
                 return;
             }
 
             item.quantity += 1;
-            state.cart.set(product.id, item);
+            state.cart.set(key, item);
             renderOrder();
         };
 
@@ -342,16 +388,17 @@
 
         const itemLineTotal = (item) => itemUnitPrice(item) * Number(item.quantity || 0);
 
-        const changeQty = (productId, delta) => {
-            const item = state.cart.get(productId);
+        const changeQty = (key, delta) => {
+            const item = state.cart.get(key);
             if (!item) return;
 
             const nextQty = item.quantity + delta;
             if (nextQty <= 0) {
-                state.cart.delete(productId);
-            } else if (item.product_type === 'service' || nextQty <= item.stock) {
+                state.cart.delete(key);
+            } else if (item.product_type === 'service'
+                || otherProductQty(item.id, key) + nextQty <= item.stock) {
                 item.quantity = nextQty;
-                state.cart.set(productId, item);
+                state.cart.set(key, item);
             }
 
             renderOrder();
@@ -449,8 +496,21 @@
             renderOrder();
         };
 
-        const renderOrder = () => {
-            const items = Array.from(state.cart.values());
+        // Picker petugas per baris cart. Maks satu petugas (select tunggal). Kosong = tanpa petugas.
+        const mechanicSelect = (item, key) => {
+            const options = ['<option value="">— Petugas —</option>']
+                .concat((state.employees || []).map((emp) => {
+                    const label = emp.code ? `${emp.name} (${emp.code})` : emp.name;
+                    const selected = item.employee_id !== null && item.employee_id !== undefined
+                        && Number(item.employee_id) === Number(emp.id) ? ' selected' : '';
+                    return `<option value="${emp.id}"${selected}>${escapeHtml(label)}</option>`;
+                }))
+                .join('');
+
+            return `<select class="mechanic-select" data-mechanic="${key}">${options}</select>`;
+        };
+
+        const renderOrder = () => {            const items = Array.from(state.cart.values());
             root.classList.toggle('cart-empty', items.length === 0);
             if (els.vehiclePlateNumber && !els.vehiclePlateNumber.value.trim()) {
                 const box = document.getElementById('vehicle-service-info');
@@ -467,29 +527,34 @@
                         <span style="font-size: 13px; margin-top: 6px;">Pilih produk dari katalog untuk memulai.</span>
                     </div>`;
             } else {
-                els.cart.innerHTML = items.map((item) => `
-                    <div class="cart-item" data-cart-item="${item.id}">
+                els.cart.innerHTML = items.map((item) => {
+                    const key = itemCartKey(item);
+                    return `
+                    <div class="cart-item" data-cart-item="${key}">
                         <div class="cart-title-row">
                             <div style="min-width: 0; padding-right: 8px; flex: 1;">
                                 <div class="cart-title">${escapeHtml(item.name)}</div>
                                 <div class="item-total" data-line-total style="margin-top: 4px;">${rupiah(itemLineTotal(item))}</div>
                                 <div class="cart-meta" data-unit-price>${rupiah(itemUnitPrice(item))} / item</div>
                             </div>
-                            <button class="icon-btn remove" type="button" data-remove="${item.id}" title="Hapus">
+                            <button class="icon-btn remove" type="button" data-remove="${key}" title="Hapus">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                             </button>
                         </div>
+                        <div class="cart-mechanic-row">
+                            ${mechanicSelect(item, key)}
+                        </div>
                         <div class="cart-control-row">
                             <div class="qty">
-                                <button class="icon-btn" type="button" data-dec="${item.id}">
+                                <button class="icon-btn" type="button" data-dec="${key}">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                 </button>
                                 <strong>${item.quantity}</strong>
-                                <button class="icon-btn" type="button" data-inc="${item.id}">
+                                <button class="icon-btn" type="button" data-inc="${key}">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                 </button>
                             </div>
-                            <button class="charge-btn" type="button" data-toggle-charges="${item.id}">Edit biaya</button>
+                            <button class="charge-btn" type="button" data-toggle-charges="${key}">Edit biaya</button>
                         </div>
                         ${item.charge_open ? `
                             <div class="charge-grid">
@@ -504,7 +569,8 @@
                             </div>
                         ` : ''}
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
 
             renderPaymentSummary(items);
@@ -607,6 +673,9 @@
                 payload.append(`items[${index}][quantity]`, item.quantity);
                 payload.append(`items[${index}][tax_amount]`, Number(item.tax_amount || 0));
                 payload.append(`items[${index}][service_fee_amount]`, Number(item.service_fee_amount || 0));
+                if (item.employee_id !== null && item.employee_id !== undefined && item.employee_id !== '') {
+                    payload.append(`items[${index}][employee_id]`, item.employee_id);
+                }
             });
 
             els.checkout.disabled = true;
@@ -661,14 +730,15 @@
             const remove = event.target.closest('[data-remove]');
             const toggleCharges = event.target.closest('[data-toggle-charges]');
 
-            if (inc) changeQty(Number(inc.dataset.inc), 1);
-            if (dec) changeQty(Number(dec.dataset.dec), -1);
+            if (inc) changeQty(inc.dataset.inc, 1);
+            if (dec) changeQty(dec.dataset.dec, -1);
             if (remove) {
-                state.cart.delete(Number(remove.dataset.remove));
+                state.cart.delete(remove.dataset.remove);
                 renderOrder();
             }
             if (toggleCharges) {
-                const item = state.cart.get(Number(toggleCharges.dataset.toggleCharges));
+                const key = toggleCharges.dataset.toggleCharges;
+                const item = state.cart.get(key);
                 if (!item) return;
 
                 try {
@@ -679,7 +749,7 @@
                 }
 
                 item.charge_open = !item.charge_open;
-                state.cart.set(item.id, item);
+                state.cart.set(key, item);
                 renderOrder();
             }
         });
@@ -690,7 +760,7 @@
             const input = tax || service;
             if (!input) return;
 
-            const item = state.cart.get(Number(input.dataset.chargeTax || input.dataset.chargeService));
+            const item = state.cart.get(input.dataset.chargeTax || input.dataset.chargeService);
             if (!item) return;
             const readChargeInput = (element, type) => {
                 if (element.value === '') {
@@ -720,11 +790,44 @@
             }
 
             syncItemCharges(item);
-            state.cart.set(item.id, item);
+            state.cart.set(itemCartKey(item), item);
             const row = input.closest('[data-cart-item]');
             row?.querySelector('[data-line-total]')?.replaceChildren(document.createTextNode(rupiah(itemLineTotal(item))));
             row?.querySelector('[data-unit-price]')?.replaceChildren(document.createTextNode(`${rupiah(itemUnitPrice(item))} / item`));
             renderPaymentSummary();
+        });
+
+        // Pemilihan petugas per baris cart. Mengubah employee_id mengubah cart key → reassign baris.
+        els.cart.addEventListener('change', (event) => {
+            const select = event.target.closest('[data-mechanic]');
+            if (!select) return;
+
+            const oldKey = select.dataset.mechanic;
+            const item = state.cart.get(oldKey);
+            if (!item) return;
+
+            const value = select.value;
+            const newEmployeeId = value === '' ? null : Number(value);
+            const employee = newEmployeeId === null
+                ? null
+                : (state.employees || []).find((emp) => Number(emp.id) === newEmployeeId);
+
+            state.cart.delete(oldKey);
+            item.employee_id = newEmployeeId;
+            item.employee_name = employee ? employee.name : null;
+
+            const newKey = itemCartKey(item);
+            const existing = state.cart.get(newKey);
+
+            // Bila kombinasi (product_id, employee_id) sudah ada → gabungkan quantity, jangan gandakan.
+            if (existing && existing !== item) {
+                existing.quantity += item.quantity;
+                state.cart.set(newKey, existing);
+            } else {
+                state.cart.set(newKey, item);
+            }
+
+            renderOrder();
         });
 
         els.search.addEventListener('input', debounce(loadProducts));
@@ -741,6 +844,7 @@
             els.isDebt.checked = false;
             renderOrder();
             loadProducts();
+            loadEmployees().then(renderOrder);
             loadPricing().catch(() => { });
         });
         document.querySelectorAll('.payment-card').forEach(card => {
@@ -2085,4 +2189,5 @@
 
         loadPricing().catch(() => { });
         loadProducts();
+        loadEmployees().then(renderOrder);
         renderOrder();

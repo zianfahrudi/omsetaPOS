@@ -5,10 +5,13 @@ namespace App\Http\Controllers\V2;
 use App\Http\Controllers\Controller;
 use App\Models\CashTransaction;
 use App\Models\Company;
+use App\Models\SaleItem;
 use App\Models\Warehouse;
 use App\Services\Accounting\LedgerService;
 use App\Services\Accounting\ReportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ReportController extends Controller
@@ -157,7 +160,41 @@ class ReportController extends Controller
     }
 
     /**
-     * @return array{0: ?Company, 1: \Illuminate\Support\Carbon, 2: \Illuminate\Support\Carbon}
+     * Rekap performa petugas (mekanik/salesman) per periode.
+     * Hanya admin/superuser. Agregasi item jasa tertaut petugas dari sale completed.
+     */
+    public function mechanicPerformance(Request $request): View
+    {
+        abort_unless(in_array(Auth::user()->role, ['admin', 'superuser'], true), 403, 'Hanya admin yang dapat melihat laporan ini.');
+
+        [$company, $from, $to] = $this->period($request);
+
+        $rows = $company
+            ? SaleItem::query()
+                ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+                ->join('stores', 'stores.id', '=', 'sales.store_id')
+                ->join('employees', 'employees.id', '=', 'sale_items.employee_id')
+                ->whereNotNull('sale_items.employee_id')
+                ->where('stores.company_id', $company->id)
+                ->where('sales.status', 'completed')
+                ->whereBetween('sales.paid_at', [$from, $to])
+                ->where('sale_items.product_type', 'service')
+                ->groupBy('sale_items.employee_id', 'employees.name', 'employees.code')
+                ->selectRaw("sale_items.employee_id, employees.name as employee_name, employees.code as employee_code, COUNT(*) as service_count, SUM(sale_items.line_total) as service_total, COUNT(DISTINCT sale_items.sale_id) as sale_count, GROUP_CONCAT(DISTINCT sales.number) as sale_numbers")
+                ->orderByDesc('service_total')
+                ->get()
+            : collect();
+
+        return view('v2.reports.mechanic-performance', [
+            'rows' => $rows,
+            'company' => $company,
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
+    }
+
+    /**
+     * @return array{0: ?Company, 1: Carbon, 2: Carbon}
      */
     private function period(Request $request): array
     {

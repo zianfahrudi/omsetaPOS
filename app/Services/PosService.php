@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Customer;
 use App\Models\CustomerVehicle;
+use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\Store;
 use App\Services\Accounting\PostingService;
 use App\Support\ActivityLogger;
 use Illuminate\Database\Eloquent\Collection;
@@ -105,6 +107,31 @@ class PosService
                 }
             })
             ->exists();
+    }
+
+    /**
+     * Daftar petugas (Employee aktif) pada perusahaan toko, untuk pemilih
+     * mekanik/salesman di kasir. Aman saat toko belum punya company.
+     *
+     * @return Collection<int, Employee>
+     */
+    public function employees(int $storeId, string $term = ''): Collection
+    {
+        $companyId = Store::query()->whereKey($storeId)->value('company_id');
+
+        if ($companyId === null) {
+            return new Collection;
+        }
+
+        return Employee::query()
+            ->where('company_id', $companyId)
+            ->where('is_active', true)
+            ->when($term !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('name', 'like', '%'.$term.'%')
+                ->orWhere('code', 'like', '%'.$term.'%')))
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name', 'code', 'position']);
     }
 
     /**

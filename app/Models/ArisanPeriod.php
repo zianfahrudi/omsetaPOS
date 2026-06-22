@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'arisan_group_id',
@@ -41,7 +42,7 @@ class ArisanPeriod extends Model
         return $this->hasMany(ArisanContribution::class);
     }
 
-    public function payout(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function payout(): HasOne
     {
         return $this->hasOne(ArisanPayout::class);
     }

@@ -35,6 +35,6 @@ class CreateSalesReturn extends CreateRecord
             $this->halt();
         }
 
-        return new SalesReturn();
+        return new SalesReturn;
     }
 }

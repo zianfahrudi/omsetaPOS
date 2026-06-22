@@ -81,6 +81,7 @@
                 ['v2.reports.trial-balance', 'Neraca Saldo'],
                 ['v2.reports.sales', 'Penjualan'],
                 ['v2.reports.purchases', 'Pembelian'],
+                ['v2.reports.mechanic-performance', 'Performa Mekanik'],
                 ['v2.reports.inventory', 'Persediaan'],
                 ['v2.reports.warehouse-stock', 'Stok per Gudang'],
                 ['v2.reports.tax', 'Pajak'],

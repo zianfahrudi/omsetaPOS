@@ -33,6 +33,6 @@ class CreateCashierSession extends CreateRecord
             $this->halt();
         }
 
-        return new CashierSession();
+        return new CashierSession;
     }
 }

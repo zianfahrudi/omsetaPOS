@@ -10,7 +10,6 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\Accounting\LedgerService;
 use App\Services\Accounting\ReportService;
-use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller

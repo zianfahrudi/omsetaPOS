@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\Accounting\ChartOfAccounts;
 use App\Services\Accounting\LedgerService;
 use App\Services\CheckoutService;
+use App\Services\PosService;
+use App\Services\RefundService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -116,7 +118,7 @@ class SalesJournalTest extends TestCase
             isDebt: true,
         );
 
-        app(\App\Services\PosService::class)->markTransactionPaid($sale);
+        app(PosService::class)->markTransactionPaid($sale);
 
         $ledger = app(LedgerService::class);
         $this->assertSame(0.0, $ledger->balance($company->account('accounts_receivable')));
@@ -141,14 +143,14 @@ class SalesJournalTest extends TestCase
             'quantity' => $item->quantity,
         ])->all();
 
-        $refund = app(\App\Services\RefundService::class)->refund(
+        $refund = app(RefundService::class)->refund(
             saleId: $sale->id,
             handledById: $cashier->id,
             type: 'full',
             returnedItems: $returned,
         );
 
-        $journal = \App\Models\Journal::where('source_type', $refund->getMorphClass())
+        $journal = Journal::where('source_type', $refund->getMorphClass())
             ->where('source_id', $refund->id)
             ->first();
         $this->assertNotNull($journal);

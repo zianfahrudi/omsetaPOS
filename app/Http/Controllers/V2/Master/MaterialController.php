@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\V2\Master;
 
 use App\Models\Material;
+use App\Models\MaterialCategory;
+use App\Models\Unit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -21,12 +23,12 @@ class MaterialController extends SimpleCrudController
     protected function formData(): array
     {
         return [
-            'categories' => \App\Models\MaterialCategory::query()
+            'categories' => MaterialCategory::query()
                 ->where('company_id', $this->companyId())
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->pluck('name'),
-            'units' => \App\Models\Unit::query()
+            'units' => Unit::query()
                 ->where('company_id', $this->companyId())
                 ->where('is_active', true)
                 ->orderBy('name')

@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\StockMovement;
 use App\Services\Accounting\PostingService;
 use App\Support\ActivityLogger;

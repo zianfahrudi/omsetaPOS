@@ -4,11 +4,13 @@ namespace App\Filament\Resources\Journals\Schemas;
 
 use App\Models\Account;
 use App\Models\Company;
+use App\Models\Department;
+use App\Models\Project;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
 class JournalForm
@@ -69,11 +71,11 @@ class JournalForm
                             ->columnSpan(12),
                         Select::make('department_id')
                             ->label('Departemen')
-                            ->options(fn ($get) => \App\Models\Department::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
+                            ->options(fn ($get) => Department::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
                             ->columnSpan(6),
                         Select::make('project_id')
                             ->label('Proyek')
-                            ->options(fn ($get) => \App\Models\Project::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
+                            ->options(fn ($get) => Project::query()->where('company_id', $get('../../company_id'))->pluck('name', 'id'))
                             ->columnSpan(6),
                     ]),
             ]);

@@ -20,6 +20,7 @@
         data-vehicles-store-url="{{ route('cashier.vehicles.store') }}"
         data-customers-store-url="{{ route('cashier.customers.store') }}"
         data-customer-check-url="{{ route('cashier.customers.check') }}"
+        data-employees-url="{{ route('cashier.employees') }}"
         data-pricing-url="{{ route('cashier.pricing') }}" data-checkout-url="{{ route('cashier.checkout') }}"
         data-csrf="{{ csrf_token() }}">
         @include('cashier.partials.product-panel')

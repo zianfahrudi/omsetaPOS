@@ -37,6 +37,6 @@ class CreateStockAdjustment extends CreateRecord
             $this->halt();
         }
 
-        return new StockAdjustment();
+        return new StockAdjustment;
     }
 }

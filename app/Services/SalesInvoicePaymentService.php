@@ -27,6 +27,7 @@ class SalesInvoicePaymentService
         Carbon|string|null $date = null,
         ?string $notes = null,
         ?int $createdBy = null,
+        ?int $accountId = null,
     ): SalesInvoicePayment {
         $amount = round($amount, 2);
 
@@ -40,7 +41,7 @@ class SalesInvoicePaymentService
 
         $date = $date ? Carbon::parse($date) : now();
 
-        return DB::transaction(function () use ($invoice, $amount, $method, $date, $notes, $createdBy) {
+        return DB::transaction(function () use ($invoice, $amount, $method, $date, $notes, $createdBy, $accountId) {
             $invoice = SalesInvoice::query()->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
             $company = $invoice->company;
 
@@ -48,10 +49,16 @@ class SalesInvoicePaymentService
                 throw new InvalidArgumentException('Nominal melebihi sisa piutang.');
             }
 
+            $debitAccount = $company->resolvePaymentAccount($accountId, $method === 'bank' ? 'bank' : 'cash');
+            if (! $debitAccount) {
+                throw new InvalidArgumentException('Akun Kas/Bank belum dikonfigurasi.');
+            }
+
             $payment = SalesInvoicePayment::create([
                 'company_id' => $company->id,
                 'sales_invoice_id' => $invoice->id,
                 'contact_id' => $invoice->contact_id,
+                'account_id' => $debitAccount->id,
                 'number' => $this->number($company, $date),
                 'date' => $date,
                 'method' => $method,
@@ -73,7 +80,7 @@ class SalesInvoicePaymentService
                 company: $company,
                 date: $date,
                 lines: [
-                    ['account_id' => $this->account($company, $method === 'bank' ? 'bank' : 'cash'), 'debit' => $amount, 'memo' => 'Penerimaan piutang '.$invoice->number],
+                    ['account_id' => $debitAccount->id, 'debit' => $amount, 'memo' => 'Penerimaan piutang '.$invoice->number],
                     ['account_id' => $this->account($company, 'accounts_receivable'), 'credit' => $amount, 'contact_id' => $invoice->contact_id, 'memo' => 'Pelunasan piutang'],
                 ],
                 type: 'cash_receipt',

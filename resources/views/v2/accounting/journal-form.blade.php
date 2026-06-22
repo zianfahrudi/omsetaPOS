@@ -1,28 +1,67 @@
 @extends('v2.layouts.app')
-@section('title', 'Jurnal Umum Baru')
-@section('heading', 'Jurnal Umum Baru')
+@section('title', isset($journal) ? 'Edit Jurnal '.$journal->number : 'Jurnal Umum Baru')
+@section('heading', isset($journal) ? 'Edit Jurnal '.$journal->number : 'Jurnal Umum Baru')
 
 @php
     $input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500';
     $lbl = 'mb-1 block text-sm font-medium text-slate-700';
+    $editing = isset($journal);
+    $action = $editing ? route('v2.accounting.journals.update', $journal->id) : route('v2.accounting.journals.store');
+
+    // Baris awal: prioritas old() (validasi gagal), lalu data jurnal (edit), lalu 2 baris kosong.
+    if (old('lines')) {
+        $initialRows = array_values(array_map(fn ($l) => [
+            'account_id' => (string) ($l['account_id'] ?? ''),
+            'memo' => $l['memo'] ?? '',
+            'debit' => (float) ($l['debit'] ?? 0),
+            'credit' => (float) ($l['credit'] ?? 0),
+        ], old('lines')));
+    } elseif ($editing) {
+        $initialRows = $journal->lines->map(fn ($l) => [
+            'account_id' => (string) $l->account_id,
+            'memo' => $l->memo ?? '',
+            'debit' => (float) $l->debit,
+            'credit' => (float) $l->credit,
+        ])->values()->all();
+    } else {
+        $initialRows = [
+            ['account_id' => '', 'memo' => '', 'debit' => 0, 'credit' => 0],
+            ['account_id' => '', 'memo' => '', 'debit' => 0, 'credit' => 0],
+        ];
+    }
+
+    $fDate = old('date', $editing ? $journal->date?->toDateString() : now()->toDateString());
+    $fRef = old('reference', $editing ? $journal->reference : '');
+    $fDesc = old('description', $editing ? $journal->description : '');
 @endphp
 
 @section('content')
-    <form method="POST" action="{{ route('v2.accounting.journals.store') }}" x-data="journalForm(@js($accounts))">
+    @if ($errors->any())
+        <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <ul class="list-inside list-disc">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ $action }}" x-data="journalForm(@js($accounts), @js($initialRows))">
         @csrf
+        @if ($editing) @method('PUT') @endif
         <div class="rounded-2xl border border-slate-200 bg-white p-6">
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div>
                     <label class="{{ $lbl }}">Tanggal</label>
-                    <input type="date" name="date" value="{{ old('date', now()->toDateString()) }}" class="{{ $input }}" required>
+                    <input type="date" name="date" value="{{ $fDate }}" class="{{ $input }}" required>
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Referensi</label>
-                    <input type="text" name="reference" value="{{ old('reference') }}" class="{{ $input }}">
+                    <input type="text" name="reference" value="{{ $fRef }}" class="{{ $input }}">
                 </div>
                 <div>
                     <label class="{{ $lbl }}">Keterangan</label>
-                    <input type="text" name="description" value="{{ old('description') }}" class="{{ $input }}">
+                    <input type="text" name="description" value="{{ $fDesc }}" class="{{ $input }}">
                 </div>
             </div>
 
@@ -86,19 +125,21 @@
         </div>
 
         <div class="mt-4 flex items-center gap-3">
-            <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50" :disabled="!balanced() || totalDebit() <= 0">Posting Jurnal</button>
-            <a href="{{ route('v2.accounting.journals') }}" class="rounded-lg px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Batal</a>
+            <button class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50" :disabled="!balanced() || totalDebit() <= 0">{{ $editing ? 'Simpan Perubahan' : 'Posting Jurnal' }}</button>
+            <a href="{{ $editing ? route('v2.accounting.journals.show', $journal->id) : route('v2.accounting.journals') }}" class="rounded-lg px-5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Batal</a>
         </div>
     </form>
 
     <script>
-        function journalForm(accounts) {
+        function journalForm(accounts, initialRows) {
             return {
                 accounts,
-                rows: [
-                    { account_id: '', memo: '', debit: 0, credit: 0 },
-                    { account_id: '', memo: '', debit: 0, credit: 0 },
-                ],
+                rows: (initialRows && initialRows.length >= 2)
+                    ? initialRows.map(r => ({ account_id: String(r.account_id || ''), memo: r.memo || '', debit: Number(r.debit) || 0, credit: Number(r.credit) || 0 }))
+                    : [
+                        { account_id: '', memo: '', debit: 0, credit: 0 },
+                        { account_id: '', memo: '', debit: 0, credit: 0 },
+                    ],
                 addRow() { this.rows.push({ account_id: '', memo: '', debit: 0, credit: 0 }); },
                 removeRow(i) { this.rows.splice(i, 1); },
                 totalDebit() { return this.rows.reduce((s, r) => s + (Number(r.debit) || 0), 0); },

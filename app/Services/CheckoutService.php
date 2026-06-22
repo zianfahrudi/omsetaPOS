@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\CustomerVehicle;
 use App\Models\Discount;
+use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StockMovement;
+use App\Models\Store;
 use App\Models\StoreCharge;
 use App\Services\Accounting\SalePoster;
 use App\Support\ActivityLogger;
@@ -20,7 +22,7 @@ class CheckoutService
     public function __construct(private readonly SalePoster $salePoster) {}
 
     /**
-     * @param  array<int, array{product_id:int, quantity:int, service_fee_amount?:float|null, tax_amount?:float|null}>  $items
+     * @param  array<int, array{product_id:int, quantity:int, employee_id?:int|null, service_fee_amount?:float|null, tax_amount?:float|null}>  $items
      */
     public function checkout(
         int $storeId,
@@ -56,11 +58,13 @@ class CheckoutService
 
         return DB::transaction(function () use ($storeId, $cashierId, $items, $paymentMethod, $paidAmount, $customerName, $customerPhone, $paymentProof, $customerId, $discountCode, $isDebt, $vehiclePlateNumber, $vehicleMileage, $payments) {
             $cart = collect($items)
-                ->groupBy('product_id')
+                ->groupBy(fn ($row) => $row['product_id'].'-'.($row['employee_id'] ?? 'null'))
                 ->map(function ($rows) {
                     $row = $rows->last();
 
                     return [
+                        'product_id' => (int) $row['product_id'],
+                        'employee_id' => $row['employee_id'] ?? null,
                         'quantity' => (int) $rows->sum('quantity'),
                         'service_fee_amount' => array_key_exists('service_fee_amount', $row) ? max(0, (float) $row['service_fee_amount']) : null,
                         'tax_amount' => array_key_exists('tax_amount', $row) ? max(0, (float) $row['tax_amount']) : null,
@@ -68,32 +72,58 @@ class CheckoutService
                 })
                 ->filter(fn (array $item) => $item['quantity'] > 0);
 
+            $productIds = $cart->pluck('product_id')->unique()->values();
+
             $products = Product::query()
                 ->where('store_id', $storeId)
-                ->whereIn('id', $cart->keys())
+                ->whereIn('id', $productIds)
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
-            if ($products->count() !== $cart->count()) {
+            if ($products->count() !== $productIds->count()) {
                 throw new InvalidArgumentException('Ada produk yang tidak ditemukan di toko ini.');
             }
 
+            // Validasi petugas domain: tiap employee_id non-null harus aktif & se-company
+            // dengan toko. Dijalankan di dalam transaksi → rollback bila gagal.
+            $employeeIds = $cart->pluck('employee_id')->filter(fn ($id) => $id !== null)->unique()->values();
+
+            if ($employeeIds->isNotEmpty()) {
+                $companyId = Store::query()->whereKey($storeId)->value('company_id');
+
+                $validEmployeeIds = $companyId === null
+                    ? collect()
+                    : Employee::query()
+                        ->where('company_id', $companyId)
+                        ->where('is_active', true)
+                        ->pluck('id');
+
+                foreach ($employeeIds as $employeeId) {
+                    if (! $validEmployeeIds->contains($employeeId)) {
+                        throw new InvalidArgumentException('Petugas tidak valid untuk toko ini.');
+                    }
+                }
+            }
+
+            // Total qty per product_id lintas semua grup (produk sama bisa terbagi ke
+            // beberapa petugas) untuk validasi stok yang benar.
+            $qtyByProduct = $cart->groupBy('product_id')->map(fn ($g) => $g->sum('quantity'));
+
             $subtotal = 0.0;
 
-            foreach ($cart as $productId => $cartItem) {
-                $quantity = $cartItem['quantity'];
-                $product = $products[$productId];
+            foreach ($cart as $cartItem) {
+                $product = $products[$cartItem['product_id']];
 
                 if (! $product->is_active) {
                     throw new InvalidArgumentException("Produk {$product->name} tidak aktif.");
                 }
 
-                if ($product->tracksStock() && $product->stock < $quantity) {
+                if ($product->tracksStock() && $product->stock < $qtyByProduct[$product->id]) {
                     throw new InvalidArgumentException("Stok {$product->name} tidak cukup.");
                 }
 
-                $subtotal += $this->unitPrice($product, $cartItem) * $quantity;
+                $subtotal += $this->unitPrice($product, $cartItem) * $cartItem['quantity'];
             }
 
             $totals = $this->calculateTotals($storeId, $subtotal, $discountCode, true);
@@ -194,9 +224,9 @@ class CheckoutService
                 }
             }
 
-            foreach ($cart as $productId => $cartItem) {
+            foreach ($cart as $cartItem) {
                 $quantity = $cartItem['quantity'];
-                $product = $products[$productId];
+                $product = $products[$cartItem['product_id']];
                 $stockBefore = $product->stock;
                 $serviceFeeAmount = $this->serviceFeeAmount($product, $cartItem);
                 $taxAmount = $this->taxAmount($product, $cartItem);
@@ -208,6 +238,7 @@ class CheckoutService
                     'product_name' => $product->name,
                     'product_code' => $product->barcode ?: $product->sku,
                     'product_type' => $product->product_type,
+                    'employee_id' => $cartItem['employee_id'] ?? null,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'cost_price' => $product->cost_price,
@@ -248,7 +279,7 @@ class CheckoutService
 
             $this->salePoster->post($sale);
 
-            return $sale->load(['items', 'cashier', 'store', 'payments']);
+            return $sale->load(['items.employee', 'cashier', 'store', 'payments']);
         });
     }
 

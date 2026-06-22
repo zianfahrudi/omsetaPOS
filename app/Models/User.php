@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'phone', 'password', 'role', 'is_active'])]
@@ -76,9 +77,9 @@ class User extends Authenticatable implements FilamentUser
     /**
      * Stores this user may operate (superuser sees all active stores).
      *
-     * @return \Illuminate\Support\Collection<int, Store>
+     * @return Collection<int, Store>
      */
-    public function accessibleStores(): \Illuminate\Support\Collection
+    public function accessibleStores(): Collection
     {
         if ($this->isSuperuser()) {
             return Store::query()->where('is_active', true)->orderBy('name')->get();

@@ -91,6 +91,69 @@ class JournalController extends Controller
         return redirect()->route('v2.accounting.journals.show', $journal)->with('status', "Jurnal {$journal->number} berhasil diposting.");
     }
 
+    public function edit(Journal $journal): View
+    {
+        abort_unless($journal->isManual(), 403, 'Jurnal otomatis tidak dapat diedit. Ubah melalui dokumen sumbernya.');
+
+        $journal->load('lines');
+
+        return view('v2.accounting.journal-form', [
+            'accounts' => $this->accounts(),
+            'journal' => $journal,
+        ]);
+    }
+
+    public function update(Request $request, Journal $journal, PostingService $posting): RedirectResponse
+    {
+        abort_unless($journal->isManual(), 403, 'Jurnal otomatis tidak dapat diedit. Ubah melalui dokumen sumbernya.');
+
+        $data = $request->validate([
+            'date' => ['required', 'date'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'reference' => ['nullable', 'string', 'max:100'],
+            'lines' => ['required', 'array', 'min:2'],
+            'lines.*.account_id' => ['nullable', 'integer'],
+            'lines.*.debit' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.credit' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.memo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $lines = collect($data['lines'])
+            ->filter(fn ($l) => ! empty($l['account_id']) && ((float) ($l['debit'] ?? 0) > 0 || (float) ($l['credit'] ?? 0) > 0))
+            ->map(fn ($l) => [
+                'account_id' => (int) $l['account_id'],
+                'debit' => (float) ($l['debit'] ?? 0),
+                'credit' => (float) ($l['credit'] ?? 0),
+                'memo' => $l['memo'] ?? null,
+            ])
+            ->values()->all();
+
+        try {
+            $posting->update(
+                journal: $journal,
+                date: $data['date'],
+                lines: $lines,
+                description: $data['description'] ?? 'Jurnal umum',
+                reference: $data['reference'] ?? null,
+            );
+        } catch (Throwable $e) {
+            return back()->withInput()->withErrors(['lines' => $e->getMessage()]);
+        }
+
+        return redirect()->route('v2.accounting.journals.show', $journal)->with('status', "Jurnal {$journal->number} berhasil diperbarui.");
+    }
+
+    public function destroy(Journal $journal): RedirectResponse
+    {
+        abort_unless($journal->isManual(), 403, 'Jurnal otomatis tidak dapat dihapus. Gunakan pembalikan jurnal atau ubah dokumen sumbernya.');
+
+        $number = $journal->number;
+        $journal->lines()->delete();
+        $journal->delete();
+
+        return redirect()->route('v2.accounting.journals')->with('status', "Jurnal {$number} dihapus.");
+    }
+
     private function accounts()
     {
         $company = Company::query()->first();

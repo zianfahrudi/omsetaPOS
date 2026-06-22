@@ -2,6 +2,7 @@
 
 namespace App\Services\Accounting;
 
+use App\Models\Account;
 use App\Models\Company;
 use App\Models\Journal;
 use App\Models\Product;
@@ -144,7 +145,7 @@ class RefundPoster
             ->exists();
     }
 
-    private function account(Company $company, string $subtype): \App\Models\Account
+    private function account(Company $company, string $subtype): Account
     {
         $account = $company->account($subtype);
 

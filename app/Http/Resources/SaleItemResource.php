@@ -19,6 +19,8 @@ class SaleItemResource extends JsonResource
             'product_id' => $this->product_id,
             'name' => $this->product_name,
             'product_type' => $this->product_type,
+            'employee_id' => $this->employee_id,
+            'employee_name' => $this->whenLoaded('employee', fn () => $this->employee?->name),
             'quantity' => $this->quantity,
             'refunded_quantity' => $this->refunded_quantity,
             'refundable_quantity' => max(0, $this->quantity - $this->refunded_quantity),

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'sale_id',
+    'account_id',
     'method',
     'amount',
     'proof',

@@ -186,22 +186,36 @@ class SalesController extends Controller
     public function paymentCreate(SalesInvoice $invoice): View
     {
         abort_if((float) $invoice->outstanding_amount <= 0, 404);
-        $invoice->load('customer');
+        $invoice->load('customer', 'company');
 
-        return view('v2.sales.payment-form', compact('invoice'));
+        return view('v2.sales.payment-form', [
+            'invoice' => $invoice,
+            'cashAccounts' => $invoice->company?->cashBankAccounts() ?? collect(),
+        ]);
     }
 
     public function paymentStore(Request $request, SalesInvoice $invoice, SalesInvoicePaymentService $service): RedirectResponse
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:1'],
-            'method' => ['required', 'in:cash,bank'],
+            'account_id' => ['nullable', 'integer'],
+            'method' => ['nullable', 'in:cash,bank'],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
+        // Tentukan metode dari subtype akun yang dipilih (bila ada).
+        $accountId = isset($data['account_id']) ? (int) $data['account_id'] : null;
+        $method = $data['method'] ?? 'cash';
+        if ($accountId) {
+            $account = $invoice->company?->cashBankAccounts()->firstWhere('id', $accountId);
+            if ($account) {
+                $method = $account->subtype === 'cash' ? 'cash' : 'bank';
+            }
+        }
+
         try {
-            $service->pay($invoice, (float) $data['amount'], $data['method'], $data['date'], $data['notes'] ?? null, Auth::id());
+            $service->pay($invoice, (float) $data['amount'], $method, $data['date'], $data['notes'] ?? null, Auth::id(), $accountId);
         } catch (Throwable $e) {
             return back()->withInput()->withErrors(['amount' => $e->getMessage()]);
         }

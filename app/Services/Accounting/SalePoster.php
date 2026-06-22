@@ -95,12 +95,25 @@ class SalePoster
             ];
         }
 
-        $lines[] = [
-            'account_id' => $this->account($company, 'sales')->id,
-            'credit' => (float) $sale->subtotal,
-            'store_id' => $sale->store_id,
-            'memo' => 'Penjualan',
-        ];
+        $salesAccountId = $this->account($company, 'sales')->id;
+        $revenueSplit = app(RevenueAccountResolver::class)->split(
+            $company,
+            $sale->items->map(fn (SaleItem $i) => [
+                'product_id' => $i->product_id,
+                'amount' => (float) $i->line_total,
+            ])->all(),
+            $salesAccountId,
+            reconcileTo: (float) $sale->subtotal,
+        );
+
+        foreach ($revenueSplit as $accountId => $amount) {
+            $lines[] = [
+                'account_id' => $accountId,
+                'credit' => round($amount, 2),
+                'store_id' => $sale->store_id,
+                'memo' => 'Penjualan',
+            ];
+        }
 
         if ((float) $sale->service_fee_total > 0) {
             $lines[] = [

@@ -6,7 +6,6 @@ use App\Models\CashierSession;
 use App\Models\Sale;
 use App\Models\Store;
 use App\Support\ActivityLogger;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

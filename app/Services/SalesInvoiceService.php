@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\SalesInvoice;
 use App\Models\StockMovement;
 use App\Services\Accounting\PostingService;
+use App\Services\Accounting\RevenueAccountResolver;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,7 @@ class SalesInvoiceService
 
         $date = $date ? Carbon::parse($date) : now();
 
-        return DB::transaction(function () use ($company, $customer, $items, $date, $warehouseId, $storeId, $customerRef, $dueDate, $notes, $createdBy) {
+        return DB::transaction(function () use ($company, $customer, $items, $date, $warehouseId, $storeId, $customerRef, $dueDate, $createdBy) {
             $invoice = SalesInvoice::create([
                 'company_id' => $company->id,
                 'contact_id' => $customer->id,
@@ -134,7 +135,7 @@ class SalesInvoiceService
         $before = (int) $product->stock;
         $product->decrement('stock', $quantity);
 
-        app(\App\Services\WarehouseStockService::class)->adjustDefault($product, -$quantity);
+        app(WarehouseStockService::class)->adjustDefault($product, -$quantity);
 
         StockMovement::create([
             'store_id' => $invoice->store_id ?? $product->store_id,
@@ -152,10 +153,22 @@ class SalesInvoiceService
 
     private function postJournal(Company $company, SalesInvoice $invoice, float $subtotal, float $tax, float $cogs): void
     {
+        $salesAccountId = $this->account($company, 'sales');
+        $revenueSplit = app(RevenueAccountResolver::class)->split(
+            $company,
+            $invoice->items()->get(['product_id', 'line_total'])
+                ->map(fn ($i) => ['product_id' => $i->product_id, 'amount' => (float) $i->line_total])->all(),
+            $salesAccountId,
+            reconcileTo: $subtotal,
+        );
+
         $lines = [
             ['account_id' => $this->account($company, 'accounts_receivable'), 'debit' => (float) $invoice->grand_total, 'contact_id' => $invoice->contact_id, 'memo' => 'Piutang penjualan'],
-            ['account_id' => $this->account($company, 'sales'), 'credit' => $subtotal, 'memo' => 'Penjualan'],
         ];
+
+        foreach ($revenueSplit as $accountId => $amount) {
+            $lines[] = ['account_id' => $accountId, 'credit' => round($amount, 2), 'memo' => 'Penjualan'];
+        }
 
         if ($tax > 0) {
             $lines[] = ['account_id' => $this->account($company, 'tax_output'), 'credit' => $tax, 'memo' => 'PPN Keluaran'];

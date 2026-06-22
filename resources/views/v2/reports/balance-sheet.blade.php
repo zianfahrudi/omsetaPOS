@@ -18,12 +18,23 @@
     @else
         @php
             $rp = fn ($v) => 'Rp '.number_format((float) $v, 0, ',', '.');
-            $sectionTable = function (string $title, $rows, $total) use ($rp) {
+            $groupedTable = function (string $title, $groups, $total) use ($rp) {
                 $html = '<div class="rounded-2xl border border-slate-200 bg-white p-5">';
                 $html .= '<h2 class="mb-3 text-sm font-semibold text-slate-900">'.e($title).'</h2>';
                 $html .= '<table class="w-full text-sm"><tbody>';
-                foreach ($rows as $row) {
-                    $html .= '<tr class="border-b border-slate-100"><td class="py-2 text-slate-600">'.e(($row['code'] ? $row['code'].' · ' : '').$row['name']).'</td><td class="py-2 text-right text-slate-800">'.$rp($row['amount']).'</td></tr>';
+                foreach ($groups as $group) {
+                    $multi = count($group['rows']) > 1 || $group['group_name'] !== 'Lainnya';
+                    if ($multi) {
+                        $html .= '<tr class="bg-slate-50/60"><td class="py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500" colspan="2">'.e($group['group_name']).'</td></tr>';
+                    }
+                    foreach ($group['rows'] as $row) {
+                        $label = ($row['code'] ? $row['code'].' · ' : '').$row['name'];
+                        $pad = $multi ? ' pl-4' : '';
+                        $html .= '<tr class="border-b border-slate-100"><td class="py-2 text-slate-600'.$pad.'">'.e($label).'</td><td class="py-2 text-right text-slate-800">'.$rp($row['amount']).'</td></tr>';
+                    }
+                    if ($multi) {
+                        $html .= '<tr class="border-b border-slate-100 text-xs text-slate-500"><td class="py-1 pl-4">Subtotal '.e($group['group_name']).'</td><td class="py-1 text-right font-medium">'.$rp($group['subtotal']).'</td></tr>';
+                    }
                 }
                 $html .= '</tbody><tfoot><tr class="font-semibold"><td class="pt-3 text-slate-900">Total '.e($title).'</td><td class="pt-3 text-right text-slate-900">'.$rp($total).'</td></tr></tfoot>';
                 $html .= '</table></div>';
@@ -39,11 +50,11 @@
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div class="space-y-6">
-                {!! $sectionTable('Aset', $report['assets'], $report['total_assets']) !!}
+                {!! $groupedTable('Aset', $report['asset_groups'], $report['total_assets']) !!}
             </div>
             <div class="space-y-6">
-                {!! $sectionTable('Liabilitas', $report['liabilities'], $report['total_liabilities']) !!}
-                {!! $sectionTable('Ekuitas', $report['equity'], $report['total_equity']) !!}
+                {!! $groupedTable('Liabilitas', $report['liability_groups'], $report['total_liabilities']) !!}
+                {!! $groupedTable('Ekuitas', $report['equity_groups'], $report['total_equity']) !!}
             </div>
         </div>
     @endif

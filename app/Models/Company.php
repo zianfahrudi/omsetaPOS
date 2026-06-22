@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 #[Fillable([
     'name',
@@ -27,6 +30,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Company extends Model
 {
+    /** @use HasFactory<CompanyFactory> */
+    use HasFactory;
+
     protected function casts(): array
     {
         return [
@@ -98,5 +104,43 @@ class Company extends Model
             ->where('subtype', $subtype)
             ->where('is_active', true)
             ->first();
+    }
+
+    /**
+     * Akun kas/bank aktif & postable yang dapat dipilih saat transaksi
+     * (mis. Kas, Kas Besar, Bank BCA, Bank BNI).
+     *
+     * @return Collection<int, Account>
+     */
+    public function cashBankAccounts(): Collection
+    {
+        return $this->accounts()
+            ->whereIn('subtype', ['cash', 'bank'])
+            ->where('is_active', true)
+            ->where('is_postable', true)
+            ->orderBy('code')
+            ->get();
+    }
+
+    /**
+     * Pilih akun pembayaran: gunakan akun yang dipilih bila valid (kas/bank
+     * milik company ini), jika tidak fallback ke akun sistem default $fallbackSubtype.
+     */
+    public function resolvePaymentAccount(?int $accountId, string $fallbackSubtype): ?Account
+    {
+        if ($accountId !== null) {
+            $account = $this->accounts()
+                ->whereKey($accountId)
+                ->whereIn('subtype', ['cash', 'bank'])
+                ->where('is_active', true)
+                ->where('is_postable', true)
+                ->first();
+
+            if ($account) {
+                return $account;
+            }
+        }
+
+        return $this->account($fallbackSubtype);
     }
 }

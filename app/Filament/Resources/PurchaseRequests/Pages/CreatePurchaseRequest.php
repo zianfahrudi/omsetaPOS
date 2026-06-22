@@ -37,6 +37,6 @@ class CreatePurchaseRequest extends CreateRecord
             $this->halt();
         }
 
-        return new PurchaseRequest();
+        return new PurchaseRequest;
     }
 }

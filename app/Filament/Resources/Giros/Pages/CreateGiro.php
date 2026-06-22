@@ -38,6 +38,6 @@ class CreateGiro extends CreateRecord
             $this->halt();
         }
 
-        return new Giro();
+        return new Giro;
     }
 }
